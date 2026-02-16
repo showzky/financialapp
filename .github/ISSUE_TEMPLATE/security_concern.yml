@@ -1,0 +1,112 @@
+name: Security Concern
+description: Report a security vulnerability or concern (please use private reporting for serious vulnerabilities)
+title: "[Security]: "
+labels: ["security"]
+assignees:
+  - showzky
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ IMPORTANT - Read First
+        
+        **For serious security vulnerabilities, please DO NOT use this public issue template.**
+        
+        Instead, use [GitHub's private security advisory feature](https://github.com/showzky/financialapp/security/advisories/new) to report vulnerabilities privately.
+        
+        This template is for:
+        - General security concerns
+        - Security improvement suggestions
+        - Non-critical security questions
+        - Security-related discussions
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity Level
+      description: How severe do you consider this security concern?
+      options:
+        - Low - General security improvement
+        - Medium - Potential security issue
+        - High - Should use private reporting instead
+        - Critical - MUST use private reporting instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Security Concern Description
+      description: Describe the security concern or vulnerability
+      placeholder: |
+        Please provide:
+        - What is the security concern?
+        - Where is it located? (file, component, feature)
+        - What could go wrong?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Security Category
+      description: What type of security concern is this?
+      options:
+        - Authentication/Authorization
+        - Data validation/sanitization
+        - Dependency vulnerability
+        - Information disclosure
+        - Cross-Site Scripting (XSS)
+        - Injection vulnerability
+        - Insecure configuration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could happen if this issue is exploited?
+      placeholder: Describe the potential impact...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce (if applicable)
+      description: How can this security concern be demonstrated?
+      placeholder: |
+        1. Go to '...'
+        2. Do '...'
+        3. Observe '...'
+
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Recommended Fix
+      description: Do you have suggestions for how to fix this?
+      placeholder: Describe your recommended solution...
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to similar issues, CVEs, security advisories, or documentation
+      placeholder: |
+        - https://...
+        - CVE-...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I understand that critical vulnerabilities should be reported privately
+          required: true
+        - label: This is a low/medium severity concern appropriate for public discussion
+          required: true
+        - label: I have checked that this is not already reported
+          required: true
