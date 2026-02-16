@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { BudgetCategoryType, BudgetState } from '@/types/budget'
 import type { RecurringTransaction } from '@/types/recurring'
-import { hasBackendConfig, getBackendAccessToken } from '@/services/backendClient'
+import { hasBackendConfig } from '@/services/backendClient'
 import { categoryApi } from '@/services/categoryApi'
 
 const sampleState: BudgetState = {
@@ -138,7 +138,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // ADD THIS: hydrate local categories from backend when api + access token are available
-    if (!hasBackendConfig() || !getBackendAccessToken()) return
+    if (!hasBackendConfig()) return
 
     void categoryApi
       .list()
@@ -186,7 +186,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     })
 
     // ADD THIS: persist category remotely if backend auth context is available
-    if (!hasBackendConfig() || !getBackendAccessToken() || !tempCategoryId) return
+    if (!hasBackendConfig() || !tempCategoryId) return
 
     void categoryApi
       .create({
@@ -244,7 +244,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     }))
 
     // ADD THIS: sync amount updates to backend when configured
-    if (!hasBackendConfig() || !getBackendAccessToken()) return
+    if (!hasBackendConfig()) return
 
     const payload: { allocated?: number; spent?: number } = {}
     if (updates.allocated !== undefined) {
@@ -269,7 +269,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     }))
 
     // ADD THIS: remove category in backend when configured
-    if (!hasBackendConfig() || !getBackendAccessToken()) return
+    if (!hasBackendConfig()) return
 
     void categoryApi.remove(id).catch(() => {
       // ADD THIS: keep local deletion to avoid UI blocking if backend call fails

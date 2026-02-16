@@ -4,6 +4,19 @@ import { z } from 'zod'
 
 dotenv.config()
 
+const booleanFromEnv = (fallback: boolean) =>
+  z
+    .union([z.boolean(), z.string()])
+    .transform((value) => {
+      if (typeof value === 'boolean') return value
+
+      const normalized = value.trim().toLowerCase()
+      if (['true', '1', 'yes', 'on'].includes(normalized)) return true
+      if (['false', '0', 'no', 'off'].includes(normalized)) return false
+      return fallback
+    })
+    .default(fallback)
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
@@ -12,6 +25,11 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url().min(1, 'SUPABASE_URL is required'),
   SUPABASE_JWT_AUDIENCE: z.string().min(1).default('authenticated'),
   SUPABASE_JWT_ISSUER: z.string().url().optional(),
+  DATABASE_SSL: booleanFromEnv(true),
+  DATABASE_SSL_REJECT_UNAUTHORIZED: booleanFromEnv(false),
+  DEV_USER_ID: z.string().uuid().default('00000000-0000-0000-0000-000000000001'),
+  DEV_USER_EMAIL: z.string().email().default('local@financetracker.local'),
+  DEV_USER_NAME: z.string().min(1).default('Local User'),
 })
 
 export const env = envSchema.parse(process.env)

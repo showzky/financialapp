@@ -13,11 +13,10 @@ const createHeaders = (initHeaders?: HeadersInit): Headers => {
   headers.set('Content-Type', 'application/json')
 
   const token = getBackendAccessToken()
-  if (!token) {
-    throw new Error('Missing finance-access-token in localStorage')
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
   }
 
-  headers.set('Authorization', `Bearer ${token}`)
   return headers
 }
 

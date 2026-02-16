@@ -2,6 +2,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { env } from '../config/env.js'
+import { userModel } from '../models/userModel.js'
 import { AppError } from '../utils/appError.js'
 
 const issuer = env.SUPABASE_JWT_ISSUER ?? `${env.SUPABASE_URL}/auth/v1`
@@ -22,26 +23,46 @@ const parseBearerToken = (authorizationHeader: string | undefined): string => {
 
 export const requireAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = parseBearerToken(req.header('authorization'))
+    const authorizationHeader = req.header('authorization')
 
-    const { payload } = await jwtVerify(token, jwks, {
-      issuer,
-      audience: env.SUPABASE_JWT_AUDIENCE,
-    })
+    if (!authorizationHeader) {
+      if (env.NODE_ENV === 'production') {
+        throw new AppError('Missing authorization header', 401)
+      }
 
-    if (!payload.sub || typeof payload.sub !== 'string') {
-      throw new AppError('Invalid token subject', 401)
+      req.auth = {
+        userId: env.DEV_USER_ID,
+        email: env.DEV_USER_EMAIL,
+      }
+    } else {
+      const token = parseBearerToken(authorizationHeader)
+
+      const { payload } = await jwtVerify(token, jwks, {
+        issuer,
+        audience: env.SUPABASE_JWT_AUDIENCE,
+      })
+
+      if (!payload.sub || typeof payload.sub !== 'string') {
+        throw new AppError('Invalid token subject', 401)
+      }
+
+      req.auth =
+        typeof payload.email === 'string'
+          ? {
+              userId: payload.sub,
+              email: payload.email,
+            }
+          : {
+              userId: payload.sub,
+            }
     }
 
-    req.auth =
-      typeof payload.email === 'string'
-        ? {
-            userId: payload.sub,
-            email: payload.email,
-          }
-        : {
-            userId: payload.sub,
-          }
+    const authUserId = req.auth.userId
+    await userModel.upsertFromAuth({
+      id: authUserId,
+      email: req.auth.email ?? `${authUserId}@financetracker.local`,
+      displayName: req.auth.email ? req.auth.email.split('@')[0] || env.DEV_USER_NAME : env.DEV_USER_NAME,
+    })
 
     next()
   } catch (error) {

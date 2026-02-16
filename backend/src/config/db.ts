@@ -3,9 +3,18 @@ import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 import { env } from './env.js'
 import { logger } from './logger.js'
 
+if (env.NODE_ENV !== 'production' && env.DATABASE_SSL && !env.DATABASE_SSL_REJECT_UNAUTHORIZED) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+}
+
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false,
+  ssl: env.DATABASE_SSL
+    ? {
+        rejectUnauthorized:
+          env.NODE_ENV === 'production' ? true : env.DATABASE_SSL_REJECT_UNAUTHORIZED,
+      }
+    : false,
 })
 
 pool.on('error', (error: Error) => {
