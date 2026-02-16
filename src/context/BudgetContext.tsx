@@ -4,6 +4,7 @@ import type { BudgetCategoryType, BudgetState } from '@/types/budget'
 import type { RecurringTransaction } from '@/types/recurring'
 import { hasBackendConfig } from '@/services/backendClient'
 import { categoryApi } from '@/services/categoryApi'
+import { userApi } from '@/services/userApi'
 
 const sampleState: BudgetState = {
   month: 'February 2026',
@@ -140,6 +141,20 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     // ADD THIS: hydrate local categories from backend when api + access token are available
     if (!hasBackendConfig()) return
 
+    void userApi
+      .getMe()
+      .then((remoteUser) => {
+        setState((current) => ({
+          ...current,
+          income: Number.isFinite(remoteUser.monthlyIncome)
+            ? Math.max(0, remoteUser.monthlyIncome)
+            : current.income,
+        }))
+      })
+      .catch(() => {
+        // ADD THIS: keep local income if backend user profile is unavailable
+      })
+
     void categoryApi
       .list()
       .then((remoteCategories) => {
@@ -215,6 +230,13 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
       ...current,
       income,
     }))
+
+    // ADD THIS: sync income update to backend profile so refresh keeps latest value
+    if (!hasBackendConfig()) return
+
+    void userApi.updateMe({ monthlyIncome: income }).catch(() => {
+      // ADD THIS: keep local income if backend sync fails
+    })
   }
 
   const updateCategoryAmounts = (id: string, updates: { allocated?: number; spent?: number }) => {

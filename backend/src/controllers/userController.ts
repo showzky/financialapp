@@ -12,8 +12,9 @@ const upsertUserSchema = z.object({
 const updateUserSchema = z
   .object({
     displayName: z.string().trim().min(1).max(100).optional(),
+    monthlyIncome: z.number().finite().nonnegative().optional(),
   })
-  .refine((value) => value.displayName !== undefined, {
+  .refine((value) => value.displayName !== undefined || value.monthlyIncome !== undefined, {
     message: 'At least one field must be provided',
   })
 
