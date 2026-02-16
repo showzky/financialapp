@@ -4,12 +4,14 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { History } from '@/pages/History'
 import { HistorySnapshot } from '@/pages/HistorySnapshot'
 import { Home } from '@/pages/Home'
+import { Notes } from '@/pages/Notes'
 
 function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/notes" element={<Notes />} />
         <Route path="/history" element={<History />} />
         <Route path="/history/:id" element={<HistorySnapshot />} />
         <Route path="*" element={<Navigate to="/" replace />} />

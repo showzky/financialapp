@@ -1,7 +1,9 @@
 // ADD THIS: Lightweight budget context with sample state
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { BudgetCategoryType, BudgetState } from '@/types/budget'
 import type { RecurringTransaction } from '@/types/recurring'
+import { hasBackendConfig, getBackendAccessToken } from '@/services/backendClient'
+import { categoryApi } from '@/services/categoryApi'
 
 const sampleState: BudgetState = {
   month: 'February 2026',
@@ -134,6 +136,23 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
   const [recurringTransactions, setRecurringTransactions] =
     useState<RecurringTransaction[]>(readRecurringFromStorage)
 
+  useEffect(() => {
+    // ADD THIS: hydrate local categories from backend when api + access token are available
+    if (!hasBackendConfig() || !getBackendAccessToken()) return
+
+    void categoryApi
+      .list()
+      .then((remoteCategories) => {
+        setState((current) => ({
+          ...current,
+          categories: remoteCategories,
+        }))
+      })
+      .catch(() => {
+        // ADD THIS: keep local state if backend is unreachable or token is invalid
+      })
+  }, [])
+
   const addCategory = (name: string, type: BudgetCategoryType) => {
     // ADD THIS: create category from user input in modal
     const trimmedName = name.trim()
@@ -141,18 +160,22 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
     const id = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
+    let tempCategoryId = ''
+
     setState((current) => {
       const alreadyExists = current.categories.some(
         (category) => category.name.toLowerCase() === trimmedName.toLowerCase(),
       )
       if (alreadyExists) return current
 
+      tempCategoryId = `${id || 'category'}-${Date.now()}`
+
       return {
         ...current,
         categories: [
           ...current.categories,
           {
-            id: `${id || 'category'}-${Date.now()}`,
+            id: tempCategoryId,
             name: trimmedName,
             type,
             allocated: 0,
@@ -161,6 +184,28 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         ],
       }
     })
+
+    // ADD THIS: persist category remotely if backend auth context is available
+    if (!hasBackendConfig() || !getBackendAccessToken() || !tempCategoryId) return
+
+    void categoryApi
+      .create({
+        name: trimmedName,
+        type,
+        allocated: 0,
+        spent: 0,
+      })
+      .then((created) => {
+        setState((current) => ({
+          ...current,
+          categories: current.categories.map((category) =>
+            category.id === tempCategoryId ? created : category,
+          ),
+        }))
+      })
+      .catch(() => {
+        // ADD THIS: keep optimistic local category even if backend sync fails
+      })
   }
 
   const updateIncome = (income: number) => {
@@ -197,6 +242,23 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         }
       }),
     }))
+
+    // ADD THIS: sync amount updates to backend when configured
+    if (!hasBackendConfig() || !getBackendAccessToken()) return
+
+    const payload: { allocated?: number; spent?: number } = {}
+    if (updates.allocated !== undefined) {
+      payload.allocated = Math.max(0, Number(updates.allocated) || 0)
+    }
+    if (updates.spent !== undefined) {
+      payload.spent = Math.max(0, Number(updates.spent) || 0)
+    }
+
+    if (payload.allocated === undefined && payload.spent === undefined) return
+
+    void categoryApi.update(id, payload).catch(() => {
+      // ADD THIS: keep local values if backend sync fails
+    })
   }
 
   const removeCategory = (id: string) => {
@@ -205,6 +267,13 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
       ...current,
       categories: current.categories.filter((category) => category.id !== id),
     }))
+
+    // ADD THIS: remove category in backend when configured
+    if (!hasBackendConfig() || !getBackendAccessToken()) return
+
+    void categoryApi.remove(id).catch(() => {
+      // ADD THIS: keep local deletion to avoid UI blocking if backend call fails
+    })
   }
 
   const reorderCategories = (orderedIds: string[]) => {
