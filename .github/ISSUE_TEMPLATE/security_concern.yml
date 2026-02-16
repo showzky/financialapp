@@ -1,7 +1,7 @@
 name: Security Concern
 description: Report a security vulnerability or concern (please use private reporting for serious vulnerabilities)
-title: "[Security]: "
-labels: ["security"]
+title: '[Security]: '
+labels: ['security']
 assignees:
   - showzky
 body:
@@ -9,11 +9,11 @@ body:
     attributes:
       value: |
         ## ⚠️ IMPORTANT - Read First
-        
+
         **For serious security vulnerabilities, please DO NOT use this public issue template.**
-        
+
         Instead, use [GitHub's private security advisory feature](https://github.com/showzky/financialapp/security/advisories/new) to report vulnerabilities privately.
-        
+
         This template is for:
         - General security concerns
         - Security improvement suggestions

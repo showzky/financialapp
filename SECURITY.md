@@ -4,10 +4,10 @@
 
 This project is a personal financial application. Security updates are provided for the latest version only.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| Latest  | :white_check_mark: |
-| < Latest| :x:                |
+| Version  | Supported          |
+| -------- | ------------------ |
+| Latest   | :white_check_mark: |
+| < Latest | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -70,12 +70,14 @@ This repository implements the following security measures:
 ## Scope
 
 This security policy covers:
+
 - The codebase in this repository
 - Dependencies listed in package.json
 - Build and deployment processes
 - GitHub Actions workflows
 
 Out of scope:
+
 - Third-party integrations (Vercel, external APIs)
 - User data (this is a personal project)
 - Infrastructure (handled by Vercel)

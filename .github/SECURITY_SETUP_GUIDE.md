@@ -3,6 +3,7 @@
 This guide provides step-by-step instructions for hardening the `showzky/financialapp` repository.
 
 ## Table of Contents
+
 1. [Branch Protection Rules](#branch-protection-rules)
 2. [Secret Scanning](#secret-scanning)
 3. [Dependabot Security Updates](#dependabot-security-updates)
@@ -136,6 +137,7 @@ This guide provides step-by-step instructions for hardening the `showzky/financi
 ### Configuration (Already Done via `.github/dependabot.yml`)
 
 Dependabot is configured to:
+
 - Check for updates weekly (every Monday)
 - Group minor/patch updates together
 - Separate PRs for major updates
@@ -200,7 +202,6 @@ pnpm outdated
    - **Production Deployments** (main branch):
      - Trigger: On push to `main`
      - Domain: `financialapp.vercel.app` (or your custom domain)
-   
    - **Preview Deployments** (all other branches):
      - Trigger: On push to any branch (including `development`)
      - Domain: `financialapp-git-<branch>-showzky.vercel.app`
@@ -368,22 +369,27 @@ Use this checklist to confirm everything is properly secured:
 ## Additional Security Recommendations
 
 ### 1. Enable Two-Factor Authentication (2FA)
+
 - **Why**: Protects your GitHub account from unauthorized access
 - **Setup**: https://github.com/settings/security
 
 ### 2. Use SSH Keys for Git Operations
+
 - **Why**: More secure than HTTPS passwords
 - **Setup**: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
 
 ### 3. Review Access Regularly
+
 - **Why**: Ensures only authorized users have access
 - **Check**: https://github.com/showzky/financialapp/settings/access
 
 ### 4. Monitor Security Advisories
+
 - **Why**: Stay informed about new vulnerabilities
 - **Subscribe**: Watch the repository and enable security alerts
 
 ### 5. Regular Security Audits
+
 - **Schedule**: Monthly review of:
   - Open Dependabot alerts
   - CodeQL findings
@@ -395,19 +401,23 @@ Use this checklist to confirm everything is properly secured:
 ## Troubleshooting
 
 ### Cannot Merge PR Due to Branch Protection
+
 - **Solution**: Ensure all required status checks pass
 - **Check**: CI workflow logs for failures
 - **Fix**: Address failing tests/lints/builds
 
 ### Dependabot PR Conflicts
+
 - **Solution**: Rebase the PR or close and let Dependabot recreate it
 - **Command**: `@dependabot rebase` in PR comment
 
 ### CodeQL Analysis Fails
+
 - **Solution**: Check workflow logs for errors
 - **Common fix**: Update `@github/codeql-action` to latest version
 
 ### Secret Accidentally Committed
+
 1. **Immediately revoke** the secret
 2. **Rotate** with a new secret
 3. **Update** in Vercel environment variables
@@ -418,6 +428,7 @@ Use this checklist to confirm everything is properly secured:
 ## Questions or Issues?
 
 If you encounter any issues with this security setup:
+
 1. Check the [GitHub documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features)
 2. Review workflow logs for errors
 3. Create an issue using the bug report template
