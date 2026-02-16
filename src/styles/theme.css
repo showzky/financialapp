@@ -1,0 +1,39 @@
+/* ADD THIS: Neumorphic theme tokens */
+:root {
+  --color-surface: #e8edf5;
+  --color-surface-strong: #dde4ef;
+  --color-accent: #6c7df0;
+  --color-accent-strong: #4f61d8;
+  --color-text-primary: #1f2a44;
+  --color-text-muted: #657394;
+  --color-shadow-dark: #c2c8d4;
+  --color-shadow-light: #ffffff;
+  --app-bg: radial-gradient(circle at 20% 20%, #f4f8ff, #e8edf5 45%, #e2e7f2 100%);
+  --radius-neo: 18px;
+}
+
+/* ADD THIS: global dark palette, applied app-wide via data attribute */
+:root[data-theme='dark'] {
+  --color-surface: #1f2533;
+  --color-surface-strong: #252c3d;
+  --color-text-primary: #eaf1ff;
+  --color-text-muted: #97a7ca;
+  --color-shadow-dark: #161b27;
+  --color-shadow-light: #2b3347;
+  --app-bg: radial-gradient(circle at 20% 20%, #121926, #171f2e 45%, #1a2434 100%);
+}
+
+/* ADD THIS: Base page styling for soft, raised surfaces */
+body {
+  background: var(--app-bg);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  transition:
+    background 0.32s ease,
+    color 0.28s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
