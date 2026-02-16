@@ -1,6 +1,6 @@
 // ADD THIS: Notes page equivalent for Vite/React (Next.js app route alternative)
 import { useEffect, useState } from 'react'
-import { supabase } from '@/utils/supabase/client'
+import { getSupabaseClient } from '@/utils/supabase/client'
 
 type Note = {
   id: string
@@ -14,6 +14,12 @@ export const Notes = () => {
   useEffect(() => {
     // ADD THIS: fetch notes from Supabase table on page load
     const loadNotes = async () => {
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        setError('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY')
+        return
+      }
+
       const { data, error: supabaseError } = await supabase.from('notes').select('*')
 
       if (supabaseError) {
