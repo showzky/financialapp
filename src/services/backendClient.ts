@@ -1,5 +1,8 @@
 // ADD THIS: shared backend client with bearer-token authentication
-const apiBaseUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() ?? ''
+const defaultBackendUrl = 'https://financialapp-8hyo.onrender.com/api/v1'
+
+const apiBaseUrl =
+  (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() || defaultBackendUrl
 
 export const hasBackendConfig = (): boolean => apiBaseUrl.length > 0
 
