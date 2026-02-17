@@ -22,14 +22,50 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   CORS_ORIGIN: z.string().url().or(z.literal('*')).default('http://localhost:5173'),
+  AUTH_PROVIDER: z.enum(['supabase', 'local']).default('local'),
   SUPABASE_URL: z.string().url().min(1, 'SUPABASE_URL is required'),
   SUPABASE_JWT_AUDIENCE: z.string().min(1).default('authenticated'),
   SUPABASE_JWT_ISSUER: z.string().url().optional(),
+  LOCAL_AUTH_EMAIL: z.string().email().optional(),
+  LOCAL_AUTH_PASSWORD_HASH: z.string().min(1).optional(),
+  LOCAL_AUTH_USER_ID: z.string().uuid().default('00000000-0000-0000-0000-000000000001'),
+  LOCAL_AUTH_USER_NAME: z.string().min(1).default('Local User'),
+  LOCAL_AUTH_JWT_SECRET: z.string().min(32).optional(),
+  LOCAL_AUTH_JWT_EXPIRES_IN: z.string().min(2).default('8h'),
+  ALLOW_DEV_AUTH_BYPASS: booleanFromEnv(false),
   DATABASE_SSL: booleanFromEnv(true),
   DATABASE_SSL_REJECT_UNAUTHORIZED: booleanFromEnv(false),
   DEV_USER_ID: z.string().uuid().default('00000000-0000-0000-0000-000000000001'),
   DEV_USER_EMAIL: z.string().email().default('local@financetracker.local'),
   DEV_USER_NAME: z.string().min(1).default('Local User'),
+})
+.superRefine((value, ctx) => {
+  // ADD THIS: strict conditional auth configuration validation
+  if (value.AUTH_PROVIDER === 'local') {
+    if (!value.LOCAL_AUTH_EMAIL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'LOCAL_AUTH_EMAIL is required when AUTH_PROVIDER=local',
+        path: ['LOCAL_AUTH_EMAIL'],
+      })
+    }
+
+    if (!value.LOCAL_AUTH_PASSWORD_HASH) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'LOCAL_AUTH_PASSWORD_HASH is required when AUTH_PROVIDER=local',
+        path: ['LOCAL_AUTH_PASSWORD_HASH'],
+      })
+    }
+
+    if (!value.LOCAL_AUTH_JWT_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'LOCAL_AUTH_JWT_SECRET is required when AUTH_PROVIDER=local',
+        path: ['LOCAL_AUTH_JWT_SECRET'],
+      })
+    }
+  }
 })
 
 export const env = envSchema.parse(process.env)

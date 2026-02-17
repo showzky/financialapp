@@ -6,12 +6,13 @@ import { HistorySnapshot } from '@/pages/HistorySnapshot'
 import { Home } from '@/pages/Home'
 import { Login } from '@/pages/Login'
 import { Notes } from '@/pages/Notes'
+import { getBackendAccessToken } from '@/services/backendClient'
 
 // ADD THIS: Frontend-only route guard for locked pages
 const RequireFrontendLogin = () => {
-  const isUnlocked = sessionStorage.getItem('finance_tracker_unlocked') === 'true'
+  const hasToken = Boolean(getBackendAccessToken())
 
-  if (!isUnlocked) {
+  if (!hasToken) {
     return <Navigate to="/login" replace />
   }
 

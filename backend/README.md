@@ -17,6 +17,23 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 - `SUPABASE_JWT_AUDIENCE`: usually `authenticated`
 - `SUPABASE_JWT_ISSUER`: usually `${SUPABASE_URL}/auth/v1`
 - `CORS_ORIGIN`: your frontend origin (for local dev: `http://localhost:5173`)
+- `AUTH_PROVIDER`: `local` or `supabase` (default: `local`)
+- `LOCAL_AUTH_EMAIL`: your login email (required when `AUTH_PROVIDER=local`)
+- `LOCAL_AUTH_PASSWORD_HASH`: generated password hash (required when `AUTH_PROVIDER=local`)
+- `LOCAL_AUTH_JWT_SECRET`: long random secret for token signing (required when `AUTH_PROVIDER=local`)
+- `ALLOW_DEV_AUTH_BYPASS`: keep `false` unless explicitly needed in local testing
+
+## Generate secure local credentials
+
+Run this once:
+
+- `pnpm auth:generate`
+
+It prints these values for `backend/.env`:
+
+- `LOCAL_AUTH_PASSWORD_HASH`
+- `LOCAL_AUTH_JWT_SECRET`
+- `GENERATED_PASSWORD` (store this safely)
 
 ## Frontend-to-backend connection
 
@@ -39,6 +56,7 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 ## API base
 
 - `GET /health`
+- `POST /api/v1/auth/login`
 - `POST /api/v1/users/me`
 - `GET /api/v1/users/me`
 - `PATCH /api/v1/users/me`
@@ -53,3 +71,9 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 - `GET /api/v1/transactions/:id`
 - `PATCH /api/v1/transactions/:id`
 - `DELETE /api/v1/transactions/:id`
+
+## Login flow (`AUTH_PROVIDER=local`)
+
+1. `POST /api/v1/auth/login` with `email` + `password`
+2. Read `accessToken` from response
+3. Send `Authorization: Bearer <accessToken>` on all `/api/v1/*` protected routes

@@ -1,14 +1,25 @@
 // ADD THIS: shared backend client with bearer-token authentication
 const defaultBackendUrl = 'https://financialapp-8hyo.onrender.com/api/v1'
+const backendTokenStorageKey = 'finance-access-token'
 
-const apiBaseUrl =
+export const apiBaseUrl =
   (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() || defaultBackendUrl
 
 export const hasBackendConfig = (): boolean => apiBaseUrl.length > 0
 
 export const getBackendAccessToken = (): string | null => {
   if (typeof window === 'undefined') return null
-  return window.localStorage.getItem('finance-access-token')
+  return window.localStorage.getItem(backendTokenStorageKey)
+}
+
+export const setBackendAccessToken = (token: string): void => {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(backendTokenStorageKey, token)
+}
+
+export const clearBackendAccessToken = (): void => {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(backendTokenStorageKey)
 }
 
 const createHeaders = (initHeaders?: HeadersInit): Headers => {

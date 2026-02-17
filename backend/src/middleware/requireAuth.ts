@@ -4,6 +4,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { env } from '../config/env.js'
 import { userModel } from '../models/userModel.js'
 import { AppError } from '../utils/appError.js'
+import { verifyLocalAuthToken } from '../utils/localAuth.js'
 
 const issuer = env.SUPABASE_JWT_ISSUER ?? `${env.SUPABASE_URL}/auth/v1`
 const jwks = createRemoteJWKSet(new URL(`${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`))
@@ -25,8 +26,15 @@ export const requireAuth = async (req: Request, _res: Response, next: NextFuncti
   try {
     const authorizationHeader = req.header('authorization')
 
-    if (!authorizationHeader) {
-      if (env.NODE_ENV === 'production') {
+    if (env.AUTH_PROVIDER === 'local') {
+      if (!authorizationHeader) {
+        throw new AppError('Missing authorization header', 401)
+      }
+
+      const token = parseBearerToken(authorizationHeader)
+      req.auth = await verifyLocalAuthToken(token)
+    } else if (!authorizationHeader) {
+      if (env.NODE_ENV === 'production' || !env.ALLOW_DEV_AUTH_BYPASS) {
         throw new AppError('Missing authorization header', 401)
       }
 

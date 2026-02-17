@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { authApi } from '@/services/authApi'
+import { hasBackendConfig, setBackendAccessToken } from '@/services/backendClient'
 
 // ADD THIS: Frontend-only login screen UI (no real authentication yet)
 export const Login = () => {
@@ -11,33 +13,32 @@ export const Login = () => {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // ADD THIS: Temporary submit handler (UI only for now)
-  const handleSubmit = (e: React.FormEvent) => {
+  // ADD THIS: secure login submit using backend auth endpoint
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    // ADD THIS: Frontend-only credential gate (temporary until backend auth)
-    const expectedEmail = (import.meta.env.VITE_LOGIN_EMAIL as string | undefined) ?? ''
-    const expectedPassword =
-      (import.meta.env.VITE_LOGIN_PASSWORD as string | undefined) ?? ''
-
-    if (!expectedEmail || !expectedPassword) {
-      setError('Login is not configured yet. Add VITE_LOGIN_EMAIL and VITE_LOGIN_PASSWORD.')
-      return
-    }
-
-    const isMatch =
-      email.trim().toLowerCase() === expectedEmail.trim().toLowerCase() &&
-      password === expectedPassword
-
-    if (!isMatch) {
-      setError('Invalid credentials')
-      return
-    }
-
     setError('')
-    sessionStorage.setItem('finance_tracker_unlocked', 'true')
-    navigate('/', { replace: true })
+
+    if (!hasBackendConfig()) {
+      setError('Backend URL is not configured. Set VITE_BACKEND_URL first.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const response = await authApi.login({
+        email: email.trim().toLowerCase(),
+        password,
+      })
+
+      setBackendAccessToken(response.accessToken)
+      navigate('/', { replace: true })
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Login failed')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -101,9 +102,10 @@ export const Login = () => {
             {/* ADD THIS: Submit button */}
             <button
               type="submit"
+              disabled={isSubmitting}
               className="mt-2 w-full rounded-xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-[#05070f] transition hover:brightness-110"
             >
-              Enter Dashboard
+              {isSubmitting ? 'Signing in...' : 'Enter Dashboard'}
             </button>
 
             {/* ADD THIS: Inline login error message */}
