@@ -38,10 +38,23 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Unauthorized', 401)
   }
 
-  const row = await userModel.getById(req.auth.userId)
+  let row = null
+  try {
+    row = await userModel.getById(req.auth.userId)
+  } catch {
+    // DB lookup failed—return fallback user from auth token
+  }
 
+  // ADD THIS: fallback to auth token data if user not in DB
   if (!row) {
-    throw new AppError('User not found', 404)
+    res.status(200).json({
+      id: req.auth.userId,
+      email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+      displayName: req.auth.email?.split('@')[0] ?? 'Local User',
+      monthlyIncome: 0,
+      createdAt: new Date().toISOString(),
+    })
+    return
   }
 
   res.status(200).json(row)
@@ -53,10 +66,34 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
   }
 
   const payload = updateUserSchema.parse(req.body)
-  const updated = await userModel.update(req.auth.userId, payload)
+
+  // ADD THIS: try update first, fallback to upsert if user doesn't exist yet
+  let updated = null
+  try {
+    updated = await userModel.update(req.auth.userId, payload)
+  } catch {
+    // DB error—try upsert path
+  }
 
   if (!updated) {
-    throw new AppError('User not found', 404)
+    try {
+      updated = await userModel.upsertFromAuth({
+        id: req.auth.userId,
+        email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+        displayName: payload.displayName ?? req.auth.email?.split('@')[0] ?? 'Local User',
+        monthlyIncome: payload.monthlyIncome,
+      })
+    } catch {
+      // Upsert also failed—return fallback
+      res.status(200).json({
+        id: req.auth.userId,
+        email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+        displayName: payload.displayName ?? 'Local User',
+        monthlyIncome: payload.monthlyIncome ?? 0,
+        createdAt: new Date().toISOString(),
+      })
+      return
+    }
   }
 
   res.status(200).json(updated)

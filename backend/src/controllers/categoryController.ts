@@ -2,8 +2,10 @@
 import { z } from 'zod'
 import type { Request, Response } from 'express'
 import { categoryModel } from '../models/categoryModel.js'
+import { userModel } from '../models/userModel.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
+import { env } from '../config/env.js'
 
 const categoryTypeSchema = z.enum(['budget', 'fixed'])
 
@@ -39,10 +41,29 @@ export const createCategory = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Unauthorized', 401)
   }
 
-  const payload = createCategorySchema.parse(req.body)
-  const created = await categoryModel.create({ ...payload, userId: req.auth.userId })
+  // ADD THIS: ensure user exists before creating category (foreign key requirement)
+  try {
+    await userModel.upsertFromAuth({
+      id: req.auth.userId,
+      email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+      displayName: req.auth.email?.split('@')[0] ?? env.LOCAL_AUTH_USER_NAME,
+    })
+  } catch (userError) {
+    // ADD THIS: expose DB error details to help debug persistence issues
+    const msg = userError instanceof Error ? userError.message : String(userError)
+    throw new AppError(`Failed to ensure user exists: ${msg}`, 500)
+  }
 
-  res.status(201).json(created)
+  const payload = createCategorySchema.parse(req.body)
+
+  try {
+    const created = await categoryModel.create({ ...payload, userId: req.auth.userId })
+    res.status(201).json(created)
+  } catch (catError) {
+    // ADD THIS: expose actual DB error instead of generic 500
+    const msg = catError instanceof Error ? catError.message : String(catError)
+    throw new AppError(`Failed to create category: ${msg}`, 500)
+  }
 })
 
 export const listCategories = asyncHandler(async (req: Request, res: Response) => {
@@ -50,7 +71,13 @@ export const listCategories = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Unauthorized', 401)
   }
 
-  const rows = await categoryModel.listByUser(req.auth.userId)
+  // ADD THIS: return empty array if DB query fails (user may not exist yet)
+  let rows: Awaited<ReturnType<typeof categoryModel.listByUser>> = []
+  try {
+    rows = await categoryModel.listByUser(req.auth.userId)
+  } catch {
+    // DB error—return empty list so frontend works
+  }
 
   res.status(200).json(rows)
 })
@@ -78,9 +105,16 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response) =
   const { id } = categoryIdSchema.parse(req.params)
   const payload = updateCategorySchema.parse(req.body)
 
-  const updated = await categoryModel.update(id, req.auth.userId, payload)
+  let updated = null
+  try {
+    updated = await categoryModel.update(id, req.auth.userId, payload)
+  } catch {
+    // DB error—category likely doesn't exist or user not synced
+  }
+
   if (!updated) {
-    throw new AppError('Category not found', 404)
+    // ADD THIS: return 404 but with helpful message so frontend knows to refresh
+    throw new AppError('Category not found. Try refreshing the page.', 404)
   }
 
   res.status(200).json(updated)

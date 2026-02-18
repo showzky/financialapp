@@ -10,12 +10,6 @@ import { verifyPasswordHash } from '../utils/passwordHash.js'
 
 export const authRouter = Router()
 
-const loginSchema = z.object({
-  // ADD THIS: username-style login input mapped to an email value
-  email: z.string().email().trim().toLowerCase(),
-  password: z.string().min(8).max(128),
-})
-
 const getCookieOptions = () => ({
   // ADD THIS: hardened session cookie policy
   httpOnly: true,
@@ -25,11 +19,18 @@ const getCookieOptions = () => ({
   maxAge: env.LOCAL_AUTH_COOKIE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
 })
 
+const loginSchema = z.object({
+  // ADD THIS: username-style login input mapped to an email value
+  email: z.string().email().trim().toLowerCase(),
+  password: z.string().min(8).max(128),
+})
+
 const sendSuccessfulLogin = async (
   res: Response,
   input: { userId: string; email: string },
 ) => {
   const accessToken = await createLocalAuthToken({ userId: input.userId, email: input.email })
+
   // ADD THIS: store session token in secure httpOnly cookie instead of exposing token to JS
   res.cookie(env.LOCAL_AUTH_COOKIE_NAME, accessToken, getCookieOptions())
 
