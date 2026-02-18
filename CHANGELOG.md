@@ -16,6 +16,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Hardened backend dev auth bypass rules to allow bypass only for localhost requests in non-production when explicitly enabled.
 - Improved wishlist product preview extraction by prioritizing JSON-LD product metadata (title, image, and price) before OG/meta fallbacks.
 - Refactored inline wishlist category tag markup for readability without changing behavior.
+- Improved wishlist preview extraction for JS-heavy shops by parsing app JSON payload scripts and added short-lived cache for faster repeat URL previews.
+- Rebalanced wishlist product card media area so product images are less visually dominant.
 
 ### Fixed
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.

@@ -550,12 +550,12 @@ export const Wishlist = () => {
                   isReadyToBuy ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'bg-surface'
                 }`}
               >
-                <div className="grid h-48 place-items-center border-b border-slate-200 bg-slate-100">
+                <div className="grid h-36 place-items-center border-b border-slate-200 bg-slate-50 p-3">
                   {item.imageUrl ? (
                     <img
                       src={item.imageUrl}
                       alt={item.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full rounded-lg object-contain"
                       loading="lazy"
                     />
                   ) : (

@@ -14,6 +14,14 @@ type JsonLdExtraction = {
   prices: string[]
 }
 
+type CachedProductMetadata = {
+  expiresAt: number
+  data: ProductMetadata
+}
+
+const previewCache = new Map<string, CachedProductMetadata>()
+const PREVIEW_CACHE_TTL_MS = 5 * 60 * 1000
+
 const toAbsoluteUrl = (value: string, baseUrl: string) => {
   try {
     return new URL(value, baseUrl).toString()
@@ -244,6 +252,80 @@ const extractJsonLdMetadata = (raw: string): JsonLdExtraction => {
   }
 }
 
+const extractFromAppJson = (raw: string): JsonLdExtraction => {
+  const titles = new Set<string>()
+  const images = new Set<string>()
+  const prices = new Set<string>()
+
+  const titleKeys = new Set(['name', 'title', 'productname', 'producttitle'])
+  const imageKeys = new Set(['image', 'imageurl', 'mainimage', 'thumbnail', 'primaryimage'])
+  const priceKeys = new Set(['price', 'currentprice', 'saleprice', 'regularprice', 'amount'])
+
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    const queue: unknown[] = [parsed]
+    let visited = 0
+
+    while (queue.length > 0 && visited < 10000) {
+      visited += 1
+      const current = queue.shift()
+      if (!current) continue
+
+      if (Array.isArray(current)) {
+        queue.push(...current)
+        continue
+      }
+
+      if (typeof current !== 'object') continue
+
+      const record = current as Record<string, unknown>
+      for (const [rawKey, value] of Object.entries(record)) {
+        const key = rawKey.replace(/[_-]/g, '').toLowerCase()
+
+        if (typeof value === 'string') {
+          const text = value.trim()
+          if (!text) continue
+
+          if (titleKeys.has(key) && text.length > 2) {
+            titles.add(text)
+          }
+
+          if (imageKeys.has(key) && /^https?:\/\//i.test(text)) {
+            images.add(text)
+          }
+
+          if (priceKeys.has(key)) {
+            prices.add(text)
+          }
+
+          continue
+        }
+
+        if (typeof value === 'number' && Number.isFinite(value) && priceKeys.has(key)) {
+          prices.add(String(value))
+          continue
+        }
+
+        if (value && typeof value === 'object') {
+          queue.push(value)
+        }
+      }
+    }
+  } catch {
+    return {
+      titles: [],
+      images: [],
+      prices: [],
+    }
+  }
+
+  return {
+    titles: Array.from(titles),
+    images: Array.from(images),
+    prices: Array.from(prices),
+  }
+}
+
 export const getProductData = async (url: string): Promise<ProductMetadata> => {
   let parsedUrl: URL
 
@@ -257,12 +339,17 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
     throw new AppError('Only http/https URLs are supported', 400)
   }
 
+  const cached = previewCache.get(url)
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data
+  }
+
   let html = ''
   let finalUrl = url
 
   try {
     const response = await axios.get<string>(url, {
-      timeout: 10000,
+      timeout: 6500,
       maxRedirects: 5,
       responseType: 'text',
       headers: {
@@ -290,7 +377,18 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
     jsonLdExtractions.push(extractJsonLdMetadata(raw))
   })
 
-  const jsonLdTitle = jsonLdExtractions.flatMap((entry) => entry.titles).find((entry) => entry.trim().length > 0) || ''
+  const appJsonExtractions: JsonLdExtraction[] = []
+  $('script#__NEXT_DATA__, script#__NUXT_DATA__, script[type="application/json"][id*="data" i]')
+    .toArray()
+    .forEach((tag) => {
+      const raw = $(tag).text()
+      if (!raw || raw.trim().length < 2) return
+      appJsonExtractions.push(extractFromAppJson(raw))
+    })
+
+  const allExtractions = [...jsonLdExtractions, ...appJsonExtractions]
+
+  const jsonLdTitle = allExtractions.flatMap((entry) => entry.titles).find((entry) => entry.trim().length > 0) || ''
 
   const title =
     jsonLdTitle ||
@@ -316,7 +414,7 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
       imageCandidates.add(content)
     })
 
-  jsonLdExtractions.flatMap((entry) => entry.images).forEach((candidate) => imageCandidates.add(candidate))
+  allExtractions.flatMap((entry) => entry.images).forEach((candidate) => imageCandidates.add(candidate))
 
   const bestImage = Array.from(imageCandidates)
     .map((candidate) => toAbsoluteUrl(candidate, finalUrl))
@@ -328,7 +426,7 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
     .sort((a, b) => b.score - a.score)[0]?.candidate || ''
 
   const jsonLdPrice =
-    jsonLdExtractions
+    allExtractions
       .flatMap((entry) => entry.prices)
       .map((entry) => normalizePrice(entry))
       .find((entry): entry is string => Boolean(entry)) || null
@@ -350,9 +448,25 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
 
   const normalizedPrice = jsonLdPrice || normalizePrice(metaPrice || selectorPrice)
 
-  return {
+  const result = {
     title,
     image: bestImage,
     price: normalizedPrice,
   }
+
+  previewCache.set(url, {
+    expiresAt: Date.now() + PREVIEW_CACHE_TTL_MS,
+    data: result,
+  })
+
+  if (previewCache.size > 300) {
+    const now = Date.now()
+    for (const [cacheKey, cacheEntry] of previewCache) {
+      if (cacheEntry.expiresAt <= now) {
+        previewCache.delete(cacheKey)
+      }
+    }
+  }
+
+  return result
 }
