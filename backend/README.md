@@ -21,7 +21,8 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 - `LOCAL_AUTH_EMAIL`: your login email (required when `AUTH_PROVIDER=local`)
 - `LOCAL_AUTH_PASSWORD_HASH`: generated password hash (required when `AUTH_PROVIDER=local`)
 - `LOCAL_AUTH_JWT_SECRET`: long random secret for token signing (required when `AUTH_PROVIDER=local`)
-- `ALLOW_DEV_AUTH_BYPASS`: keep `false` unless explicitly needed in local testing
+- `DEV_BYPASS_AUTH`: set `true` only when `NODE_ENV=development` and you intentionally want auth bypass for local testing
+- `ALLOW_DEV_AUTH_BYPASS`: legacy fallback toggle (prefer `DEV_BYPASS_AUTH`)
 
 ## Generate secure local credentials
 
@@ -77,3 +78,8 @@ It prints these values for `backend/.env`:
 1. `POST /api/v1/auth/login` with `email` + `password`
 2. Read `accessToken` from response
 3. Send `Authorization: Bearer <accessToken>` on all `/api/v1/*` protected routes
+
+## Development auth bypass (safe guardrails)
+
+- Bypass only activates when both `NODE_ENV=development` and `DEV_BYPASS_AUTH=true`.
+- In production, missing bearer tokens are always rejected.

@@ -32,6 +32,7 @@ const envSchema = z.object({
   LOCAL_AUTH_USER_NAME: z.string().min(1).default('Local User'),
   LOCAL_AUTH_JWT_SECRET: z.string().min(32).optional(),
   LOCAL_AUTH_JWT_EXPIRES_IN: z.string().min(2).default('8h'),
+  DEV_BYPASS_AUTH: booleanFromEnv(false),
   ALLOW_DEV_AUTH_BYPASS: booleanFromEnv(false),
   DATABASE_SSL: booleanFromEnv(true),
   DATABASE_SSL_REJECT_UNAUTHORIZED: booleanFromEnv(false),

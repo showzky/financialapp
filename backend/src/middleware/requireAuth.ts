@@ -25,8 +25,16 @@ const parseBearerToken = (authorizationHeader: string | undefined): string => {
 export const requireAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     const authorizationHeader = req.header('authorization')
+    const canBypassAuthInDev =
+      env.NODE_ENV === 'development' && (env.DEV_BYPASS_AUTH || env.ALLOW_DEV_AUTH_BYPASS)
 
-    if (env.AUTH_PROVIDER === 'local') {
+    if (!authorizationHeader && canBypassAuthInDev) {
+      // ADD THIS: explicit local-development bypass, never active in production
+      req.auth = {
+        userId: env.DEV_USER_ID,
+        email: env.DEV_USER_EMAIL,
+      }
+    } else if (env.AUTH_PROVIDER === 'local') {
       if (!authorizationHeader) {
         throw new AppError('Missing authorization header', 401)
       }
@@ -34,14 +42,7 @@ export const requireAuth = async (req: Request, _res: Response, next: NextFuncti
       const token = parseBearerToken(authorizationHeader)
       req.auth = await verifyLocalAuthToken(token)
     } else if (!authorizationHeader) {
-      if (env.NODE_ENV === 'production' || !env.ALLOW_DEV_AUTH_BYPASS) {
-        throw new AppError('Missing authorization header', 401)
-      }
-
-      req.auth = {
-        userId: env.DEV_USER_ID,
-        email: env.DEV_USER_EMAIL,
-      }
+      throw new AppError('Missing authorization header', 401)
     } else {
       const token = parseBearerToken(authorizationHeader)
 

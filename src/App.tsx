@@ -12,6 +12,12 @@ import { Wishlist } from '@/pages/Wishlist'
 // ADD THIS: Frontend-only route guard for locked pages
 const RequireFrontendLogin = () => {
   const hasToken = Boolean(getBackendAccessToken())
+  const isDevBypassEnabled =
+    import.meta.env.DEV && String(import.meta.env.VITE_DEV_BYPASS_AUTH).trim().toLowerCase() === 'true'
+
+  if (isDevBypassEnabled) {
+    return <Outlet />
+  }
 
   if (!hasToken) {
     return <Navigate to="/login" replace />
