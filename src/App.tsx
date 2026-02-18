@@ -7,6 +7,7 @@ import { Home } from '@/pages/Home'
 import { Login } from '@/pages/Login'
 import { Notes } from '@/pages/Notes'
 import { getBackendAccessToken } from '@/services/backendClient'
+import { Wishlist } from '@/pages/Wishlist'
 
 // ADD THIS: Frontend-only route guard for locked pages
 const RequireFrontendLogin = () => {
@@ -28,6 +29,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/notes" element={<Notes />} />
+          <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/history" element={<History />} />
           <Route path="/history/:id" element={<HistorySnapshot />} />
         </Route>
