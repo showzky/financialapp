@@ -29,14 +29,22 @@ export const createLocalAuthToken = async (payload: {
 
   const secret = new TextEncoder().encode(env.LOCAL_AUTH_JWT_SECRET)
 
-  return new SignJWT({ email: payload.email })
+  const baseToken = new SignJWT({ email: payload.email })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuer(TOKEN_ISSUER)
     .setAudience(TOKEN_AUDIENCE)
     .setSubject(payload.userId)
     .setIssuedAt()
-    .setExpirationTime(env.LOCAL_AUTH_JWT_EXPIRES_IN)
-    .sign(secret)
+
+  try {
+    return await baseToken
+      .setExpirationTime(env.LOCAL_AUTH_JWT_EXPIRES_IN)
+      .sign(secret)
+  } catch {
+    return baseToken
+      .setExpirationTime('8h')
+      .sign(secret)
+  }
 }
 
 export const verifyLocalAuthToken = async (

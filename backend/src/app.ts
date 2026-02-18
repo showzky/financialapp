@@ -1,4 +1,5 @@
 // ADD THIS: secure express app bootstrap
+import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
@@ -42,6 +43,7 @@ app.use(
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   }),
 )
+app.use(cookieParser())
 app.use(express.json({ limit: '100kb' }))
 app.use(express.urlencoded({ extended: false, limit: '100kb' }))
 app.use(pinoHttp({ logger }))

@@ -7,7 +7,6 @@ type LoginPayload = {
 }
 
 type LoginResponse = {
-  accessToken: string
   tokenType: 'Bearer'
   expiresIn: string
   user: {
@@ -25,6 +24,7 @@ export const authApi = {
 
     const response = await fetch(`${apiBaseUrl}/auth/login`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -47,5 +47,20 @@ export const authApi = {
     }
 
     return (await response.json()) as LoginResponse
+  },
+
+  async logout(): Promise<void> {
+    if (!hasBackendConfig()) {
+      throw new Error('VITE_BACKEND_URL is not configured')
+    }
+
+    const response = await fetch(`${apiBaseUrl}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+
+    if (!response.ok && response.status !== 204) {
+      throw new Error(`Logout failed with status ${response.status}`)
+    }
   },
 }

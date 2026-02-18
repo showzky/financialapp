@@ -11,7 +11,9 @@ const run = async () => {
   // eslint-disable-next-line no-console
   console.log('Copy these values into backend/.env:')
   // eslint-disable-next-line no-console
-  console.log(`LOCAL_AUTH_PASSWORD_HASH=${passwordHash}`)
+  console.log('APP_USERNAME=owner@financetracker.local')
+  // eslint-disable-next-line no-console
+  console.log(`APP_PASSWORD_HASH=${passwordHash}`)
   // eslint-disable-next-line no-console
   console.log(`LOCAL_AUTH_JWT_SECRET=${jwtSecret}`)
   // eslint-disable-next-line no-console

@@ -1,14 +1,17 @@
 // ADD THIS: Persistent navigation shell for Dashboard and History routes
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { clearBackendAccessToken } from '@/services/backendClient'
+import { authApi } from '@/services/authApi'
 
 export const AppLayout = () => {
   // ADD THIS: navigate user back to login after token clear
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    clearBackendAccessToken()
-    navigate('/login', { replace: true })
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+    } finally {
+      navigate('/login', { replace: true })
+    }
   }
 
   return (

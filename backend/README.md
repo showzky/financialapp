@@ -18,11 +18,13 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 - `SUPABASE_JWT_ISSUER`: usually `${SUPABASE_URL}/auth/v1`
 - `CORS_ORIGIN`: your frontend origin (for local dev: `http://localhost:5173`)
 - `AUTH_PROVIDER`: `local` or `supabase` (default: `local`)
-- `LOCAL_AUTH_EMAIL`: your login email (required when `AUTH_PROVIDER=local`)
-- `LOCAL_AUTH_PASSWORD_HASH`: generated password hash (required when `AUTH_PROVIDER=local`)
+- `APP_USERNAME`: bootstrap login email for first-time local setup
+- `APP_PASSWORD_HASH`: bootstrap password hash paired with `APP_USERNAME`
 - `LOCAL_AUTH_JWT_SECRET`: long random secret for token signing (required when `AUTH_PROVIDER=local`)
-- `DEV_BYPASS_AUTH`: set `true` only when `NODE_ENV=development` and you intentionally want auth bypass for local testing
-- `ALLOW_DEV_AUTH_BYPASS`: legacy fallback toggle (prefer `DEV_BYPASS_AUTH`)
+- `LOCAL_AUTH_COOKIE_NAME`: auth cookie name (default: `finance_session`)
+- `LOCAL_AUTH_COOKIE_SAME_SITE`: `strict` or `lax`
+- `LOCAL_AUTH_COOKIE_MAX_AGE_DAYS`: cookie session duration in days
+- `ALLOW_DEV_AUTH_BYPASS`: keep `false` unless explicitly needed in local testing
 
 ## Generate secure local credentials
 
@@ -40,8 +42,7 @@ It prints these values for `backend/.env`:
 
 - Create `NewApp/.env.local` with:
 	- `VITE_BACKEND_URL=http://localhost:4000/api/v1`
-- Frontend expects a Supabase user access token in local storage key:
-	- `finance-access-token`
+- Frontend uses cookie-based auth (`credentials: include`) for login/session.
 
 ## Security defaults
 
@@ -76,10 +77,5 @@ It prints these values for `backend/.env`:
 ## Login flow (`AUTH_PROVIDER=local`)
 
 1. `POST /api/v1/auth/login` with `email` + `password`
-2. Read `accessToken` from response
-3. Send `Authorization: Bearer <accessToken>` on all `/api/v1/*` protected routes
-
-## Development auth bypass (safe guardrails)
-
-- Bypass only activates when both `NODE_ENV=development` and `DEV_BYPASS_AUTH=true`.
-- In production, missing bearer tokens are always rejected.
+2. Server sets secure httpOnly session cookie
+3. Frontend automatically sends cookie on protected `/api/v1/*` requests
