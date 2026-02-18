@@ -11,6 +11,22 @@ type WishlistItem = {
   savedAmount: number
 }
 
+type ProductFormState = {
+  title: string
+  url: string
+  price: string
+  imageUrl: string
+  category: string
+}
+
+const emptyProductForm: ProductFormState = {
+  title: '',
+  url: '',
+  price: '',
+  imageUrl: '',
+  category: '',
+}
+
 const WISHLIST_STORAGE_KEY = 'finance-wishlist-items-v1'
 
 const readWishlistFromStorage = (): WishlistItem[] => {
@@ -55,21 +71,17 @@ const getDomainFromUrl = (value: string) => {
 
 const formatWishlistPrice = (price: number | null) => {
   if (price === null) return 'No price yet'
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('nb-NO', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'NOK',
     minimumFractionDigits: 2,
   }).format(price)
 }
 
 export const Wishlist = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [productTitle, setProductTitle] = useState('')
-  const [productPrice, setProductPrice] = useState('')
+  const [productForm, setProductForm] = useState<ProductFormState>({ ...emptyProductForm })
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
-  const [productUrl, setProductUrl] = useState('')
-  const [productImageUrl, setProductImageUrl] = useState('')
-  const [productCategory, setProductCategory] = useState('')
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>(readWishlistFromStorage)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
@@ -80,12 +92,16 @@ export const Wishlist = () => {
   const [depositAmount, setDepositAmount] = useState('')
   const [hasTriedDepositSubmit, setHasTriedDepositSubmit] = useState(false)
 
-  const normalizedTitle = productTitle.trim()
-  const normalizedUrl = productUrl.trim()
-  const normalizedImageUrl = productImageUrl.trim()
-  const normalizedCategory = productCategory.trim()
-  const normalizedPrice = productPrice.trim()
+  const normalizedTitle = productForm.title.trim()
+  const normalizedUrl = productForm.url.trim()
+  const normalizedImageUrl = productForm.imageUrl.trim()
+  const normalizedCategory = productForm.category.trim()
+  const normalizedPrice = productForm.price.trim()
   const normalizedDepositAmount = depositAmount.trim()
+
+  const updateProductForm = (updates: Partial<ProductFormState>) => {
+    setProductForm((current) => ({ ...current, ...updates }))
+  }
 
   const isValidHttpUrl = (value: string) => {
     try {
@@ -112,11 +128,7 @@ export const Wishlist = () => {
     selectedDepositId === null ? null : wishlistItems.find((item) => item.id === selectedDepositId) ?? null
 
   const resetAddProductForm = () => {
-    setProductTitle('')
-    setProductUrl('')
-    setProductPrice('')
-    setProductImageUrl('')
-    setProductCategory('')
+    setProductForm({ ...emptyProductForm })
     setHasTriedSubmit(false)
     setEditingProductId(null)
     setPreviewError('')
@@ -154,11 +166,13 @@ export const Wishlist = () => {
 
   const handleOpenEditModal = (item: WishlistItem) => {
     setEditingProductId(item.id)
-    setProductTitle(item.title)
-    setProductUrl(item.url)
-    setProductPrice(item.price === null ? '' : String(item.price))
-    setProductImageUrl(item.imageUrl)
-    setProductCategory(item.category)
+    setProductForm({
+      title: item.title,
+      url: item.url,
+      price: item.price === null ? '' : String(item.price),
+      imageUrl: item.imageUrl,
+      category: item.category,
+    })
     setHasTriedSubmit(false)
     setIsAddModalOpen(true)
   }
@@ -209,17 +223,12 @@ export const Wishlist = () => {
     try {
       const preview = await wishlistApi.previewFromUrl(normalizedUrl)
 
-      if (!normalizedTitle && preview.title) {
-        setProductTitle(preview.title)
-      }
-
-      if (!normalizedImageUrl && preview.imageUrl) {
-        setProductImageUrl(preview.imageUrl)
-      }
-
-      if (!normalizedPrice && preview.price !== null) {
-        setProductPrice(String(preview.price))
-      }
+      setProductForm((current) => ({
+        ...current,
+        title: current.title.trim() === '' && preview.title ? preview.title : current.title,
+        imageUrl: current.imageUrl.trim() === '' && preview.imageUrl ? preview.imageUrl : current.imageUrl,
+        price: current.price.trim() === '' && preview.price !== null ? String(preview.price) : current.price,
+      }))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not auto-fetch product info'
       setPreviewError(message)
@@ -286,8 +295,8 @@ export const Wishlist = () => {
                     id="wishlist-product-title"
                     type="text"
                     placeholder="e.g., Wireless Headphones"
-                    value={productTitle}
-                    onChange={(e) => setProductTitle(e.target.value)}
+                    value={productForm.title}
+                    onChange={(e) => updateProductForm({ title: e.target.value })}
                     className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                   />
                   {hasTriedSubmit && normalizedTitle === '' ? (
@@ -304,8 +313,8 @@ export const Wishlist = () => {
                     type="text"
                     inputMode="decimal"
                     placeholder="e.g., 99.99"
-                    value={productPrice}
-                    onChange={(e) => setProductPrice(e.target.value)}
+                    value={productForm.price}
+                    onChange={(e) => updateProductForm({ price: e.target.value })}
                     className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                   />
                   {hasTriedSubmit && !hasValidPriceFormat ? (
@@ -321,8 +330,8 @@ export const Wishlist = () => {
                     id="wishlist-product-url"
                     type="url"
                     placeholder="e.g., https://example.com/product"
-                    value={productUrl}
-                    onChange={(e) => setProductUrl(e.target.value)}
+                    value={productForm.url}
+                    onChange={(e) => updateProductForm({ url: e.target.value })}
                     onBlur={() => {
                       void handleAutoFillFromUrl()
                     }}
@@ -353,8 +362,8 @@ export const Wishlist = () => {
                     id="wishlist-product-image-url"
                     type="url"
                     placeholder="e.g., https://example.com/image.jpg"
-                    value={productImageUrl}
-                    onChange={(e) => setProductImageUrl(e.target.value)}
+                    value={productForm.imageUrl}
+                    onChange={(e) => updateProductForm({ imageUrl: e.target.value })}
                     className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                   />
                   {hasTriedSubmit && isImageUrlPresent && !hasValidImageUrlFormat ? (
@@ -368,8 +377,8 @@ export const Wishlist = () => {
                   </label>
                   <select
                     id="wishlist-category"
-                    value={productCategory}
-                    onChange={(e) => setProductCategory(e.target.value)}
+                    value={productForm.category}
+                    onChange={(e) => updateProductForm({ category: e.target.value })}
                     className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                   >
                     <option value="">Select a category</option>
