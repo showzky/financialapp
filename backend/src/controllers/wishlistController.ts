@@ -1,6 +1,7 @@
 import { isIP } from 'node:net'
 import { z } from 'zod'
 import type { Request, Response } from 'express'
+import { getProductData } from '../services/productMetadataService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
 
@@ -38,125 +39,6 @@ const isBlockedHost = (hostname: string) => {
   return false
 }
 
-const decodeHtmlEntities = (value: string) =>
-  value
-    .replaceAll('&amp;', '&')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>')
-
-const extractMetaContent = (html: string, keys: string[]) => {
-  for (const key of keys) {
-    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const regex = new RegExp(
-      `<meta[^>]+(?:property|name|itemprop)=["']${escaped}["'][^>]*content=["']([^"']+)["'][^>]*>|<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name|itemprop)=["']${escaped}["'][^>]*>`,
-      'i',
-    )
-    const match = html.match(regex)
-    const content = match?.[1] ?? match?.[2]
-    if (content) return decodeHtmlEntities(content.trim())
-  }
-
-  return ''
-}
-
-const extractAllMetaContent = (html: string, key: string) => {
-  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(
-    `<meta[^>]+(?:property|name|itemprop)=["']${escaped}["'][^>]*content=["']([^"']+)["'][^>]*>|<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name|itemprop)=["']${escaped}["'][^>]*>`,
-    'gi',
-  )
-
-  const values: string[] = []
-  for (const match of html.matchAll(regex)) {
-    const content = match[1] ?? match[2]
-    if (!content) continue
-    values.push(decodeHtmlEntities(content.trim()))
-  }
-
-  return values
-}
-
-const extractTitle = (html: string) => {
-  const ogTitle = extractMetaContent(html, ['og:title', 'twitter:title'])
-  if (ogTitle) return ogTitle
-
-  const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is)
-  if (!titleMatch?.[1]) return ''
-  return decodeHtmlEntities(titleMatch[1].replace(/\s+/g, ' ').trim())
-}
-
-const extractImageUrl = (html: string, baseUrl: string) => {
-  const metaCandidates = [
-    ...extractAllMetaContent(html, 'og:image:secure_url'),
-    ...extractAllMetaContent(html, 'og:image:url'),
-    ...extractAllMetaContent(html, 'og:image'),
-    ...extractAllMetaContent(html, 'twitter:image'),
-    ...extractAllMetaContent(html, 'twitter:image:src'),
-  ]
-
-  const jsonLdImageMatch = html.match(/"image"\s*:\s*(\[[^\]]+\]|"[^"]+")/i)
-  if (jsonLdImageMatch?.[1]) {
-    const raw = jsonLdImageMatch[1]
-    const imageUrlMatches = Array.from(raw.matchAll(/"(https?:[^"\s]+)"/gi))
-      .map((entry) => entry[1])
-      .filter((value): value is string => Boolean(value))
-    metaCandidates.push(...imageUrlMatches)
-  }
-
-  const resolved = metaCandidates
-    .map((candidate) => {
-      try {
-        return new URL(candidate, baseUrl).toString()
-      } catch {
-        return ''
-      }
-    })
-    .filter(Boolean)
-
-  const scored = resolved
-    .map((value) => {
-      const normalized = value.toLowerCase()
-      let score = 0
-      if (normalized.includes('/img/')) score += 5
-      if (normalized.includes('/product/')) score += 4
-      if (normalized.includes('secure')) score += 2
-      if (normalized.includes('logo') || normalized.includes('favicon') || normalized.includes('icon')) {
-        score -= 8
-      }
-      if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg') || normalized.endsWith('.webp')) {
-        score += 2
-      }
-      return { value, score }
-    })
-    .sort((a, b) => b.score - a.score)
-
-  return scored[0]?.value ?? ''
-}
-
-const extractPrice = (html: string) => {
-  const directMeta = extractMetaContent(html, [
-    'product:price:amount',
-    'og:price:amount',
-    'twitter:data1',
-    'price',
-    'product:price',
-  ])
-
-  const parsedDirect = Number(directMeta.replace(/[^0-9.,]/g, '').replace(',', '.'))
-  if (directMeta && !Number.isNaN(parsedDirect) && parsedDirect >= 0) {
-    return parsedDirect
-  }
-
-  const jsonLdPriceMatch = html.match(/"price"\s*:\s*"?([0-9]+(?:[.,][0-9]{1,2})?)"?/i)
-  if (!jsonLdPriceMatch?.[1]) return null
-
-  const parsedJsonLd = Number(jsonLdPriceMatch[1].replace(',', '.'))
-  if (Number.isNaN(parsedJsonLd) || parsedJsonLd < 0) return null
-  return parsedJsonLd
-}
-
 const buildFallbackTitleFromUrl = (value: string) => {
   try {
     const parsed = new URL(value)
@@ -176,55 +58,11 @@ const buildFallbackTitleFromUrl = (value: string) => {
   }
 }
 
-const fetchHtmlPage = async (targetUrl: string, signal: AbortSignal) => {
-  const response = await fetch(targetUrl, {
-    method: 'GET',
-    redirect: 'follow',
-    signal,
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml',
-      'Accept-Language': 'nb-NO,nb;q=0.9,en-US;q=0.8,en;q=0.7',
-    },
-  })
-
-  if (!response.ok) {
-    return null
-  }
-
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!contentType.toLowerCase().includes('text/html')) {
-    return null
-  }
-
-  return {
-    html: await response.text(),
-    sourceUrl: response.url || targetUrl,
-  }
-}
-
-const fetchViaJinaFallback = async (targetUrl: string, signal: AbortSignal) => {
-  const fallbackUrl = `https://r.jina.ai/http://${targetUrl.replace(/^https?:\/\//i, '')}`
-  const response = await fetch(fallbackUrl, {
-    method: 'GET',
-    redirect: 'follow',
-    signal,
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-      Accept: 'text/plain,text/markdown',
-    },
-  })
-
-  if (!response.ok) {
-    return null
-  }
-
-  return {
-    html: await response.text(),
-    sourceUrl: targetUrl,
-  }
+const parsePriceToNumber = (value: string | null) => {
+  if (!value) return null
+  const parsed = Number(value.replace(/[^0-9.]/g, ''))
+  if (Number.isNaN(parsed) || parsed < 0) return null
+  return parsed
 }
 
 export const previewWishlistProduct = asyncHandler(async (req: Request, res: Response) => {
@@ -240,33 +78,25 @@ export const previewWishlistProduct = asyncHandler(async (req: Request, res: Res
     throw new AppError('This host is not allowed', 400)
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 12000)
-
   try {
-    const direct = await fetchHtmlPage(parsedUrl.toString(), controller.signal).catch(() => null)
-    const previewSource = direct ?? (await fetchViaJinaFallback(parsedUrl.toString(), controller.signal).catch(() => null))
-
-    if (!previewSource) {
-      res.status(200).json({
-        title: buildFallbackTitleFromUrl(normalizedUrl),
-        imageUrl: null,
-        price: null,
-        sourceUrl: normalizedUrl,
-      })
-      return
-    }
-
-    const html = previewSource.html
-    const extractedTitle = extractTitle(html)
+    const metadata = await getProductData(normalizedUrl)
 
     res.status(200).json({
-      title: extractedTitle || buildFallbackTitleFromUrl(normalizedUrl),
-      imageUrl: extractImageUrl(html, previewSource.sourceUrl || normalizedUrl) || null,
-      price: extractPrice(html),
-      sourceUrl: previewSource.sourceUrl || normalizedUrl,
+      title: metadata.title || buildFallbackTitleFromUrl(normalizedUrl),
+      imageUrl: metadata.image || null,
+      price: parsePriceToNumber(metadata.price),
+      sourceUrl: normalizedUrl,
     })
-  } finally {
-    clearTimeout(timeout)
+  } catch (error) {
+    if (error instanceof AppError && error.statusCode === 400) {
+      throw error
+    }
+
+    res.status(200).json({
+      title: buildFallbackTitleFromUrl(normalizedUrl),
+      imageUrl: null,
+      price: null,
+      sourceUrl: normalizedUrl,
+    })
   }
 })
