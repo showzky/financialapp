@@ -61,6 +61,23 @@ const extractMetaContent = (html: string, keys: string[]) => {
   return ''
 }
 
+const extractAllMetaContent = (html: string, key: string) => {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(
+    `<meta[^>]+(?:property|name|itemprop)=["']${escaped}["'][^>]*content=["']([^"']+)["'][^>]*>|<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name|itemprop)=["']${escaped}["'][^>]*>`,
+    'gi',
+  )
+
+  const values: string[] = []
+  for (const match of html.matchAll(regex)) {
+    const content = match[1] ?? match[2]
+    if (!content) continue
+    values.push(decodeHtmlEntities(content.trim()))
+  }
+
+  return values
+}
+
 const extractTitle = (html: string) => {
   const ogTitle = extractMetaContent(html, ['og:title', 'twitter:title'])
   if (ogTitle) return ogTitle
@@ -71,14 +88,51 @@ const extractTitle = (html: string) => {
 }
 
 const extractImageUrl = (html: string, baseUrl: string) => {
-  const raw = extractMetaContent(html, ['og:image', 'twitter:image', 'twitter:image:src'])
-  if (!raw) return ''
+  const metaCandidates = [
+    ...extractAllMetaContent(html, 'og:image:secure_url'),
+    ...extractAllMetaContent(html, 'og:image:url'),
+    ...extractAllMetaContent(html, 'og:image'),
+    ...extractAllMetaContent(html, 'twitter:image'),
+    ...extractAllMetaContent(html, 'twitter:image:src'),
+  ]
 
-  try {
-    return new URL(raw, baseUrl).toString()
-  } catch {
-    return ''
+  const jsonLdImageMatch = html.match(/"image"\s*:\s*(\[[^\]]+\]|"[^"]+")/i)
+  if (jsonLdImageMatch?.[1]) {
+    const raw = jsonLdImageMatch[1]
+    const imageUrlMatches = Array.from(raw.matchAll(/"(https?:[^"\s]+)"/gi))
+      .map((entry) => entry[1])
+      .filter((value): value is string => Boolean(value))
+    metaCandidates.push(...imageUrlMatches)
   }
+
+  const resolved = metaCandidates
+    .map((candidate) => {
+      try {
+        return new URL(candidate, baseUrl).toString()
+      } catch {
+        return ''
+      }
+    })
+    .filter(Boolean)
+
+  const scored = resolved
+    .map((value) => {
+      const normalized = value.toLowerCase()
+      let score = 0
+      if (normalized.includes('/img/')) score += 5
+      if (normalized.includes('/product/')) score += 4
+      if (normalized.includes('secure')) score += 2
+      if (normalized.includes('logo') || normalized.includes('favicon') || normalized.includes('icon')) {
+        score -= 8
+      }
+      if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg') || normalized.endsWith('.webp')) {
+        score += 2
+      }
+      return { value, score }
+    })
+    .sort((a, b) => b.score - a.score)
+
+  return scored[0]?.value ?? ''
 }
 
 const extractPrice = (html: string) => {
