@@ -5,7 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project follows Semantic Versioning principles.
 
 ## [Unreleased]
+### Added
+- Wishlist page UI with route and top-nav entry point.
+- Add Product modal shell on the Wishlist page with title + URL fields and client-side validation (frontend only; no backend persistence yet).
+
+### Changed
+- Restored authentication flow to the previous cookie-based session model for login/logout and protected route checks.
+- Rolled backend auth-related implementation back to a known-good baseline to stabilize login and category API behavior.
+
 ### Fixed
+- Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.
 - Resolved Vercel build failures when Tailwind CSS 4 is installed by updating PostCSS configuration to use the Tailwind v4 plugin path.
 - Added `@tailwindcss/postcss` and a compatibility PostCSS loader so builds work reliably across Tailwind v3 and v4 dependency states.
 

@@ -1,5 +1,38 @@
-// ADD THIS: Wishlist page visual-only UI (no data wiring yet)
+import { useState } from 'react'
+
 export const Wishlist = () => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [productTitle, setProductTitle] = useState('')
+  const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
+  const [productUrl, setProductUrl] = useState('')
+
+  const normalizedTitle = productTitle.trim()
+  const normalizedUrl = productUrl.trim()
+
+  const isValidHttpUrl = (value: string) => {
+    try {
+      const parsed = new URL(value)
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
+  const isUrlPresent = normalizedUrl !== ''
+  const hasValidUrlFormat = isUrlPresent && isValidHttpUrl(normalizedUrl)
+  const isFormValid = normalizedTitle !== '' && hasValidUrlFormat
+
+  const resetAddProductForm = () => {
+    setProductTitle('')
+    setProductUrl('')
+    setHasTriedSubmit(false)
+  }
+
+  const closeAddProductModal = () => {
+    setIsAddModalOpen(false)
+    resetAddProductForm()
+  }
+
   return (
     <div className="min-h-[calc(100vh-8rem)] px-4 py-8 md:px-8 lg:px-12">
       <section className="mx-auto flex w-full max-w-6xl items-start justify-between gap-4">
@@ -28,11 +61,96 @@ export const Wishlist = () => {
           </div>
         </div>
 
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4">
+            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+              <div className="mb-4 flex items-start justify-between">
+                <div>
+                  <h2 className="text-3xl font-semibold text-slate-900">Add New Product</h2>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Add a product to my wishlist
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeAddProductModal}
+                  className="text-xl leading-none text-slate-500 hover:text-slate-800"
+                  aria-label="Close modal"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="wishlist-product-title" className="text-lg font-semibold text-slate-900">
+                  Product Title
+                </label>
+                <input
+                  id="wishlist-product-title"
+                  type="text"
+                  placeholder="e.g., Wireless Headphones"
+                  value={productTitle}
+                  onChange={(e) => setProductTitle(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                />
+                {hasTriedSubmit && normalizedTitle === '' ? (
+                  <p className="text-sm text-red-600">Product title is required.</p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="wishlist-product-url" className="text-lg font-semibold text-slate-900">
+                  Product URL
+                </label>
+                <input
+                  id="wishlist-product-url"
+                  type="url"
+                  placeholder="e.g., https://example.com/product"
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                />
+                {hasTriedSubmit && !isUrlPresent ? (
+                  <p className="text-sm text-red-600">Product URL is required.</p>
+                ) : null}
+                {hasTriedSubmit && isUrlPresent && !hasValidUrlFormat ? (
+                  <p className="text-sm text-red-600">Enter a valid URL starting with http:// or https://.</p>
+                ) : null}
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeAddProductModal}
+                  className="rounded-xl bg-slate-200 px-6 py-3 text-base font-semibold text-slate-700 hover:bg-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasTriedSubmit(true)
+                    if (!isFormValid) return
+
+                    // TODO: Add submit logic here later
+                    closeAddProductModal()
+                  }}
+                  className="rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700"
+                >
+                  Add Product
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <button
           type="button"
+          onClick={() => {
+            resetAddProductForm()
+            setIsAddModalOpen(true)
+          }}
           className="rounded-neo bg-surface px-5 py-3 text-sm font-semibold text-text-primary shadow-neo-sm transition hover:text-accent-strong"
         >
-          {/* ADD THIS: keep button visual-only for now */}
           + Add Product
         </button>
       </section>
