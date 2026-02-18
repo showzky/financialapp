@@ -8,6 +8,12 @@ export type ProductMetadata = {
   price: string | null
 }
 
+type JsonLdExtraction = {
+  titles: string[]
+  images: string[]
+  prices: string[]
+}
+
 const toAbsoluteUrl = (value: string, baseUrl: string) => {
   try {
     return new URL(value, baseUrl).toString()
@@ -33,10 +39,44 @@ const normalizePrice = (value: string) => {
   const cleaned = value.replace(/\s+/g, ' ').trim()
   if (!cleaned) return null
 
-  const numericMatch = cleaned.match(/[0-9]+(?:[\s.,][0-9]{3})*(?:[.,][0-9]{1,2})?/)?.[0]
+  const numericMatch = cleaned.match(/[0-9][0-9\s.,]*/)?.[0]
   if (!numericMatch) return null
 
-  return numericMatch.replace(/\s/g, '').replace(',', '.')
+  const compact = numericMatch.replace(/\s/g, '')
+  if (!compact) return null
+
+  const hasComma = compact.includes(',')
+  const hasDot = compact.includes('.')
+
+  if (!hasComma && !hasDot) {
+    return compact
+  }
+
+  if (hasComma && hasDot) {
+    const lastComma = compact.lastIndexOf(',')
+    const lastDot = compact.lastIndexOf('.')
+    const decimalSeparator = lastComma > lastDot ? ',' : '.'
+    const thousandSeparator = decimalSeparator === ',' ? '.' : ','
+
+    const withoutThousands = compact.split(thousandSeparator).join('')
+    return decimalSeparator === ',' ? withoutThousands.replace(',', '.') : withoutThousands
+  }
+
+  const separator = hasComma ? ',' : '.'
+  const parts = compact.split(separator)
+
+  if (parts.length === 1) {
+    return compact
+  }
+
+  const lastPart = parts.at(-1) ?? ''
+  const appearsDecimal = lastPart.length > 0 && lastPart.length <= 2
+  if (appearsDecimal) {
+    const whole = parts.slice(0, -1).join('')
+    return `${whole}.${lastPart}`
+  }
+
+  return parts.join('')
 }
 
 const fallbackTitleFromUrl = (value: string) => {
@@ -108,6 +148,102 @@ const parseJsonLdImages = (raw: string): string[] => {
   return results
 }
 
+const getStringField = (record: Record<string, unknown>, keys: string[]): string | null => {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim()
+    }
+  }
+
+  return null
+}
+
+const parseJsonLdPrices = (value: unknown, sink: Set<string>) => {
+  if (!value) return
+
+  if (typeof value === 'string') {
+    sink.add(value)
+    return
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    sink.add(String(value))
+    return
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry) => parseJsonLdPrices(entry, sink))
+    return
+  }
+
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+
+    ;['price', 'lowPrice', 'highPrice'].forEach((key) => {
+      parseJsonLdPrices(record[key], sink)
+    })
+
+    parseJsonLdPrices(record.priceSpecification, sink)
+    parseJsonLdPrices(record.offers, sink)
+  }
+}
+
+const extractJsonLdMetadata = (raw: string): JsonLdExtraction => {
+  const titles = new Set<string>()
+  const images = new Set<string>()
+  const prices = new Set<string>()
+
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    const queue: unknown[] = [parsed]
+
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) continue
+
+      if (Array.isArray(current)) {
+        queue.push(...current)
+        continue
+      }
+
+      if (typeof current !== 'object') {
+        continue
+      }
+
+      const record = current as Record<string, unknown>
+
+      const titleCandidate = getStringField(record, ['name', 'title', 'headline'])
+      if (titleCandidate) {
+        titles.add(titleCandidate)
+      }
+
+      const imageCandidates = parseJsonLdImages(JSON.stringify(record))
+      imageCandidates.forEach((entry) => images.add(entry))
+
+      parseJsonLdPrices(record, prices)
+
+      Object.values(record).forEach((entry) => {
+        if (entry && typeof entry === 'object') {
+          queue.push(entry)
+        }
+      })
+    }
+  } catch {
+    return {
+      titles: [],
+      images: [],
+      prices: [],
+    }
+  }
+
+  return {
+    titles: Array.from(titles),
+    images: Array.from(images),
+    prices: Array.from(prices),
+  }
+}
+
 export const getProductData = async (url: string): Promise<ProductMetadata> => {
   let parsedUrl: URL
 
@@ -147,7 +283,17 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
 
   const $ = load(html)
 
+  const jsonLdExtractions: JsonLdExtraction[] = []
+  $('script[type="application/ld+json"]').toArray().forEach((tag) => {
+    const raw = $(tag).text()
+    if (!raw) return
+    jsonLdExtractions.push(extractJsonLdMetadata(raw))
+  })
+
+  const jsonLdTitle = jsonLdExtractions.flatMap((entry) => entry.titles).find((entry) => entry.trim().length > 0) || ''
+
   const title =
+    jsonLdTitle ||
     $('meta[property="og:title"]').attr('content')?.trim() ||
     $('meta[name="twitter:title"]').attr('content')?.trim() ||
     $('title').text().replace(/\s+/g, ' ').trim() ||
@@ -170,11 +316,7 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
       imageCandidates.add(content)
     })
 
-  $('script[type="application/ld+json"]').toArray().forEach((tag) => {
-    const raw = $(tag).text()
-    if (!raw) return
-    parseJsonLdImages(raw).forEach((candidate) => imageCandidates.add(candidate))
-  })
+  jsonLdExtractions.flatMap((entry) => entry.images).forEach((candidate) => imageCandidates.add(candidate))
 
   const bestImage = Array.from(imageCandidates)
     .map((candidate) => toAbsoluteUrl(candidate, finalUrl))
@@ -185,10 +327,17 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
     }))
     .sort((a, b) => b.score - a.score)[0]?.candidate || ''
 
+  const jsonLdPrice =
+    jsonLdExtractions
+      .flatMap((entry) => entry.prices)
+      .map((entry) => normalizePrice(entry))
+      .find((entry): entry is string => Boolean(entry)) || null
+
   const metaPrice =
     $('meta[property="product:price:amount"]').attr('content')?.trim() ||
     $('meta[property="og:price:amount"]').attr('content')?.trim() ||
     $('meta[name="price"]').attr('content')?.trim() ||
+    $('meta[itemprop="price:amount"]').attr('content')?.trim() ||
     $('meta[itemprop="price"]').attr('content')?.trim() ||
     ''
 
@@ -199,7 +348,7 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
     $('[class*="price"]').first().text().trim() ||
     ''
 
-  const normalizedPrice = normalizePrice(metaPrice || selectorPrice)
+  const normalizedPrice = jsonLdPrice || normalizePrice(metaPrice || selectorPrice)
 
   return {
     title,

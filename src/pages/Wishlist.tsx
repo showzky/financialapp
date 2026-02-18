@@ -581,7 +581,21 @@ export const Wishlist = () => {
 
                 <div className="space-y-3 p-4">
                   {item.category ? (
-                    <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="inline-block mr-1 h-4 w-4 text-slate-500"
+                        fill="none"
+                        viewBox="0 0 20 20"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      >
+                        <path d="M17.707 10.293l-8-8A1 1 0 008.586 2H3a1 1 0 00-1 1v5.586a1 1 0 00.293.707l8 8a1 1 0 001.414 0l6-6a1 1 0 000-1.414z" />
+                        <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" />
+                      </svg>
                       {item.category}
                     </span>
                   ) : null}

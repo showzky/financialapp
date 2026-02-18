@@ -8,10 +8,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 ### Added
 - Wishlist page UI with route and top-nav entry point.
 - Add Product modal shell on the Wishlist page with title + URL fields and client-side validation (frontend only; no backend persistence yet).
+- Localhost-only frontend login bypass toggle for development via `VITE_DISABLE_LOGIN_ON_LOCALHOST`.
 
 ### Changed
 - Restored authentication flow to the previous cookie-based session model for login/logout and protected route checks.
 - Rolled backend auth-related implementation back to a known-good baseline to stabilize login and category API behavior.
+- Hardened backend dev auth bypass rules to allow bypass only for localhost requests in non-production when explicitly enabled.
+- Improved wishlist product preview extraction by prioritizing JSON-LD product metadata (title, image, and price) before OG/meta fallbacks.
+- Refactored inline wishlist category tag markup for readability without changing behavior.
 
 ### Fixed
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.

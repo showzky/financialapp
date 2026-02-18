@@ -10,8 +10,22 @@ import { Notes } from '@/pages/Notes'
 import { userApi } from '@/services/userApi'
 import { Wishlist } from '@/pages/Wishlist'
 
+const isLocalDevHost = (): boolean => {
+  if (!import.meta.env.DEV) return false
+  const currentHost = window.location.hostname.toLowerCase()
+  return currentHost === 'localhost' || currentHost === '127.0.0.1'
+}
+
+const shouldBypassLoginOnLocalhost = (): boolean => {
+  return isLocalDevHost() && import.meta.env.VITE_DISABLE_LOGIN_ON_LOCALHOST === 'true'
+}
+
 // ADD THIS: Protected route guard based on backend session cookie validation
 const RequireFrontendLogin = () => {
+  if (shouldBypassLoginOnLocalhost()) {
+    return <Outlet />
+  }
+
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [hasSession, setHasSession] = useState(false)
 
@@ -50,9 +64,11 @@ const RequireFrontendLogin = () => {
 }
 
 function App() {
+  const bypassLoginScreen = shouldBypassLoginOnLocalhost()
+
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={bypassLoginScreen ? <Navigate to="/" replace /> : <Login />} />
 
       <Route element={<RequireFrontendLogin />}>
         <Route element={<AppLayout />}>
