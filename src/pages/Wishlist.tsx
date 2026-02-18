@@ -62,12 +62,13 @@ export const Wishlist = () => {
         </div>
 
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4">
-            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/35 p-3 sm:p-4">
+            <div className="grid min-h-full place-items-start sm:place-items-center">
+              <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-xl sm:p-5">
               <div className="mb-4 flex items-start justify-between">
                 <div>
-                  <h2 className="text-3xl font-semibold text-slate-900">Add New Product</h2>
-                  <p className="mt-2 text-sm text-slate-500">
+                  <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Add New Product</h2>
+                  <p className="mt-1 text-sm text-slate-500 sm:mt-2">
                     Add a product to my wishlist
                   </p>
                 </div>
@@ -82,7 +83,7 @@ export const Wishlist = () => {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="wishlist-product-title" className="text-lg font-semibold text-slate-900">
+                <label htmlFor="wishlist-product-title" className="text-base font-semibold text-slate-900 sm:text-lg">
                   Product Title
                 </label>
                 <input
@@ -97,8 +98,8 @@ export const Wishlist = () => {
                   <p className="text-sm text-red-600">Product title is required.</p>
                 ) : null}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="wishlist-product-url" className="text-lg font-semibold text-slate-900">
+              <div className="mt-4 space-y-2">
+                <label htmlFor="wishlist-product-url" className="text-base font-semibold text-slate-900 sm:text-lg">
                   Product URL
                 </label>
                 <input
@@ -117,11 +118,11 @@ export const Wishlist = () => {
                 ) : null}
               </div>
 
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
                 <button
                   type="button"
                   onClick={closeAddProductModal}
-                  className="rounded-xl bg-slate-200 px-6 py-3 text-base font-semibold text-slate-700 hover:bg-slate-300"
+                  className="w-full rounded-xl bg-slate-200 px-6 py-3 text-base font-semibold text-slate-700 hover:bg-slate-300 sm:w-auto"
                 >
                   Cancel
                 </button>
@@ -134,10 +135,11 @@ export const Wishlist = () => {
                     // TODO: Add submit logic here later
                     closeAddProductModal()
                   }}
-                  className="rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700"
+                  className="w-full rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 sm:w-auto"
                 >
                   Add Product
                 </button>
+              </div>
               </div>
             </div>
           </div>
