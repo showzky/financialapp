@@ -103,6 +103,76 @@ const extractPrice = (html: string) => {
   return parsedJsonLd
 }
 
+const buildFallbackTitleFromUrl = (value: string) => {
+  try {
+    const parsed = new URL(value)
+    const fromPath = parsed.pathname
+      .split('/')
+      .filter(Boolean)
+      .at(-1)
+
+    if (!fromPath) return parsed.hostname
+
+    return decodeURIComponent(fromPath)
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  } catch {
+    return value
+  }
+}
+
+const fetchHtmlPage = async (targetUrl: string, signal: AbortSignal) => {
+  const response = await fetch(targetUrl, {
+    method: 'GET',
+    redirect: 'follow',
+    signal,
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'nb-NO,nb;q=0.9,en-US;q=0.8,en;q=0.7',
+    },
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.toLowerCase().includes('text/html')) {
+    return null
+  }
+
+  return {
+    html: await response.text(),
+    sourceUrl: response.url || targetUrl,
+  }
+}
+
+const fetchViaJinaFallback = async (targetUrl: string, signal: AbortSignal) => {
+  const fallbackUrl = `https://r.jina.ai/http://${targetUrl.replace(/^https?:\/\//i, '')}`
+  const response = await fetch(fallbackUrl, {
+    method: 'GET',
+    redirect: 'follow',
+    signal,
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      Accept: 'text/plain,text/markdown',
+    },
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  return {
+    html: await response.text(),
+    sourceUrl: targetUrl,
+  }
+}
+
 export const previewWishlistProduct = asyncHandler(async (req: Request, res: Response) => {
   const parsedQuery = previewQuerySchema.parse(req.query)
   const normalizedUrl = parsedQuery.url.trim()
@@ -117,36 +187,30 @@ export const previewWishlistProduct = asyncHandler(async (req: Request, res: Res
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 8000)
+  const timeout = setTimeout(() => controller.abort(), 12000)
 
   try {
-    const response = await fetch(parsedUrl.toString(), {
-      method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml',
-      },
-    })
+    const direct = await fetchHtmlPage(parsedUrl.toString(), controller.signal).catch(() => null)
+    const previewSource = direct ?? (await fetchViaJinaFallback(parsedUrl.toString(), controller.signal).catch(() => null))
 
-    if (!response.ok) {
-      throw new AppError(`Could not fetch product page (${response.status})`, 502)
+    if (!previewSource) {
+      res.status(200).json({
+        title: buildFallbackTitleFromUrl(normalizedUrl),
+        imageUrl: null,
+        price: null,
+        sourceUrl: normalizedUrl,
+      })
+      return
     }
 
-    const contentType = response.headers.get('content-type') ?? ''
-    if (!contentType.toLowerCase().includes('text/html')) {
-      throw new AppError('URL does not point to an HTML page', 400)
-    }
-
-    const html = await response.text()
+    const html = previewSource.html
+    const extractedTitle = extractTitle(html)
 
     res.status(200).json({
-      title: extractTitle(html) || null,
-      imageUrl: extractImageUrl(html, response.url || normalizedUrl) || null,
+      title: extractedTitle || buildFallbackTitleFromUrl(normalizedUrl),
+      imageUrl: extractImageUrl(html, previewSource.sourceUrl || normalizedUrl) || null,
       price: extractPrice(html),
-      sourceUrl: response.url || normalizedUrl,
+      sourceUrl: previewSource.sourceUrl || normalizedUrl,
     })
   } finally {
     clearTimeout(timeout)
