@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { wishlistApi } from '@/services/wishlistApi'
 
 type WishlistItem = {
   id: string
@@ -57,6 +58,8 @@ export const Wishlist = () => {
   const [productCategory, setProductCategory] = useState('')
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>(readWishlistFromStorage)
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState('')
 
   const normalizedTitle = productTitle.trim()
   const normalizedUrl = productUrl.trim()
@@ -88,6 +91,8 @@ export const Wishlist = () => {
     setProductCategory('')
     setHasTriedSubmit(false)
     setEditingProductId(null)
+    setPreviewError('')
+    setIsPreviewLoading(false)
   }
 
   const closeAddProductModal = () => {
@@ -122,6 +127,34 @@ export const Wishlist = () => {
       persistWishlistToStorage(next)
       return next
     })
+  }
+
+  const handleAutoFillFromUrl = async () => {
+    if (!hasValidUrlFormat || isPreviewLoading) return
+
+    setPreviewError('')
+    setIsPreviewLoading(true)
+
+    try {
+      const preview = await wishlistApi.previewFromUrl(normalizedUrl)
+
+      if (!normalizedTitle && preview.title) {
+        setProductTitle(preview.title)
+      }
+
+      if (!normalizedImageUrl && preview.imageUrl) {
+        setProductImageUrl(preview.imageUrl)
+      }
+
+      if (!normalizedPrice && preview.price !== null) {
+        setProductPrice(String(preview.price))
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not auto-fetch product info'
+      setPreviewError(message)
+    } finally {
+      setIsPreviewLoading(false)
+    }
   }
 
   return (
@@ -220,8 +253,17 @@ export const Wishlist = () => {
                   placeholder="e.g., https://example.com/product"
                   value={productUrl}
                   onChange={(e) => setProductUrl(e.target.value)}
+                  onBlur={() => {
+                    void handleAutoFillFromUrl()
+                  }}
                   className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                 />
+                <p className="text-xs text-slate-500">
+                  {isPreviewLoading
+                    ? 'Fetching title, image, and price from this URL...'
+                    : 'Auto-fetch runs when you leave this URL field.'}
+                </p>
+                {previewError ? <p className="text-sm text-red-600">{previewError}</p> : null}
                 {hasTriedSubmit && !isUrlPresent ? (
                   <p className="text-sm text-red-600">Product URL is required.</p>
                 ) : null}
