@@ -21,6 +21,7 @@ export const backendRequest = async <T>(path: string, init?: RequestInit): Promi
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     credentials: 'include',
+    cache: 'no-store',
     headers: createHeaders(init?.headers),
   })
 

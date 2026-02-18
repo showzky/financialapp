@@ -21,6 +21,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.
 - Resolved Vercel build failures when Tailwind CSS 4 is installed by updating PostCSS configuration to use the Tailwind v4 plugin path.
 - Added `@tailwindcss/postcss` and a compatibility PostCSS loader so builds work reliably across Tailwind v3 and v4 dependency states.
+- Fixed wishlist URL preview autofill failures caused by `304 Not Modified` responses by forcing no-store/no-cache behavior for preview requests.
 
 ## [1.0.0] - 2026-02-16
 ### Added

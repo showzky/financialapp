@@ -66,6 +66,10 @@ const parsePriceToNumber = (value: string | null) => {
 }
 
 export const previewWishlistProduct = asyncHandler(async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+
   const parsedQuery = previewQuerySchema.parse(req.query)
   const normalizedUrl = parsedQuery.url.trim()
 

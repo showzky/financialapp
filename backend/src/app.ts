@@ -18,6 +18,7 @@ const pinoHttp = pinoHttpModule.default ?? pinoHttpModule
 const app = express()
 
 app.set('trust proxy', 1)
+app.set('etag', false)
 
 app.use(
   rateLimit({
