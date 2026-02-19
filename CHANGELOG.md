@@ -9,6 +9,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Wishlist page UI with route and top-nav entry point.
 - Add Product modal shell on the Wishlist page with title + URL fields and client-side validation (frontend only; no backend persistence yet).
 - Localhost-only frontend login bypass toggle for development via `VITE_DISABLE_LOGIN_ON_LOCALHOST`.
+- Persistent wishlist CRUD API (`/api/v1/wishlist`) with database-backed create, list, update, and delete operations.
 
 ### Changed
 - Restored authentication flow to the previous cookie-based session model for login/logout and protected route checks.
@@ -18,6 +19,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Refactored inline wishlist category tag markup for readability without changing behavior.
 - Improved wishlist preview extraction for JS-heavy shops by parsing app JSON payload scripts and added short-lived cache for faster repeat URL previews.
 - Rebalanced wishlist product card media area so product images are less visually dominant.
+- Switched wishlist page persistence from browser localStorage to backend database writes/reads for add, edit, delete, and deposit updates.
 
 ### Fixed
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.

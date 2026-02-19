@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { wishlistApi } from '@/services/wishlistApi'
 
 type WishlistItem = {
@@ -27,40 +27,6 @@ const emptyProductForm: ProductFormState = {
   category: '',
 }
 
-const WISHLIST_STORAGE_KEY = 'finance-wishlist-items-v1'
-
-const readWishlistFromStorage = (): WishlistItem[] => {
-  if (typeof window === 'undefined') return []
-
-  try {
-    const raw = window.localStorage.getItem(WISHLIST_STORAGE_KEY)
-    if (!raw) return []
-
-    const parsed = JSON.parse(raw) as Array<Partial<WishlistItem>>
-    if (!Array.isArray(parsed)) return []
-
-    return parsed.map((item) => ({
-      id: String(item.id ?? `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`),
-      title: String(item.title ?? ''),
-      url: String(item.url ?? ''),
-      price: typeof item.price === 'number' && !Number.isNaN(item.price) ? item.price : null,
-      imageUrl: String(item.imageUrl ?? ''),
-      category: String(item.category ?? ''),
-      savedAmount:
-        typeof item.savedAmount === 'number' && !Number.isNaN(item.savedAmount)
-          ? Math.max(0, item.savedAmount)
-          : 0,
-    }))
-  } catch {
-    return []
-  }
-}
-
-const persistWishlistToStorage = (items: WishlistItem[]) => {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(items))
-}
-
 const getDomainFromUrl = (value: string) => {
   try {
     return new URL(value).hostname
@@ -83,7 +49,9 @@ export const Wishlist = () => {
   const [productForm, setProductForm] = useState<ProductFormState>({ ...emptyProductForm })
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>(readWishlistFromStorage)
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
+  const [isWishlistLoading, setIsWishlistLoading] = useState(true)
+  const [wishlistError, setWishlistError] = useState('')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
 
@@ -127,6 +95,42 @@ export const Wishlist = () => {
   const selectedDepositItem =
     selectedDepositId === null ? null : wishlistItems.find((item) => item.id === selectedDepositId) ?? null
 
+  useEffect(() => {
+    let isMounted = true
+
+    const loadWishlist = async () => {
+      try {
+        const items = await wishlistApi.list()
+        if (!isMounted) return
+
+        setWishlistItems(
+          items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            url: item.url,
+            price: item.price,
+            imageUrl: item.imageUrl,
+            category: item.category,
+            savedAmount: item.savedAmount,
+          })),
+        )
+        setWishlistError('')
+      } catch (error) {
+        if (!isMounted) return
+        setWishlistError(error instanceof Error ? error.message : 'Could not load wishlist items')
+      } finally {
+        if (!isMounted) return
+        setIsWishlistLoading(false)
+      }
+    }
+
+    void loadWishlist()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   const resetAddProductForm = () => {
     setProductForm({ ...emptyProductForm })
     setHasTriedSubmit(false)
@@ -147,21 +151,60 @@ export const Wishlist = () => {
     setHasTriedDepositSubmit(false)
   }
 
-  const upsertWishlistItem = (item: WishlistItem) => {
-    setWishlistItems((current) => {
-      const next = editingProductId
-        ? current.map((existing) =>
-            existing.id === editingProductId
-              ? {
-                  ...item,
-                  savedAmount: existing.savedAmount,
-                }
-              : existing,
-          )
-        : [item, ...current]
-      persistWishlistToStorage(next)
-      return next
+  const upsertWishlistItem = async (item: WishlistItem) => {
+    if (editingProductId) {
+      const existing = wishlistItems.find((wishlistItem) => wishlistItem.id === editingProductId)
+      if (!existing) return
+
+      const updated = await wishlistApi.update(editingProductId, {
+        title: item.title,
+        url: item.url,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        category: item.category,
+        savedAmount: existing.savedAmount,
+      })
+
+      setWishlistItems((current) =>
+        current.map((wishlistItem) =>
+          wishlistItem.id === editingProductId
+            ? {
+                id: updated.id,
+                title: updated.title,
+                url: updated.url,
+                price: updated.price,
+                imageUrl: updated.imageUrl,
+                category: updated.category,
+                savedAmount: updated.savedAmount,
+              }
+            : wishlistItem,
+        ),
+      )
+
+      return
+    }
+
+    const created = await wishlistApi.create({
+      title: item.title,
+      url: item.url,
+      price: item.price,
+      imageUrl: item.imageUrl,
+      category: item.category,
+      savedAmount: 0,
     })
+
+    setWishlistItems((current) => [
+      {
+        id: created.id,
+        title: created.title,
+        url: created.url,
+        price: created.price,
+        imageUrl: created.imageUrl,
+        category: created.category,
+        savedAmount: created.savedAmount,
+      },
+      ...current,
+    ])
   }
 
   const handleOpenEditModal = (item: WishlistItem) => {
@@ -177,12 +220,14 @@ export const Wishlist = () => {
     setIsAddModalOpen(true)
   }
 
-  const handleDeleteProduct = (id: string) => {
-    setWishlistItems((current) => {
-      const next = current.filter((item) => item.id !== id)
-      persistWishlistToStorage(next)
-      return next
-    })
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      await wishlistApi.remove(id)
+      setWishlistItems((current) => current.filter((item) => item.id !== id))
+      setWishlistError('')
+    } catch (error) {
+      setWishlistError(error instanceof Error ? error.message : 'Could not delete wishlist item')
+    }
   }
 
   const handleOpenDepositModal = (itemId: string) => {
@@ -192,26 +237,41 @@ export const Wishlist = () => {
     setIsDepositModalOpen(true)
   }
 
-  const handleAddFunds = () => {
+  const handleAddFunds = async () => {
     setHasTriedDepositSubmit(true)
     if (!selectedDepositId || !hasValidDepositAmount) return
 
     const amountToAdd = Number(normalizedDepositAmount)
 
-    setWishlistItems((current) => {
-      const next = current.map((item) =>
-        item.id === selectedDepositId
-          ? {
-              ...item,
-              savedAmount: Math.max(0, item.savedAmount + amountToAdd),
-            }
-          : item,
-      )
-      persistWishlistToStorage(next)
-      return next
-    })
+    const selectedItem = wishlistItems.find((item) => item.id === selectedDepositId)
+    if (!selectedItem) return
 
-    closeDepositModal()
+    try {
+      const updated = await wishlistApi.update(selectedDepositId, {
+        savedAmount: Math.max(0, selectedItem.savedAmount + amountToAdd),
+      })
+
+      setWishlistItems((current) =>
+        current.map((item) =>
+          item.id === selectedDepositId
+            ? {
+                id: updated.id,
+                title: updated.title,
+                url: updated.url,
+                price: updated.price,
+                imageUrl: updated.imageUrl,
+                category: updated.category,
+                savedAmount: updated.savedAmount,
+              }
+            : item,
+        ),
+      )
+
+      setWishlistError('')
+      closeDepositModal()
+    } catch (error) {
+      setWishlistError(error instanceof Error ? error.message : 'Could not update saved amount')
+    }
   }
 
   const handleAutoFillFromUrl = async () => {
@@ -400,23 +460,28 @@ export const Wishlist = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setHasTriedSubmit(true)
                       if (!isFormValid) return
 
                       const parsedPrice = normalizedPrice === '' ? null : Number(normalizedPrice)
 
-                      upsertWishlistItem({
-                        id: editingProductId ?? `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-                        title: normalizedTitle,
-                        url: normalizedUrl,
-                        price: parsedPrice,
-                        imageUrl: normalizedImageUrl,
-                        category: normalizedCategory,
-                        savedAmount: 0,
-                      })
+                      try {
+                        await upsertWishlistItem({
+                          id: editingProductId ?? `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+                          title: normalizedTitle,
+                          url: normalizedUrl,
+                          price: parsedPrice,
+                          imageUrl: normalizedImageUrl,
+                          category: normalizedCategory,
+                          savedAmount: 0,
+                        })
 
-                      closeAddProductModal()
+                        setWishlistError('')
+                        closeAddProductModal()
+                      } catch (error) {
+                        setWishlistError(error instanceof Error ? error.message : 'Could not save wishlist item')
+                      }
                     }}
                     className="w-full rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 sm:w-auto"
                   >
@@ -427,6 +492,8 @@ export const Wishlist = () => {
             </div>
           </div>
         ) : null}
+
+        {wishlistError ? <p className="text-sm text-red-600">{wishlistError}</p> : null}
 
         {isDepositModalOpen && selectedDepositItem ? (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-black/35 p-3 sm:p-4">
@@ -507,7 +574,11 @@ export const Wishlist = () => {
         </button>
       </section>
 
-      {wishlistItems.length === 0 ? (
+      {isWishlistLoading ? (
+        <section className="mx-auto grid w-full max-w-6xl place-items-center py-28 text-center">
+          <p className="text-base text-text-muted">Loading wishlist...</p>
+        </section>
+      ) : wishlistItems.length === 0 ? (
         <section className="mx-auto grid w-full max-w-6xl place-items-center py-28 text-center">
           <div className="space-y-4">
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-surface shadow-neo-inset">

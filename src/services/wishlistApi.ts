@@ -1,5 +1,17 @@
 import { backendRequest } from './backendClient'
 
+export type WishlistItemDto = {
+  id: string
+  title: string
+  url: string
+  price: number | null
+  imageUrl: string
+  category: string
+  savedAmount: number
+  createdAt: string
+  updatedAt: string
+}
+
 type WishlistPreviewResponse = {
   title: string | null
   imageUrl: string | null
@@ -7,7 +19,47 @@ type WishlistPreviewResponse = {
   sourceUrl: string
 }
 
+type UpsertWishlistItemPayload = {
+  title: string
+  url: string
+  price: number | null
+  imageUrl?: string
+  category?: string
+  savedAmount?: number
+}
+
+type UpdateWishlistItemPayload = {
+  title?: string
+  url?: string
+  price?: number | null
+  imageUrl?: string
+  category?: string
+  savedAmount?: number
+}
+
 export const wishlistApi = {
+  list: () => {
+    return backendRequest<WishlistItemDto[]>('/wishlist', { method: 'GET' })
+  },
+
+  create: (payload: UpsertWishlistItemPayload) => {
+    return backendRequest<WishlistItemDto>('/wishlist', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  update: (id: string, payload: UpdateWishlistItemPayload) => {
+    return backendRequest<WishlistItemDto>(`/wishlist/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  remove: (id: string) => {
+    return backendRequest<void>(`/wishlist/${id}`, { method: 'DELETE' })
+  },
+
   previewFromUrl: (url: string) => {
     const encoded = encodeURIComponent(url)
     return backendRequest<WishlistPreviewResponse>(`/wishlist/preview?url=${encoded}`, { method: 'GET' })

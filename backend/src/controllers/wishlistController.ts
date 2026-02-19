@@ -4,9 +4,45 @@ import type { Request, Response } from 'express'
 import { getProductData } from '../services/productMetadataService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
+import { wishlistItemModel } from '../models/wishlistItemModel.js'
 
 const previewQuerySchema = z.object({
   url: z.string().url(),
+})
+
+const wishlistItemSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  url: z.string().trim().url(),
+  price: z.number().finite().nonnegative().nullable(),
+  imageUrl: z.string().trim().url().or(z.literal('')).optional(),
+  category: z.string().trim().max(100).optional(),
+  savedAmount: z.number().finite().nonnegative().optional(),
+})
+
+const wishlistItemUpdateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(300).optional(),
+    url: z.string().trim().url().optional(),
+    price: z.number().finite().nonnegative().nullable().optional(),
+    imageUrl: z.string().trim().url().or(z.literal('')).optional(),
+    category: z.string().trim().max(100).optional(),
+    savedAmount: z.number().finite().nonnegative().optional(),
+  })
+  .refine(
+    (value) =>
+      value.title !== undefined ||
+      value.url !== undefined ||
+      value.price !== undefined ||
+      value.imageUrl !== undefined ||
+      value.category !== undefined ||
+      value.savedAmount !== undefined,
+    {
+      message: 'At least one field must be provided',
+    },
+  )
+
+const wishlistItemIdSchema = z.object({
+  id: z.string().trim().min(1),
 })
 
 const blockedHostnames = new Set(['localhost', '127.0.0.1', '::1'])
@@ -64,6 +100,65 @@ const parsePriceToNumber = (value: string | null) => {
   if (Number.isNaN(parsed) || parsed < 0) return null
   return parsed
 }
+
+export const createWishlistItem = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) {
+    throw new AppError('Unauthorized', 401)
+  }
+
+  const payload = wishlistItemSchema.parse(req.body)
+  const created = await wishlistItemModel.create({
+    userId: req.auth.userId,
+    title: payload.title,
+    url: payload.url,
+    price: payload.price,
+    imageUrl: payload.imageUrl ?? '',
+    category: payload.category ?? '',
+    savedAmount: payload.savedAmount ?? 0,
+  })
+
+  res.status(201).json(created)
+})
+
+export const listWishlistItems = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) {
+    throw new AppError('Unauthorized', 401)
+  }
+
+  const rows = await wishlistItemModel.listByUser(req.auth.userId)
+  res.status(200).json(rows)
+})
+
+export const updateWishlistItem = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) {
+    throw new AppError('Unauthorized', 401)
+  }
+
+  const { id } = wishlistItemIdSchema.parse(req.params)
+  const payload = wishlistItemUpdateSchema.parse(req.body)
+  const updated = await wishlistItemModel.update(id, req.auth.userId, payload)
+
+  if (!updated) {
+    throw new AppError('Wishlist item not found', 404)
+  }
+
+  res.status(200).json(updated)
+})
+
+export const deleteWishlistItem = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) {
+    throw new AppError('Unauthorized', 401)
+  }
+
+  const { id } = wishlistItemIdSchema.parse(req.params)
+  const removed = await wishlistItemModel.remove(id, req.auth.userId)
+
+  if (!removed) {
+    throw new AppError('Wishlist item not found', 404)
+  }
+
+  res.status(204).send()
+})
 
 export const previewWishlistProduct = asyncHandler(async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
