@@ -5,11 +5,15 @@ export type WishlistItem = {
   userId: string
   title: string
   url: string
+  normalizedUrl: string
   price: number | null
   imageUrl: string
   category: string
   priority: 'High' | 'Medium' | 'Low'
   savedAmount: number
+  metadataStatus: 'fresh' | 'stale' | 'unknown'
+  metadataLastCheckedAt: string | null
+  metadataLastSuccessAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -18,6 +22,7 @@ export type CreateWishlistItemInput = {
   userId: string
   title: string
   url: string
+  normalizedUrl: string
   price: number | null
   imageUrl?: string
   category?: string
@@ -28,6 +33,7 @@ export type CreateWishlistItemInput = {
 export type UpdateWishlistItemInput = {
   title?: string | undefined
   url?: string | undefined
+  normalizedUrl?: string | undefined
   price?: number | null | undefined
   imageUrl?: string | undefined
   category?: string | undefined
@@ -40,27 +46,82 @@ const wishlistSelect = `
   user_id AS "userId",
   title,
   url,
+  normalized_url AS "normalizedUrl",
   price::float8 AS price,
   image_url AS "imageUrl",
   category,
   priority,
   saved_amount::float8 AS "savedAmount",
+  metadata_status AS "metadataStatus",
+  metadata_last_checked_at AS "metadataLastCheckedAt",
+  metadata_last_success_at AS "metadataLastSuccessAt",
   created_at AS "createdAt",
   updated_at AS "updatedAt"
 `
 
 export const wishlistItemModel = {
+  async findByNormalizedUrl(
+    userId: string,
+    normalizedUrl: string,
+    excludeId?: string,
+  ): Promise<WishlistItem | null> {
+    if (excludeId) {
+      const result = await db.query<WishlistItem>(
+        `
+        SELECT ${wishlistSelect}
+        FROM wishlist_items
+        WHERE user_id = $1
+          AND normalized_url = $2
+          AND id <> $3
+        ORDER BY created_at DESC
+        LIMIT 1
+        `,
+        [userId, normalizedUrl, excludeId],
+      )
+
+      return result.rows[0] ?? null
+    }
+
+    const result = await db.query<WishlistItem>(
+      `
+      SELECT ${wishlistSelect}
+      FROM wishlist_items
+      WHERE user_id = $1
+        AND normalized_url = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [userId, normalizedUrl],
+    )
+
+    return result.rows[0] ?? null
+  },
+
   async create(input: CreateWishlistItemInput): Promise<WishlistItem> {
     const result = await db.query<WishlistItem>(
       `
-      INSERT INTO wishlist_items (user_id, title, url, price, image_url, category, priority, saved_amount)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO wishlist_items (
+        user_id,
+        title,
+        url,
+        normalized_url,
+        price,
+        image_url,
+        category,
+        priority,
+        saved_amount,
+        metadata_status,
+        metadata_last_checked_at,
+        metadata_last_success_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'fresh', NOW(), NOW())
       RETURNING ${wishlistSelect}
       `,
       [
         input.userId,
         input.title,
         input.url,
+        input.normalizedUrl,
         input.price,
         input.imageUrl ?? '',
         input.category ?? '',
@@ -107,6 +168,11 @@ export const wishlistItemModel = {
 
   async update(id: string, userId: string, input: UpdateWishlistItemInput): Promise<WishlistItem | null> {
     const hasPriceUpdate = input.price !== undefined
+    const shouldRefreshMetadata =
+      input.title !== undefined ||
+      input.url !== undefined ||
+      hasPriceUpdate ||
+      input.imageUrl !== undefined
 
     const result = await db.query<WishlistItem>(
       `
@@ -114,11 +180,15 @@ export const wishlistItemModel = {
       SET
         title = COALESCE($3, title),
         url = COALESCE($4, url),
+        normalized_url = COALESCE($11, normalized_url),
         price = CASE WHEN $9 THEN $5 ELSE price END,
         image_url = COALESCE($6, image_url),
         category = COALESCE($7, category),
         priority = COALESCE($8, priority),
         saved_amount = COALESCE($10, saved_amount),
+        metadata_status = CASE WHEN $12 THEN 'fresh' ELSE metadata_status END,
+        metadata_last_checked_at = CASE WHEN $12 THEN NOW() ELSE metadata_last_checked_at END,
+        metadata_last_success_at = CASE WHEN $12 THEN NOW() ELSE metadata_last_success_at END,
         updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING ${wishlistSelect}
@@ -134,6 +204,8 @@ export const wishlistItemModel = {
         input.priority ?? null,
         hasPriceUpdate,
         input.savedAmount ?? null,
+        input.normalizedUrl ?? null,
+        shouldRefreshMetadata,
       ],
     )
 

@@ -106,16 +106,55 @@ const parsePriceToNumber = (value: string | null) => {
   return parsed
 }
 
+const normalizeWishlistUrl = (value: string) => {
+  const parsed = new URL(value.trim())
+  parsed.hostname = parsed.hostname.toLowerCase()
+  parsed.hash = ''
+
+  const filteredParams = [...parsed.searchParams.entries()]
+    .filter(([key]) => {
+      const normalizedKey = key.toLowerCase()
+      return !normalizedKey.startsWith('utm_') && normalizedKey !== 'fbclid' && normalizedKey !== 'gclid'
+    })
+    .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey === rightKey) {
+        return leftValue.localeCompare(rightValue)
+      }
+
+      return leftKey.localeCompare(rightKey)
+    })
+
+  parsed.search = ''
+  filteredParams.forEach(([key, paramValue]) => {
+    parsed.searchParams.append(key, paramValue)
+  })
+
+  if (parsed.pathname !== '/') {
+    const normalizedPath = parsed.pathname.replace(/\/+$/g, '')
+    parsed.pathname = normalizedPath === '' ? '/' : normalizedPath
+  }
+
+  return parsed.toString()
+}
+
 export const createWishlistItem = asyncHandler(async (req: Request, res: Response) => {
   if (!req.auth) {
     throw new AppError('Unauthorized', 401)
   }
 
   const payload = wishlistItemSchema.parse(req.body)
+  const normalizedUrl = normalizeWishlistUrl(payload.url)
+  const duplicate = await wishlistItemModel.findByNormalizedUrl(req.auth.userId, normalizedUrl)
+
+  if (duplicate) {
+    throw new AppError('A wishlist item with this URL already exists', 409)
+  }
+
   const created = await wishlistItemModel.create({
     userId: req.auth.userId,
     title: payload.title,
     url: payload.url,
+    normalizedUrl,
     price: payload.price,
     imageUrl: payload.imageUrl ?? '',
     category: payload.category ?? '',
@@ -142,7 +181,19 @@ export const updateWishlistItem = asyncHandler(async (req: Request, res: Respons
 
   const { id } = wishlistItemIdSchema.parse(req.params)
   const payload = wishlistItemUpdateSchema.parse(req.body)
-  const updated = await wishlistItemModel.update(id, req.auth.userId, payload)
+  const normalizedUrl = payload.url ? normalizeWishlistUrl(payload.url) : undefined
+
+  if (normalizedUrl) {
+    const duplicate = await wishlistItemModel.findByNormalizedUrl(req.auth.userId, normalizedUrl, id)
+    if (duplicate) {
+      throw new AppError('A wishlist item with this URL already exists', 409)
+    }
+  }
+
+  const updated = await wishlistItemModel.update(id, req.auth.userId, {
+    ...payload,
+    normalizedUrl,
+  })
 
   if (!updated) {
     throw new AppError('Wishlist item not found', 404)
