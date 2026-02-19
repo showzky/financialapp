@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { wishlistApi, type WishlistItemDto } from '@/services/wishlistApi'
 import { WishlistCategoryFilter } from '@/components/WishlistCategoryFilter'
 import { WishlistItemCard } from '@/components/WishlistItemCard'
+import { SummaryStat } from '@/components/SummaryStat'
 import {
   type WishlistItem,
   type WishlistPriority,
@@ -91,6 +92,14 @@ const formatWishlistPrice = (price: number | null) => {
     minimumFractionDigits: 2,
   }).format(price)
 }
+
+// ADD THIS: format numeric analytics values for wishlist summary cards
+const formatWishlistAmount = (value: number) =>
+  new Intl.NumberFormat('nb-NO', {
+    style: 'currency',
+    currency: 'NOK',
+    minimumFractionDigits: 2,
+  }).format(value)
 
 const mapWishlistItemDto = (item: WishlistItemDto): WishlistItem => ({
   id: item.id,
@@ -223,6 +232,19 @@ export const Wishlist = () => {
       return left.index - right.index
     })
     .map((entry) => entry.item)
+
+  // ADD THIS: analytics summary derived from the currently filtered wishlist view
+  const filteredItemsWithTargetPrice = filteredWishlistItems.filter(
+    (item) => item.price !== null && Number.isFinite(item.price) && item.price > 0,
+  )
+  const filteredItemsMissingPriceCount = filteredWishlistItems.filter((item) => item.price === null).length
+  const totalTargetAmount = filteredItemsWithTargetPrice.reduce((sum, item) => sum + (item.price ?? 0), 0)
+  const totalSavedAmount = filteredItemsWithTargetPrice.reduce((sum, item) => sum + item.savedAmount, 0)
+  const readyToBuyCount = filteredItemsWithTargetPrice.filter(
+    (item) => item.savedAmount >= (item.price ?? 0),
+  ).length
+  const summaryProgressPercent =
+    totalTargetAmount === 0 ? 0 : Math.min(100, Math.round((totalSavedAmount / totalTargetAmount) * 100))
 
   useEffect(() => {
     if (!availableCategoryFilters.includes(selectedCategoryFilter)) {
@@ -773,6 +795,41 @@ export const Wishlist = () => {
           selectedPriority={selectedPriorityFilter}
           onPriorityChange={setSelectedPriorityFilter}
         />
+      ) : null}
+
+      {!isWishlistLoading && wishlistItems.length > 0 ? (
+        // ADD THIS: compact, responsive analytics summary for the active filtered view
+        <section className="mx-auto mt-4 grid w-full max-w-6xl gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryStat
+            label="Items in view"
+            value={String(filteredWishlistItems.length)}
+            helper={`Total ${wishlistItems.length} items`}
+            icon="🧾"
+          />
+
+          <SummaryStat
+            label="Target total"
+            value={formatWishlistAmount(totalTargetAmount)}
+            helper={`${filteredItemsMissingPriceCount} without price`}
+            icon="🎯"
+          />
+
+          <SummaryStat
+            label="Saved total"
+            value={formatWishlistAmount(totalSavedAmount)}
+            helper={`${summaryProgressPercent}% of target`}
+            icon="💰"
+            tone="positive"
+          />
+
+          <SummaryStat
+            label="Ready to buy"
+            value={String(readyToBuyCount)}
+            helper={`${filteredItemsWithTargetPrice.length} priced items`}
+            icon="✅"
+            tone="positive"
+          />
+        </section>
       ) : null}
 
       {isWishlistLoading ? (

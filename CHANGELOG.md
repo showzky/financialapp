@@ -29,6 +29,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Added wishlist price snapshot tracking and trend calculation (up/down/flat/unknown) based on historical product prices.
 - Added a card-level price trend indicator on the wishlist page, including percentage change when enough price history exists.
 - Added a manual per-item metadata refresh action on wishlist cards with item-level loading and error states.
+- Added a compact wishlist analytics summary with responsive stat cards for filtered items, target total, saved total, and ready-to-buy count.
 
 ### Fixed
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.
