@@ -6,6 +6,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.1.0] - 2026-02-19
+### Added
 - Wishlist page UI with route and top-nav entry point.
 - Add Product modal shell on the Wishlist page with title + URL fields and client-side validation (frontend only; no backend persistence yet).
 - Localhost-only frontend login bypass toggle for development via `VITE_DISABLE_LOGIN_ON_LOCALHOST`.
@@ -30,6 +37,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Added a card-level price trend indicator on the wishlist page, including percentage change when enough price history exists.
 - Added a manual per-item metadata refresh action on wishlist cards with item-level loading and error states.
 - Added a compact wishlist analytics summary with responsive stat cards for filtered items, target total, saved total, and ready-to-buy count.
+- Standardized wishlist card layout rhythm so cards share equal height and action buttons align consistently across rows.
 
 ### Fixed
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.

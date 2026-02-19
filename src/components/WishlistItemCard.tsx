@@ -112,7 +112,10 @@ export const WishlistItemCard = ({
 
       {/* ADD THIS: flexible card body to keep action rows aligned at the bottom */}
       <div className="flex flex-1 flex-col space-y-3 p-4">
-        {/* ADD THIS: unified top badge stack for consistent card structure */}
+        <h3 className="line-clamp-2 text-2xl font-semibold text-text-primary">{item.title}</h3>
+        <p className="text-lg font-semibold text-text-primary">{formatWishlistPrice(item.price)}</p>
+
+        {/* ADD THIS: position tags under price and above progress for clearer reading flow */}
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${priorityVisual.badgeClassName}`}
@@ -156,9 +159,6 @@ export const WishlistItemCard = ({
             {trendPercentLabel ? <span>({trendPercentLabel})</span> : null}
           </span>
         </div>
-
-        <h3 className="line-clamp-2 text-2xl font-semibold text-text-primary">{item.title}</h3>
-        <p className="text-lg font-semibold text-text-primary">{formatWishlistPrice(item.price)}</p>
 
         {hasTargetPrice ? (
           <div className="space-y-1">
