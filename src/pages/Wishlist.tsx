@@ -230,6 +230,10 @@ export const Wishlist = () => {
             metadataStatus: item.metadataStatus,
             metadataLastCheckedAt: item.metadataLastCheckedAt,
             metadataLastSuccessAt: item.metadataLastSuccessAt,
+            latestTrackedPrice: item.latestTrackedPrice,
+            previousTrackedPrice: item.previousTrackedPrice,
+            priceTrendDirection: item.priceTrendDirection,
+            priceTrendPercent: item.priceTrendPercent,
           })),
         )
         setWishlistError('')
@@ -301,6 +305,10 @@ export const Wishlist = () => {
                 metadataStatus: updated.metadataStatus,
                 metadataLastCheckedAt: updated.metadataLastCheckedAt,
                 metadataLastSuccessAt: updated.metadataLastSuccessAt,
+                latestTrackedPrice: updated.latestTrackedPrice,
+                previousTrackedPrice: updated.previousTrackedPrice,
+                priceTrendDirection: updated.priceTrendDirection,
+                priceTrendPercent: updated.priceTrendPercent,
               }
             : wishlistItem,
         ),
@@ -333,6 +341,10 @@ export const Wishlist = () => {
         metadataStatus: created.metadataStatus,
         metadataLastCheckedAt: created.metadataLastCheckedAt,
         metadataLastSuccessAt: created.metadataLastSuccessAt,
+        latestTrackedPrice: created.latestTrackedPrice,
+        previousTrackedPrice: created.previousTrackedPrice,
+        priceTrendDirection: created.priceTrendDirection,
+        priceTrendPercent: created.priceTrendPercent,
       },
       ...current,
     ])
@@ -399,6 +411,10 @@ export const Wishlist = () => {
                 metadataStatus: updated.metadataStatus,
                 metadataLastCheckedAt: updated.metadataLastCheckedAt,
                 metadataLastSuccessAt: updated.metadataLastSuccessAt,
+                latestTrackedPrice: updated.latestTrackedPrice,
+                previousTrackedPrice: updated.previousTrackedPrice,
+                priceTrendDirection: updated.priceTrendDirection,
+                priceTrendPercent: updated.priceTrendPercent,
               }
             : item,
         ),

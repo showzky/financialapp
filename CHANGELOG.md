@@ -26,6 +26,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Replaced hardcoded dashboard starter categories with an empty initial state so cards are driven by real user data.
 - Added frontend duplicate URL warnings in the wishlist add/edit flow to prevent saving the same product twice.
 - Added metadata freshness status badges to wishlist cards to show whether scraped product details are fresh, stale, or unknown.
+- Added wishlist price snapshot tracking and trend calculation (up/down/flat/unknown) based on historical product prices.
+- Added a card-level price trend indicator on the wishlist page, including percentage change when enough price history exists.
 
 ### Fixed
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.

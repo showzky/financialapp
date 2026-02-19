@@ -48,6 +48,14 @@ CREATE TABLE IF NOT EXISTS wishlist_items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS wishlist_price_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wishlist_item_id UUID NOT NULL REFERENCES wishlist_items(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  price NUMERIC(12, 2) NOT NULL CHECK (price >= 0),
+  captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE wishlist_items
 ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'Medium';
 
@@ -102,3 +110,19 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON wishlist_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_normalized_url ON wishlist_items(user_id, normalized_url);
+CREATE INDEX IF NOT EXISTS idx_wishlist_price_snapshots_item_id ON wishlist_price_snapshots(wishlist_item_id, captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wishlist_price_snapshots_user_id ON wishlist_price_snapshots(user_id);
+
+INSERT INTO wishlist_price_snapshots (wishlist_item_id, user_id, price, captured_at)
+SELECT
+  item.id,
+  item.user_id,
+  item.price,
+  COALESCE(item.metadata_last_success_at, item.updated_at, item.created_at, NOW())
+FROM wishlist_items item
+WHERE item.price IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM wishlist_price_snapshots snapshot
+    WHERE snapshot.wishlist_item_id = item.id
+  );

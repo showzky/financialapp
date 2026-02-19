@@ -14,6 +14,10 @@ export type WishlistItem = {
   metadataStatus: 'fresh' | 'stale' | 'unknown'
   metadataLastCheckedAt: string | null
   metadataLastSuccessAt: string | null
+  latestTrackedPrice: number | null
+  previousTrackedPrice: number | null
+  priceTrendDirection: 'up' | 'down' | 'flat' | 'unknown'
+  priceTrendPercent: number | null
   createdAt: string
   updatedAt: string
 }
@@ -55,8 +59,64 @@ const wishlistSelect = `
   metadata_status AS "metadataStatus",
   metadata_last_checked_at AS "metadataLastCheckedAt",
   metadata_last_success_at AS "metadataLastSuccessAt",
+  price::float8 AS "latestTrackedPrice",
+  NULL::float8 AS "previousTrackedPrice",
+  'unknown'::text AS "priceTrendDirection",
+  NULL::float8 AS "priceTrendPercent",
   created_at AS "createdAt",
   updated_at AS "updatedAt"
+`
+
+const wishlistSelectWithTrend = `
+  wi.id,
+  wi.user_id AS "userId",
+  wi.title,
+  wi.url,
+  wi.normalized_url AS "normalizedUrl",
+  wi.price::float8 AS price,
+  wi.image_url AS "imageUrl",
+  wi.category,
+  wi.priority,
+  wi.saved_amount::float8 AS "savedAmount",
+  wi.metadata_status AS "metadataStatus",
+  wi.metadata_last_checked_at AS "metadataLastCheckedAt",
+  wi.metadata_last_success_at AS "metadataLastSuccessAt",
+  COALESCE(trend.latest_price, wi.price::float8) AS "latestTrackedPrice",
+  trend.previous_price AS "previousTrackedPrice",
+  CASE
+    WHEN trend.previous_price IS NULL OR COALESCE(trend.latest_price, wi.price::float8) IS NULL THEN 'unknown'
+    WHEN COALESCE(trend.latest_price, wi.price::float8) > trend.previous_price THEN 'up'
+    WHEN COALESCE(trend.latest_price, wi.price::float8) < trend.previous_price THEN 'down'
+    ELSE 'flat'
+  END AS "priceTrendDirection",
+  CASE
+    WHEN trend.previous_price IS NULL
+      OR trend.previous_price = 0
+      OR COALESCE(trend.latest_price, wi.price::float8) IS NULL THEN NULL
+    ELSE ROUND(
+      ((COALESCE(trend.latest_price, wi.price::float8)::numeric - trend.previous_price::numeric)
+      / trend.previous_price::numeric) * 100,
+      2
+    )::float8
+  END AS "priceTrendPercent",
+  wi.created_at AS "createdAt",
+  wi.updated_at AS "updatedAt"
+`
+
+const trendJoinSql = `
+  LEFT JOIN LATERAL (
+    SELECT
+      MAX(CASE WHEN ranked.rn = 1 THEN ranked.price END)::float8 AS latest_price,
+      MAX(CASE WHEN ranked.rn = 2 THEN ranked.price END)::float8 AS previous_price
+    FROM (
+      SELECT
+        snapshot.price,
+        ROW_NUMBER() OVER (ORDER BY snapshot.captured_at DESC, snapshot.id DESC) AS rn
+      FROM wishlist_price_snapshots snapshot
+      WHERE snapshot.wishlist_item_id = wi.id
+    ) ranked
+    WHERE ranked.rn <= 2
+  ) trend ON TRUE
 `
 
 export const wishlistItemModel = {
@@ -141,10 +201,11 @@ export const wishlistItemModel = {
   async listByUser(userId: string): Promise<WishlistItem[]> {
     const result = await db.query<WishlistItem>(
       `
-      SELECT ${wishlistSelect}
-      FROM wishlist_items
-      WHERE user_id = $1
-      ORDER BY created_at DESC
+      SELECT ${wishlistSelectWithTrend}
+      FROM wishlist_items wi
+      ${trendJoinSql}
+      WHERE wi.user_id = $1
+      ORDER BY wi.created_at DESC
       `,
       [userId],
     )

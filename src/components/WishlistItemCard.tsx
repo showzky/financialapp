@@ -49,6 +49,23 @@ export const WishlistItemCard = ({
     ? `Checked ${new Date(item.metadataLastCheckedAt).toLocaleDateString()}`
     : 'Not checked yet'
 
+  const trendVisuals = {
+    up: 'bg-red-100 text-red-700',
+    down: 'bg-emerald-100 text-emerald-700',
+    flat: 'bg-slate-200 text-slate-700',
+    unknown: 'bg-slate-200 text-slate-700',
+  } as const
+
+  const trendLabel = {
+    up: 'Price trend: Up',
+    down: 'Price trend: Down',
+    flat: 'Price trend: Flat',
+    unknown: 'Price trend: Unknown',
+  } as const
+
+  const trendPercentLabel =
+    item.priceTrendPercent === null ? null : `${Math.abs(item.priceTrendPercent).toFixed(2)}%`
+
   const targetPrice = item.price !== null && item.price > 0 ? item.price : null
   const hasTargetPrice = targetPrice !== null
   const progressPercent = hasTargetPrice ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100)) : 0
@@ -121,6 +138,20 @@ export const WishlistItemCard = ({
 
         <h3 className="line-clamp-2 text-2xl font-semibold text-text-primary">{item.title}</h3>
         <p className="text-lg font-semibold text-text-primary">{formatWishlistPrice(item.price)}</p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${trendVisuals[item.priceTrendDirection]}`}
+            title={
+              item.previousTrackedPrice !== null && item.latestTrackedPrice !== null
+                ? `From ${formatWishlistPrice(item.previousTrackedPrice)} to ${formatWishlistPrice(item.latestTrackedPrice)}`
+                : 'Trend will appear after at least two tracked prices.'
+            }
+          >
+            {trendLabel[item.priceTrendDirection]}
+            {trendPercentLabel ? <span>({trendPercentLabel})</span> : null}
+          </span>
+        </div>
 
         {hasTargetPrice ? (
           <div className="space-y-1">

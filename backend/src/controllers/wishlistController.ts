@@ -5,6 +5,7 @@ import { getProductData } from '../services/productMetadataService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
 import { wishlistItemModel } from '../models/wishlistItemModel.js'
+import { wishlistPriceSnapshotModel } from '../models/wishlistPriceSnapshotModel.js'
 
 const previewQuerySchema = z.object({
   url: z.string().url(),
@@ -162,6 +163,14 @@ export const createWishlistItem = asyncHandler(async (req: Request, res: Respons
     savedAmount: payload.savedAmount ?? 0,
   })
 
+  if (created.price !== null) {
+    await wishlistPriceSnapshotModel.recordSnapshotIfChanged({
+      wishlistItemId: created.id,
+      userId: created.userId,
+      price: created.price,
+    })
+  }
+
   res.status(201).json(created)
 })
 
@@ -197,6 +206,14 @@ export const updateWishlistItem = asyncHandler(async (req: Request, res: Respons
 
   if (!updated) {
     throw new AppError('Wishlist item not found', 404)
+  }
+
+  if (payload.price !== undefined && updated.price !== null) {
+    await wishlistPriceSnapshotModel.recordSnapshotIfChanged({
+      wishlistItemId: updated.id,
+      userId: updated.userId,
+      price: updated.price,
+    })
   }
 
   res.status(200).json(updated)
