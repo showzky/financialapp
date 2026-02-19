@@ -17,6 +17,22 @@ export const WishlistItemCard = ({
   onVisitEdit,
   onDelete,
 }: WishlistItemCardProps) => {
+  const priorityVisuals = {
+    High: {
+      dotClassName: 'bg-red-500',
+      badgeClassName: 'bg-red-100 text-red-700',
+    },
+    Medium: {
+      dotClassName: 'bg-amber-500',
+      badgeClassName: 'bg-amber-100 text-amber-700',
+    },
+    Low: {
+      dotClassName: 'bg-emerald-500',
+      badgeClassName: 'bg-emerald-100 text-emerald-700',
+    },
+  } as const
+
+  const priorityVisual = priorityVisuals[item.priority]
   const targetPrice = item.price !== null && item.price > 0 ? item.price : null
   const hasTargetPrice = targetPrice !== null
   const progressPercent = hasTargetPrice ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100)) : 0
@@ -53,8 +69,16 @@ export const WishlistItemCard = ({
       </div>
 
       <div className="space-y-3 p-4">
-        {item.category ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${priorityVisual.badgeClassName}`}
+          >
+            <span className={`h-2 w-2 rounded-full ${priorityVisual.dotClassName}`} aria-hidden="true" />
+            {item.priority} priority
+          </span>
+
+          {item.category ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="inline-block mr-1 h-4 w-4 text-slate-500"
@@ -68,8 +92,9 @@ export const WishlistItemCard = ({
               <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" />
             </svg>
             {item.category}
-          </span>
-        ) : null}
+            </span>
+          ) : null}
+        </div>
 
         <h3 className="line-clamp-2 text-2xl font-semibold text-text-primary">{item.title}</h3>
         <p className="text-lg font-semibold text-text-primary">{formatWishlistPrice(item.price)}</p>

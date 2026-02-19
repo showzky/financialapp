@@ -10,12 +10,15 @@ const previewQuerySchema = z.object({
   url: z.string().url(),
 })
 
+const wishlistPrioritySchema = z.enum(['High', 'Medium', 'Low'])
+
 const wishlistItemSchema = z.object({
   title: z.string().trim().min(1).max(300),
   url: z.string().trim().url(),
   price: z.number().finite().nonnegative().nullable(),
   imageUrl: z.string().trim().url().or(z.literal('')).optional(),
   category: z.string().trim().max(100).optional(),
+  priority: wishlistPrioritySchema.optional(),
   savedAmount: z.number().finite().nonnegative().optional(),
 })
 
@@ -26,6 +29,7 @@ const wishlistItemUpdateSchema = z
     price: z.number().finite().nonnegative().nullable().optional(),
     imageUrl: z.string().trim().url().or(z.literal('')).optional(),
     category: z.string().trim().max(100).optional(),
+    priority: wishlistPrioritySchema.optional(),
     savedAmount: z.number().finite().nonnegative().optional(),
   })
   .refine(
@@ -35,6 +39,7 @@ const wishlistItemUpdateSchema = z
       value.price !== undefined ||
       value.imageUrl !== undefined ||
       value.category !== undefined ||
+      value.priority !== undefined ||
       value.savedAmount !== undefined,
     {
       message: 'At least one field must be provided',
@@ -114,6 +119,7 @@ export const createWishlistItem = asyncHandler(async (req: Request, res: Respons
     price: payload.price,
     imageUrl: payload.imageUrl ?? '',
     category: payload.category ?? '',
+    priority: payload.priority ?? 'Medium',
     savedAmount: payload.savedAmount ?? 0,
   })
 

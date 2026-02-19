@@ -38,10 +38,31 @@ CREATE TABLE IF NOT EXISTS wishlist_items (
   price NUMERIC(12, 2) CHECK (price IS NULL OR price >= 0),
   image_url TEXT NOT NULL DEFAULT '',
   category TEXT NOT NULL DEFAULT '',
+  priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('High', 'Medium', 'Low')),
   saved_amount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (saved_amount >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE wishlist_items
+ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'Medium';
+
+UPDATE wishlist_items
+SET priority = 'Medium'
+WHERE priority IS NULL OR priority = '';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'wishlist_items_priority_check'
+  ) THEN
+    ALTER TABLE wishlist_items
+    ADD CONSTRAINT wishlist_items_priority_check
+    CHECK (priority IN ('High', 'Medium', 'Low'));
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_budget_categories_user_id ON budget_categories(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);

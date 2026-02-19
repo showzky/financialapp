@@ -1,4 +1,5 @@
 import { backendRequest } from './backendClient'
+import { type WishlistPriority } from '@/types/wishlist'
 
 export type WishlistItemDto = {
   id: string
@@ -7,6 +8,7 @@ export type WishlistItemDto = {
   price: number | null
   imageUrl: string
   category: string
+  priority: WishlistPriority
   savedAmount: number
   createdAt: string
   updatedAt: string
@@ -25,6 +27,7 @@ type UpsertWishlistItemPayload = {
   price: number | null
   imageUrl?: string
   category?: string
+  priority?: WishlistPriority
   savedAmount?: number
 }
 
@@ -34,6 +37,7 @@ type UpdateWishlistItemPayload = {
   price?: number | null
   imageUrl?: string
   category?: string
+  priority?: WishlistPriority
   savedAmount?: number
 }
 

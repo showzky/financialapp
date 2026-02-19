@@ -8,6 +8,7 @@ export type WishlistItem = {
   price: number | null
   imageUrl: string
   category: string
+  priority: 'High' | 'Medium' | 'Low'
   savedAmount: number
   createdAt: string
   updatedAt: string
@@ -20,6 +21,7 @@ export type CreateWishlistItemInput = {
   price: number | null
   imageUrl?: string
   category?: string
+  priority?: 'High' | 'Medium' | 'Low'
   savedAmount?: number
 }
 
@@ -29,6 +31,7 @@ export type UpdateWishlistItemInput = {
   price?: number | null | undefined
   imageUrl?: string | undefined
   category?: string | undefined
+  priority?: 'High' | 'Medium' | 'Low' | undefined
   savedAmount?: number | undefined
 }
 
@@ -40,6 +43,7 @@ const wishlistSelect = `
   price::float8 AS price,
   image_url AS "imageUrl",
   category,
+  priority,
   saved_amount::float8 AS "savedAmount",
   created_at AS "createdAt",
   updated_at AS "updatedAt"
@@ -49,8 +53,8 @@ export const wishlistItemModel = {
   async create(input: CreateWishlistItemInput): Promise<WishlistItem> {
     const result = await db.query<WishlistItem>(
       `
-      INSERT INTO wishlist_items (user_id, title, url, price, image_url, category, saved_amount)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO wishlist_items (user_id, title, url, price, image_url, category, priority, saved_amount)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING ${wishlistSelect}
       `,
       [
@@ -60,6 +64,7 @@ export const wishlistItemModel = {
         input.price,
         input.imageUrl ?? '',
         input.category ?? '',
+        input.priority ?? 'Medium',
         input.savedAmount ?? 0,
       ],
     )
@@ -112,7 +117,8 @@ export const wishlistItemModel = {
         price = CASE WHEN $9 THEN $5 ELSE price END,
         image_url = COALESCE($6, image_url),
         category = COALESCE($7, category),
-        saved_amount = COALESCE($8, saved_amount),
+        priority = COALESCE($8, priority),
+        saved_amount = COALESCE($10, saved_amount),
         updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING ${wishlistSelect}
@@ -125,8 +131,9 @@ export const wishlistItemModel = {
         input.price === undefined ? null : input.price,
         input.imageUrl ?? null,
         input.category ?? null,
-        input.savedAmount ?? null,
+        input.priority ?? null,
         hasPriceUpdate,
+        input.savedAmount ?? null,
       ],
     )
 

@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { wishlistApi } from '@/services/wishlistApi'
 import { WishlistCategoryFilter } from '@/components/WishlistCategoryFilter'
 import { WishlistItemCard } from '@/components/WishlistItemCard'
-import { type WishlistItem } from '@/types/wishlist'
+import {
+  type WishlistItem,
+  type WishlistPriority,
+  wishlistPriorityOptions,
+  wishlistPriorityWeight,
+} from '@/types/wishlist'
 
 type ProductFormState = {
   title: string
@@ -10,6 +15,7 @@ type ProductFormState = {
   price: string
   imageUrl: string
   category: string
+  priority: WishlistPriority
 }
 
 const emptyProductForm: ProductFormState = {
@@ -18,6 +24,15 @@ const emptyProductForm: ProductFormState = {
   price: '',
   imageUrl: '',
   category: '',
+  priority: 'Medium',
+}
+
+const normalizeWishlistPriority = (value: string): WishlistPriority => {
+  if (value === 'High' || value === 'Medium' || value === 'Low') {
+    return value
+  }
+
+  return 'Medium'
 }
 
 const getDomainFromUrl = (value: string) => {
@@ -39,12 +54,14 @@ const formatWishlistPrice = (price: number | null) => {
 
 export const Wishlist = () => {
   const allCategoryFilterLabel = 'All'
+  const allPriorityFilterLabel = 'All'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [productForm, setProductForm] = useState<ProductFormState>({ ...emptyProductForm })
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(allCategoryFilterLabel)
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState(allPriorityFilterLabel)
   const [isWishlistLoading, setIsWishlistLoading] = useState(true)
   const [wishlistError, setWishlistError] = useState('')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
@@ -59,6 +76,7 @@ export const Wishlist = () => {
   const normalizedUrl = productForm.url.trim()
   const normalizedImageUrl = productForm.imageUrl.trim()
   const normalizedCategory = productForm.category.trim()
+  const normalizedPriority = normalizeWishlistPriority(productForm.priority)
   const normalizedPrice = productForm.price.trim()
   const normalizedDepositAmount = depositAmount.trim()
 
@@ -101,10 +119,30 @@ export const Wishlist = () => {
     ).sort((leftCategory, rightCategory) => leftCategory.localeCompare(rightCategory)),
   ]
 
-  const filteredWishlistItems =
-    selectedCategoryFilter === allCategoryFilterLabel
-      ? wishlistItems
-      : wishlistItems.filter((item) => item.category.trim() === selectedCategoryFilter)
+  const availablePriorityFilters = [allPriorityFilterLabel, ...wishlistPriorityOptions]
+
+  const priorityAndCategoryFilteredItems = wishlistItems.filter((item) => {
+    const matchesCategory =
+      selectedCategoryFilter === allCategoryFilterLabel || item.category.trim() === selectedCategoryFilter
+    const matchesPriority =
+      selectedPriorityFilter === allPriorityFilterLabel || item.priority === selectedPriorityFilter
+
+    return matchesCategory && matchesPriority
+  })
+
+  const filteredWishlistItems = priorityAndCategoryFilteredItems
+    .map((item, index) => ({ item, index }))
+    .sort((left, right) => {
+      const rightWeight = wishlistPriorityWeight[right.item.priority]
+      const leftWeight = wishlistPriorityWeight[left.item.priority]
+
+      if (rightWeight !== leftWeight) {
+        return rightWeight - leftWeight
+      }
+
+      return left.index - right.index
+    })
+    .map((entry) => entry.item)
 
   useEffect(() => {
     if (!availableCategoryFilters.includes(selectedCategoryFilter)) {
@@ -128,6 +166,7 @@ export const Wishlist = () => {
             price: item.price,
             imageUrl: item.imageUrl,
             category: item.category,
+            priority: normalizeWishlistPriority(item.priority),
             savedAmount: item.savedAmount,
           })),
         )
@@ -179,6 +218,7 @@ export const Wishlist = () => {
         price: item.price,
         imageUrl: item.imageUrl,
         category: item.category,
+        priority: item.priority,
         savedAmount: existing.savedAmount,
       })
 
@@ -192,6 +232,7 @@ export const Wishlist = () => {
                 price: updated.price,
                 imageUrl: updated.imageUrl,
                 category: updated.category,
+                priority: normalizeWishlistPriority(updated.priority),
                 savedAmount: updated.savedAmount,
               }
             : wishlistItem,
@@ -207,6 +248,7 @@ export const Wishlist = () => {
       price: item.price,
       imageUrl: item.imageUrl,
       category: item.category,
+      priority: item.priority,
       savedAmount: 0,
     })
 
@@ -218,6 +260,7 @@ export const Wishlist = () => {
         price: created.price,
         imageUrl: created.imageUrl,
         category: created.category,
+        priority: normalizeWishlistPriority(created.priority),
         savedAmount: created.savedAmount,
       },
       ...current,
@@ -232,6 +275,7 @@ export const Wishlist = () => {
       price: item.price === null ? '' : String(item.price),
       imageUrl: item.imageUrl,
       category: item.category,
+      priority: item.priority,
     })
     setHasTriedSubmit(false)
     setIsAddModalOpen(true)
@@ -278,6 +322,7 @@ export const Wishlist = () => {
                 price: updated.price,
                 imageUrl: updated.imageUrl,
                 category: updated.category,
+                priority: normalizeWishlistPriority(updated.priority),
                 savedAmount: updated.savedAmount,
               }
             : item,
@@ -467,6 +512,26 @@ export const Wishlist = () => {
                   </select>
                 </div>
 
+                <div className="mt-4 space-y-2">
+                  <label htmlFor="wishlist-priority" className="text-base font-semibold text-slate-900 sm:text-lg">
+                    Priority
+                  </label>
+                  <select
+                    id="wishlist-priority"
+                    value={productForm.priority}
+                    onChange={(e) =>
+                      updateProductForm({ priority: normalizeWishlistPriority(e.target.value) })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                  >
+                    {wishlistPriorityOptions.map((priorityOption) => (
+                      <option key={priorityOption} value={priorityOption}>
+                        {priorityOption}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
                   <button
                     type="button"
@@ -491,6 +556,7 @@ export const Wishlist = () => {
                           price: parsedPrice,
                           imageUrl: normalizedImageUrl,
                           category: normalizedCategory,
+                          priority: normalizedPriority,
                           savedAmount: 0,
                         })
 
@@ -596,6 +662,9 @@ export const Wishlist = () => {
           categories={availableCategoryFilters}
           selectedCategory={selectedCategoryFilter}
           onCategoryChange={setSelectedCategoryFilter}
+          priorities={availablePriorityFilters}
+          selectedPriority={selectedPriorityFilter}
+          onPriorityChange={setSelectedPriorityFilter}
         />
       ) : null}
 
@@ -634,7 +703,7 @@ export const Wishlist = () => {
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold text-text-primary">No products in this category</h2>
             <p className="text-base text-text-muted">
-              Switch your filter or add a new item under {selectedCategoryFilter}.
+              Switch your filters or add a new item that matches this view.
             </p>
           </div>
         </section>
