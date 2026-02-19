@@ -1,15 +1,19 @@
 import { backendRequest } from './backendClient'
-import { type WishlistPriority } from '@/types/wishlist'
+import { type WishlistMetadataStatus, type WishlistPriority } from '@/types/wishlist'
 
 export type WishlistItemDto = {
   id: string
   title: string
   url: string
+  normalizedUrl: string
   price: number | null
   imageUrl: string
   category: string
   priority: WishlistPriority
   savedAmount: number
+  metadataStatus: WishlistMetadataStatus
+  metadataLastCheckedAt: string | null
+  metadataLastSuccessAt: string | null
   createdAt: string
   updatedAt: string
 }

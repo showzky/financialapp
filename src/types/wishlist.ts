@@ -2,6 +2,7 @@
 export const wishlistPriorityOptions = ['High', 'Medium', 'Low'] as const
 
 export type WishlistPriority = (typeof wishlistPriorityOptions)[number]
+export type WishlistMetadataStatus = 'fresh' | 'stale' | 'unknown'
 
 // ADD THIS: numeric weights for stable priority sorting
 export const wishlistPriorityWeight: Record<WishlistPriority, number> = {
@@ -14,9 +15,13 @@ export type WishlistItem = {
   id: string
   title: string
   url: string
+  normalizedUrl: string
   price: number | null
   imageUrl: string
   category: string
   priority: WishlistPriority
   savedAmount: number
+  metadataStatus: WishlistMetadataStatus
+  metadataLastCheckedAt: string | null
+  metadataLastSuccessAt: string | null
 }

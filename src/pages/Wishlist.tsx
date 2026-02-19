@@ -35,6 +35,46 @@ const normalizeWishlistPriority = (value: string): WishlistPriority => {
   return 'Medium'
 }
 
+const normalizeWishlistUrl = (value: string) => {
+  const parsed = new URL(value.trim())
+  parsed.hostname = parsed.hostname.toLowerCase()
+  parsed.hash = ''
+
+  const filteredParams = [...parsed.searchParams.entries()]
+    .filter(([key]) => {
+      const normalizedKey = key.toLowerCase()
+      return !normalizedKey.startsWith('utm_') && normalizedKey !== 'fbclid' && normalizedKey !== 'gclid'
+    })
+    .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey === rightKey) {
+        return leftValue.localeCompare(rightValue)
+      }
+
+      return leftKey.localeCompare(rightKey)
+    })
+
+  parsed.search = ''
+  filteredParams.forEach(([key, paramValue]) => {
+    parsed.searchParams.append(key, paramValue)
+  })
+
+  if (parsed.pathname !== '/') {
+    const normalizedPath = parsed.pathname.replace(/\/+$/g, '')
+    parsed.pathname = normalizedPath === '' ? '/' : normalizedPath
+  }
+
+  return parsed.toString()
+}
+
+type UpsertWishlistItemDraft = {
+  title: string
+  url: string
+  price: number | null
+  imageUrl: string
+  category: string
+  priority: WishlistPriority
+}
+
 const getDomainFromUrl = (value: string) => {
   try {
     return new URL(value).hostname
@@ -64,6 +104,7 @@ export const Wishlist = () => {
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState(allPriorityFilterLabel)
   const [isWishlistLoading, setIsWishlistLoading] = useState(true)
   const [wishlistError, setWishlistError] = useState('')
+  const [addProductError, setAddProductError] = useState('')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
 
@@ -82,6 +123,23 @@ export const Wishlist = () => {
 
   const updateProductForm = (updates: Partial<ProductFormState>) => {
     setProductForm((current) => ({ ...current, ...updates }))
+  }
+
+  const isDuplicateWishlistUrl = (candidateUrl: string) => {
+    if (!isValidHttpUrl(candidateUrl)) {
+      return false
+    }
+
+    const normalizedCandidateUrl = normalizeWishlistUrl(candidateUrl)
+
+    return wishlistItems.some((item) => {
+      if (editingProductId && item.id === editingProductId) {
+        return false
+      }
+
+      const normalizedItemUrl = item.normalizedUrl || normalizeWishlistUrl(item.url)
+      return normalizedItemUrl === normalizedCandidateUrl
+    })
   }
 
   const isValidHttpUrl = (value: string) => {
@@ -168,6 +226,10 @@ export const Wishlist = () => {
             category: item.category,
             priority: normalizeWishlistPriority(item.priority),
             savedAmount: item.savedAmount,
+            normalizedUrl: item.normalizedUrl,
+            metadataStatus: item.metadataStatus,
+            metadataLastCheckedAt: item.metadataLastCheckedAt,
+            metadataLastSuccessAt: item.metadataLastSuccessAt,
           })),
         )
         setWishlistError('')
@@ -191,6 +253,7 @@ export const Wishlist = () => {
     setProductForm({ ...emptyProductForm })
     setHasTriedSubmit(false)
     setEditingProductId(null)
+    setAddProductError('')
     setPreviewError('')
     setIsPreviewLoading(false)
   }
@@ -207,7 +270,7 @@ export const Wishlist = () => {
     setHasTriedDepositSubmit(false)
   }
 
-  const upsertWishlistItem = async (item: WishlistItem) => {
+  const upsertWishlistItem = async (item: UpsertWishlistItemDraft) => {
     if (editingProductId) {
       const existing = wishlistItems.find((wishlistItem) => wishlistItem.id === editingProductId)
       if (!existing) return
@@ -234,6 +297,10 @@ export const Wishlist = () => {
                 category: updated.category,
                 priority: normalizeWishlistPriority(updated.priority),
                 savedAmount: updated.savedAmount,
+                normalizedUrl: updated.normalizedUrl,
+                metadataStatus: updated.metadataStatus,
+                metadataLastCheckedAt: updated.metadataLastCheckedAt,
+                metadataLastSuccessAt: updated.metadataLastSuccessAt,
               }
             : wishlistItem,
         ),
@@ -262,6 +329,10 @@ export const Wishlist = () => {
         category: created.category,
         priority: normalizeWishlistPriority(created.priority),
         savedAmount: created.savedAmount,
+        normalizedUrl: created.normalizedUrl,
+        metadataStatus: created.metadataStatus,
+        metadataLastCheckedAt: created.metadataLastCheckedAt,
+        metadataLastSuccessAt: created.metadataLastSuccessAt,
       },
       ...current,
     ])
@@ -324,6 +395,10 @@ export const Wishlist = () => {
                 category: updated.category,
                 priority: normalizeWishlistPriority(updated.priority),
                 savedAmount: updated.savedAmount,
+                normalizedUrl: updated.normalizedUrl,
+                metadataStatus: updated.metadataStatus,
+                metadataLastCheckedAt: updated.metadataLastCheckedAt,
+                metadataLastSuccessAt: updated.metadataLastSuccessAt,
               }
             : item,
         ),
@@ -533,6 +608,10 @@ export const Wishlist = () => {
                 </div>
 
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+                  {addProductError ? (
+                    <p className="w-full text-sm text-red-600 sm:mr-auto sm:w-auto">{addProductError}</p>
+                  ) : null}
+
                   <button
                     type="button"
                     onClick={closeAddProductModal}
@@ -544,26 +623,38 @@ export const Wishlist = () => {
                     type="button"
                     onClick={async () => {
                       setHasTriedSubmit(true)
+                      setAddProductError('')
                       if (!isFormValid) return
+
+                      if (isDuplicateWishlistUrl(normalizedUrl)) {
+                        setAddProductError('This product URL is already in your wishlist.')
+                        return
+                      }
 
                       const parsedPrice = normalizedPrice === '' ? null : Number(normalizedPrice)
 
                       try {
                         await upsertWishlistItem({
-                          id: editingProductId ?? `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
                           title: normalizedTitle,
                           url: normalizedUrl,
                           price: parsedPrice,
                           imageUrl: normalizedImageUrl,
                           category: normalizedCategory,
                           priority: normalizedPriority,
-                          savedAmount: 0,
                         })
 
                         setWishlistError('')
                         closeAddProductModal()
                       } catch (error) {
-                        setWishlistError(error instanceof Error ? error.message : 'Could not save wishlist item')
+                        const errorMessage =
+                          error instanceof Error ? error.message : 'Could not save wishlist item'
+
+                        if (/already exists/i.test(errorMessage)) {
+                          setAddProductError('This product URL is already in your wishlist.')
+                          return
+                        }
+
+                        setWishlistError(errorMessage)
                       }
                     }}
                     className="w-full rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 sm:w-auto"
