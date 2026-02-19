@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { wishlistApi } from '@/services/wishlistApi'
+import { useEffect, useRef, useState } from 'react'
+import { wishlistApi, type WishlistItemDto } from '@/services/wishlistApi'
 import { WishlistCategoryFilter } from '@/components/WishlistCategoryFilter'
 import { WishlistItemCard } from '@/components/WishlistItemCard'
 import {
@@ -92,6 +92,25 @@ const formatWishlistPrice = (price: number | null) => {
   }).format(price)
 }
 
+const mapWishlistItemDto = (item: WishlistItemDto): WishlistItem => ({
+  id: item.id,
+  title: item.title,
+  url: item.url,
+  price: item.price,
+  imageUrl: item.imageUrl,
+  category: item.category,
+  priority: normalizeWishlistPriority(item.priority),
+  savedAmount: item.savedAmount,
+  normalizedUrl: item.normalizedUrl,
+  metadataStatus: item.metadataStatus,
+  metadataLastCheckedAt: item.metadataLastCheckedAt,
+  metadataLastSuccessAt: item.metadataLastSuccessAt,
+  latestTrackedPrice: item.latestTrackedPrice,
+  previousTrackedPrice: item.previousTrackedPrice,
+  priceTrendDirection: item.priceTrendDirection,
+  priceTrendPercent: item.priceTrendPercent,
+})
+
 export const Wishlist = () => {
   const allCategoryFilterLabel = 'All'
   const allPriorityFilterLabel = 'All'
@@ -107,6 +126,9 @@ export const Wishlist = () => {
   const [addProductError, setAddProductError] = useState('')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
+  const [refreshingItemById, setRefreshingItemById] = useState<Record<string, boolean>>({})
+  const [refreshErrorById, setRefreshErrorById] = useState<Record<string, string>>({})
+  const refreshRequestTokenRef = useRef<Record<string, number>>({})
 
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false)
   const [selectedDepositId, setSelectedDepositId] = useState<string | null>(null)
@@ -216,26 +238,7 @@ export const Wishlist = () => {
         const items = await wishlistApi.list()
         if (!isMounted) return
 
-        setWishlistItems(
-          items.map((item) => ({
-            id: item.id,
-            title: item.title,
-            url: item.url,
-            price: item.price,
-            imageUrl: item.imageUrl,
-            category: item.category,
-            priority: normalizeWishlistPriority(item.priority),
-            savedAmount: item.savedAmount,
-            normalizedUrl: item.normalizedUrl,
-            metadataStatus: item.metadataStatus,
-            metadataLastCheckedAt: item.metadataLastCheckedAt,
-            metadataLastSuccessAt: item.metadataLastSuccessAt,
-            latestTrackedPrice: item.latestTrackedPrice,
-            previousTrackedPrice: item.previousTrackedPrice,
-            priceTrendDirection: item.priceTrendDirection,
-            priceTrendPercent: item.priceTrendPercent,
-          })),
-        )
+        setWishlistItems(items.map(mapWishlistItemDto))
         setWishlistError('')
       } catch (error) {
         if (!isMounted) return
@@ -291,26 +294,7 @@ export const Wishlist = () => {
 
       setWishlistItems((current) =>
         current.map((wishlistItem) =>
-          wishlistItem.id === editingProductId
-            ? {
-                id: updated.id,
-                title: updated.title,
-                url: updated.url,
-                price: updated.price,
-                imageUrl: updated.imageUrl,
-                category: updated.category,
-                priority: normalizeWishlistPriority(updated.priority),
-                savedAmount: updated.savedAmount,
-                normalizedUrl: updated.normalizedUrl,
-                metadataStatus: updated.metadataStatus,
-                metadataLastCheckedAt: updated.metadataLastCheckedAt,
-                metadataLastSuccessAt: updated.metadataLastSuccessAt,
-                latestTrackedPrice: updated.latestTrackedPrice,
-                previousTrackedPrice: updated.previousTrackedPrice,
-                priceTrendDirection: updated.priceTrendDirection,
-                priceTrendPercent: updated.priceTrendPercent,
-              }
-            : wishlistItem,
+          wishlistItem.id === editingProductId ? mapWishlistItemDto(updated) : wishlistItem,
         ),
       )
 
@@ -328,24 +312,7 @@ export const Wishlist = () => {
     })
 
     setWishlistItems((current) => [
-      {
-        id: created.id,
-        title: created.title,
-        url: created.url,
-        price: created.price,
-        imageUrl: created.imageUrl,
-        category: created.category,
-        priority: normalizeWishlistPriority(created.priority),
-        savedAmount: created.savedAmount,
-        normalizedUrl: created.normalizedUrl,
-        metadataStatus: created.metadataStatus,
-        metadataLastCheckedAt: created.metadataLastCheckedAt,
-        metadataLastSuccessAt: created.metadataLastSuccessAt,
-        latestTrackedPrice: created.latestTrackedPrice,
-        previousTrackedPrice: created.previousTrackedPrice,
-        priceTrendDirection: created.priceTrendDirection,
-        priceTrendPercent: created.priceTrendPercent,
-      },
+      mapWishlistItemDto(created),
       ...current,
     ])
   }
@@ -397,26 +364,7 @@ export const Wishlist = () => {
 
       setWishlistItems((current) =>
         current.map((item) =>
-          item.id === selectedDepositId
-            ? {
-                id: updated.id,
-                title: updated.title,
-                url: updated.url,
-                price: updated.price,
-                imageUrl: updated.imageUrl,
-                category: updated.category,
-                priority: normalizeWishlistPriority(updated.priority),
-                savedAmount: updated.savedAmount,
-                normalizedUrl: updated.normalizedUrl,
-                metadataStatus: updated.metadataStatus,
-                metadataLastCheckedAt: updated.metadataLastCheckedAt,
-                metadataLastSuccessAt: updated.metadataLastSuccessAt,
-                latestTrackedPrice: updated.latestTrackedPrice,
-                previousTrackedPrice: updated.previousTrackedPrice,
-                priceTrendDirection: updated.priceTrendDirection,
-                priceTrendPercent: updated.priceTrendPercent,
-              }
-            : item,
+          item.id === selectedDepositId ? mapWishlistItemDto(updated) : item,
         ),
       )
 
@@ -447,6 +395,58 @@ export const Wishlist = () => {
       setPreviewError(message)
     } finally {
       setIsPreviewLoading(false)
+    }
+  }
+
+  const handleRefreshItemMetadata = async (itemId: string) => {
+    if (refreshingItemById[itemId]) return
+
+    const existingItem = wishlistItems.find((item) => item.id === itemId)
+    if (!existingItem) return
+
+    const requestToken = Date.now()
+    refreshRequestTokenRef.current[itemId] = requestToken
+
+    setRefreshErrorById((current) => ({ ...current, [itemId]: '' }))
+    setRefreshingItemById((current) => ({ ...current, [itemId]: true }))
+
+    try {
+      const preview = await wishlistApi.previewFromUrl(existingItem.url)
+
+      if (refreshRequestTokenRef.current[itemId] !== requestToken) {
+        return
+      }
+
+      const nextTitle = preview.title?.trim() ? preview.title.trim() : existingItem.title
+      const nextImageUrl = preview.imageUrl?.trim() ? preview.imageUrl.trim() : existingItem.imageUrl
+      const nextPrice = preview.price !== null ? preview.price : existingItem.price
+
+      const updated = await wishlistApi.update(itemId, {
+        title: nextTitle,
+        url: existingItem.url,
+        imageUrl: nextImageUrl,
+        price: nextPrice,
+      })
+
+      if (refreshRequestTokenRef.current[itemId] !== requestToken) {
+        return
+      }
+
+      setWishlistItems((current) =>
+        current.map((item) => (item.id === itemId ? mapWishlistItemDto(updated) : item)),
+      )
+      setWishlistError('')
+    } catch (error) {
+      if (refreshRequestTokenRef.current[itemId] !== requestToken) {
+        return
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Could not refresh metadata for this item.'
+      setRefreshErrorById((current) => ({ ...current, [itemId]: errorMessage }))
+    } finally {
+      if (refreshRequestTokenRef.current[itemId] === requestToken) {
+        setRefreshingItemById((current) => ({ ...current, [itemId]: false }))
+      }
     }
   }
 
@@ -822,6 +822,9 @@ export const Wishlist = () => {
               item={item}
               formatWishlistPrice={formatWishlistPrice}
               getDomainFromUrl={getDomainFromUrl}
+              onRefresh={handleRefreshItemMetadata}
+              isRefreshing={Boolean(refreshingItemById[item.id])}
+              refreshError={refreshErrorById[item.id] ?? ''}
               onDeposit={handleOpenDepositModal}
               onVisitEdit={handleOpenEditModal}
               onDelete={handleDeleteProduct}

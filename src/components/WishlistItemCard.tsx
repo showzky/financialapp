@@ -4,6 +4,9 @@ type WishlistItemCardProps = {
   item: WishlistItem
   formatWishlistPrice: (price: number | null) => string
   getDomainFromUrl: (value: string) => string
+  onRefresh: (itemId: string) => void
+  isRefreshing: boolean
+  refreshError: string
   onDeposit: (itemId: string) => void
   onVisitEdit: (item: WishlistItem) => void
   onDelete: (itemId: string) => void
@@ -13,6 +16,9 @@ export const WishlistItemCard = ({
   item,
   formatWishlistPrice,
   getDomainFromUrl,
+  onRefresh,
+  isRefreshing,
+  refreshError,
   onDeposit,
   onVisitEdit,
   onDelete,
@@ -192,6 +198,15 @@ export const WishlistItemCard = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => onRefresh(item.id)}
+            disabled={isRefreshing}
+            className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isRefreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+
+          <button
+            type="button"
             onClick={() => onDeposit(item.id)}
             className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
           >
@@ -263,6 +278,8 @@ export const WishlistItemCard = ({
             </svg>
           </button>
         </div>
+
+        {refreshError ? <p className="text-xs text-red-600">{refreshError}</p> : null}
       </div>
     </article>
   )

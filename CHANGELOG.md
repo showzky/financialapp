@@ -28,6 +28,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Added metadata freshness status badges to wishlist cards to show whether scraped product details are fresh, stale, or unknown.
 - Added wishlist price snapshot tracking and trend calculation (up/down/flat/unknown) based on historical product prices.
 - Added a card-level price trend indicator on the wishlist page, including percentage change when enough price history exists.
+- Added a manual per-item metadata refresh action on wishlist cards with item-level loading and error states.
 
 ### Fixed
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.
