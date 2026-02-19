@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react'
 import { wishlistApi } from '@/services/wishlistApi'
-
-type WishlistItem = {
-  id: string
-  title: string
-  url: string
-  price: number | null
-  imageUrl: string
-  category: string
-  savedAmount: number
-}
+import { WishlistCategoryFilter } from '@/components/WishlistCategoryFilter'
+import { WishlistItemCard } from '@/components/WishlistItemCard'
+import { type WishlistItem } from '@/types/wishlist'
 
 type ProductFormState = {
   title: string
@@ -45,11 +38,13 @@ const formatWishlistPrice = (price: number | null) => {
 }
 
 export const Wishlist = () => {
+  const allCategoryFilterLabel = 'All'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [productForm, setProductForm] = useState<ProductFormState>({ ...emptyProductForm })
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(allCategoryFilterLabel)
   const [isWishlistLoading, setIsWishlistLoading] = useState(true)
   const [wishlistError, setWishlistError] = useState('')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
@@ -94,6 +89,28 @@ export const Wishlist = () => {
 
   const selectedDepositItem =
     selectedDepositId === null ? null : wishlistItems.find((item) => item.id === selectedDepositId) ?? null
+
+  const availableCategoryFilters = [
+    allCategoryFilterLabel,
+    ...Array.from(
+      new Set(
+        wishlistItems
+          .map((item) => item.category.trim())
+          .filter((category) => category.length > 0),
+      ),
+    ).sort((leftCategory, rightCategory) => leftCategory.localeCompare(rightCategory)),
+  ]
+
+  const filteredWishlistItems =
+    selectedCategoryFilter === allCategoryFilterLabel
+      ? wishlistItems
+      : wishlistItems.filter((item) => item.category.trim() === selectedCategoryFilter)
+
+  useEffect(() => {
+    if (!availableCategoryFilters.includes(selectedCategoryFilter)) {
+      setSelectedCategoryFilter(allCategoryFilterLabel)
+    }
+  }, [availableCategoryFilters, selectedCategoryFilter])
 
   useEffect(() => {
     let isMounted = true
@@ -574,6 +591,14 @@ export const Wishlist = () => {
         </button>
       </section>
 
+      {!isWishlistLoading && wishlistItems.length > 0 ? (
+        <WishlistCategoryFilter
+          categories={availableCategoryFilters}
+          selectedCategory={selectedCategoryFilter}
+          onCategoryChange={setSelectedCategoryFilter}
+        />
+      ) : null}
+
       {isWishlistLoading ? (
         <section className="mx-auto grid w-full max-w-6xl place-items-center py-28 text-center">
           <p className="text-base text-text-muted">Loading wishlist...</p>
@@ -604,192 +629,28 @@ export const Wishlist = () => {
             </div>
           </div>
         </section>
+      ) : filteredWishlistItems.length === 0 ? (
+        <section className="mx-auto mt-8 grid w-full max-w-6xl place-items-center rounded-2xl bg-surface px-6 py-16 text-center shadow-neo-sm">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold text-text-primary">No products in this category</h2>
+            <p className="text-base text-text-muted">
+              Switch your filter or add a new item under {selectedCategoryFilter}.
+            </p>
+          </div>
+        </section>
       ) : (
         <section className="mx-auto mt-8 grid w-full max-w-6xl gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {wishlistItems.map((item) => {
-            const targetPrice = item.price !== null && item.price > 0 ? item.price : null
-            const hasTargetPrice = targetPrice !== null
-            const progressPercent = hasTargetPrice
-              ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100))
-              : 0
-            const isReadyToBuy = hasTargetPrice && item.savedAmount >= targetPrice
-
-            return (
-              <article
-                key={item.id}
-                className={`overflow-hidden rounded-2xl shadow-neo-sm ${
-                  isReadyToBuy ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'bg-surface'
-                }`}
-              >
-                <div className="grid h-36 place-items-center border-b border-slate-200 bg-slate-50 p-3">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      className="h-full w-full rounded-lg object-contain"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="grid place-items-center gap-3 text-text-muted">
-                      <div className="grid h-14 w-14 place-items-center rounded-full bg-surface shadow-neo-inset">
-                        <svg
-                          aria-hidden="true"
-                          viewBox="0 0 24 24"
-                          className="h-7 w-7"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                        >
-                          <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <p className="text-sm">Product Placeholder</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3 p-4">
-                  {item.category ? (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="inline-block mr-1 h-4 w-4 text-slate-500"
-                        fill="none"
-                        viewBox="0 0 20 20"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      >
-                        <path d="M17.707 10.293l-8-8A1 1 0 008.586 2H3a1 1 0 00-1 1v5.586a1 1 0 00.293.707l8 8a1 1 0 001.414 0l6-6a1 1 0 000-1.414z" />
-                        <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" />
-                      </svg>
-                      {item.category}
-                    </span>
-                  ) : null}
-
-                  <h3 className="line-clamp-2 text-2xl font-semibold text-text-primary">{item.title}</h3>
-                  <p className="text-lg font-semibold text-text-primary">{formatWishlistPrice(item.price)}</p>
-
-                  {hasTargetPrice ? (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <p className="font-medium text-slate-700">Saved: {formatWishlistPrice(item.savedAmount)}</p>
-                        <p className="text-slate-600">{Math.round(progressPercent)}%</p>
-                      </div>
-
-                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            isReadyToBuy ? 'bg-emerald-500' : 'bg-blue-500'
-                          }`}
-                          style={{ width: `${progressPercent}%` }}
-                        />
-                      </div>
-
-                      {isReadyToBuy ? <p className="text-sm font-medium text-emerald-700">Ready to buy</p> : null}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-text-muted">Set a product price to track deposit progress.</p>
-                  )}
-
-                  <p className="inline-flex items-center gap-2 text-sm text-text-muted">
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
-                      <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    {getDomainFromUrl(item.url)}
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenDepositModal(item.id)}
-                      className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
-                    >
-                      Deposit
-                    </button>
-
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 font-semibold text-slate-800 transition hover:bg-slate-100"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      >
-                        <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      Visit
-                    </a>
-
-                    <button
-                      type="button"
-                      aria-label="Edit product"
-                      onClick={() => handleOpenEditModal(item)}
-                      className="grid h-10 w-10 place-items-center rounded-lg text-blue-600 transition hover:bg-blue-50"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      >
-                        <path d="m13.5 5.5 5 5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path
-                          d="M4 20h4l10-10a1.8 1.8 0 0 0-4-4L4 16v4Z"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-
-                    <button
-                      type="button"
-                      aria-label="Delete product"
-                      onClick={() => handleDeleteProduct(item.id)}
-                      className="grid h-10 w-10 place-items-center rounded-lg text-red-600 transition hover:bg-red-50"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      >
-                        <path d="M3 6h18" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M8 6V4h8v2" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </article>
-            )
-          })}
+          {filteredWishlistItems.map((item) => (
+            <WishlistItemCard
+              key={item.id}
+              item={item}
+              formatWishlistPrice={formatWishlistPrice}
+              getDomainFromUrl={getDomainFromUrl}
+              onDeposit={handleOpenDepositModal}
+              onVisitEdit={handleOpenEditModal}
+              onDelete={handleDeleteProduct}
+            />
+          ))}
         </section>
       )}
     </div>

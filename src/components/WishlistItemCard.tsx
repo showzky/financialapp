@@ -1,0 +1,190 @@
+import { type WishlistItem } from '@/types/wishlist'
+
+type WishlistItemCardProps = {
+  item: WishlistItem
+  formatWishlistPrice: (price: number | null) => string
+  getDomainFromUrl: (value: string) => string
+  onDeposit: (itemId: string) => void
+  onVisitEdit: (item: WishlistItem) => void
+  onDelete: (itemId: string) => void
+}
+
+export const WishlistItemCard = ({
+  item,
+  formatWishlistPrice,
+  getDomainFromUrl,
+  onDeposit,
+  onVisitEdit,
+  onDelete,
+}: WishlistItemCardProps) => {
+  const targetPrice = item.price !== null && item.price > 0 ? item.price : null
+  const hasTargetPrice = targetPrice !== null
+  const progressPercent = hasTargetPrice ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100)) : 0
+  const isReadyToBuy = hasTargetPrice && item.savedAmount >= targetPrice
+
+  return (
+    <article
+      className={`overflow-hidden rounded-2xl shadow-neo-sm ${
+        isReadyToBuy ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'bg-surface'
+      }`}
+    >
+      <div className="grid h-36 place-items-center border-b border-slate-200 bg-slate-50 p-3">
+        {item.imageUrl ? (
+          <img src={item.imageUrl} alt={item.title} className="h-full w-full rounded-lg object-contain" loading="lazy" />
+        ) : (
+          <div className="grid place-items-center gap-3 text-text-muted">
+            <div className="grid h-14 w-14 place-items-center rounded-full bg-surface shadow-neo-inset">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <p className="text-sm">Product Placeholder</p>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 p-4">
+        {item.category ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="inline-block mr-1 h-4 w-4 text-slate-500"
+              fill="none"
+              viewBox="0 0 20 20"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path d="M17.707 10.293l-8-8A1 1 0 008.586 2H3a1 1 0 00-1 1v5.586a1 1 0 00.293.707l8 8a1 1 0 001.414 0l6-6a1 1 0 000-1.414z" />
+              <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" />
+            </svg>
+            {item.category}
+          </span>
+        ) : null}
+
+        <h3 className="line-clamp-2 text-2xl font-semibold text-text-primary">{item.title}</h3>
+        <p className="text-lg font-semibold text-text-primary">{formatWishlistPrice(item.price)}</p>
+
+        {hasTargetPrice ? (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <p className="font-medium text-slate-700">Saved: {formatWishlistPrice(item.savedAmount)}</p>
+              <p className="text-slate-600">{Math.round(progressPercent)}%</p>
+            </div>
+
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className={`h-full rounded-full transition-all ${isReadyToBuy ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            {isReadyToBuy ? <p className="text-sm font-medium text-emerald-700">Ready to buy</p> : null}
+          </div>
+        ) : (
+          <p className="text-sm text-text-muted">Set a product price to track deposit progress.</p>
+        )}
+
+        <p className="inline-flex items-center gap-2 text-sm text-text-muted">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {getDomainFromUrl(item.url)}
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onDeposit(item.id)}
+            className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+          >
+            Deposit
+          </button>
+
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 font-semibold text-slate-800 transition hover:bg-slate-100"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Visit
+          </a>
+
+          <button
+            type="button"
+            aria-label="Edit product"
+            onClick={() => onVisitEdit(item)}
+            className="grid h-10 w-10 place-items-center rounded-lg text-blue-600 transition hover:bg-blue-50"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="m13.5 5.5 5 5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M4 20h4l10-10a1.8 1.8 0 0 0-4-4L4 16v4Z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            aria-label="Delete product"
+            onClick={() => onDelete(item.id)}
+            className="grid h-10 w-10 place-items-center rounded-lg text-red-600 transition hover:bg-red-50"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M3 6h18" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 6V4h8v2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </article>
+  )
+}

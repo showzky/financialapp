@@ -1,0 +1,53 @@
+type WishlistCategoryFilterProps = {
+  categories: string[]
+  selectedCategory: string
+  onCategoryChange: (category: string) => void
+}
+
+export const WishlistCategoryFilter = ({
+  categories,
+  selectedCategory,
+  onCategoryChange,
+}: WishlistCategoryFilterProps) => {
+  return (
+    <section className="mx-auto mt-6 w-full max-w-6xl space-y-3">
+      <div className="inline-flex items-center gap-2 text-sm font-medium text-text-primary">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <path d="M4 6h16" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M7 12h10" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10 18h4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Filter by category:
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {categories.map((category) => {
+          const isSelected = selectedCategory === category
+
+          return (
+            <button
+              key={category}
+              type="button"
+              onClick={() => onCategoryChange(category)}
+              className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+                isSelected
+                  ? 'border-transparent bg-accent-strong text-white'
+                  : 'border-slate-300 bg-surface text-text-primary hover:border-slate-400'
+              }`}
+              aria-pressed={isSelected}
+            >
+              {category}
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
