@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { wishlistApi, type WishlistItemDto } from '@/services/wishlistApi'
-import { WishlistCategoryFilter } from '@/components/WishlistCategoryFilter'
+// ADD THIS: modularized filters widget with chips and priority styling
+import { WishlistFilters } from '@/components/WishlistFilters'
 import { WishlistFilteredEmptyState } from '@/components/WishlistFilteredEmptyState'
 import { WishlistItemCard } from '@/components/WishlistItemCard'
-import { SummaryStat } from '@/components/SummaryStat'
+import { StatCard } from '@/components/StatCard'
+import { Package, Target, DollarSign, CheckCircle2 } from 'lucide-react'
 import {
   type WishlistItem,
   type WishlistItemStatus,
@@ -857,48 +859,50 @@ export const Wishlist = () => {
       ) : null}
 
       {!isWishlistLoading && wishlistItems.length > 0 ? (
-        <WishlistCategoryFilter
+        // ADD THIS: replace the old collapsible list with the new chip-first filter experience
+        <WishlistFilters
           categories={availableCategoryFilters}
           selectedCategory={selectedCategoryFilter}
           onCategoryChange={setSelectedCategoryFilter}
           priorities={availablePriorityFilters}
           selectedPriority={selectedPriorityFilter}
           onPriorityChange={setSelectedPriorityFilter}
+          onClearFilters={resetWishlistFilters}
+          defaultCategoryLabel={allCategoryFilterLabel}
+          defaultPriorityLabel={allPriorityFilterLabel}
         />
       ) : null}
 
       {!isWishlistLoading && wishlistItems.length > 0 ? (
-        // ADD THIS: compact, responsive analytics summary for the active filtered view
+        // ADD THIS: compact, high-density analytics summary grid
         selectedWishlistStatus === activeWishlistLabel ? (
-          <section className="mx-auto mt-4 grid w-full max-w-6xl gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <SummaryStat
+          <section className="mx-auto mt-4 grid w-full max-w-6xl grid-cols-2 gap-4 sm:grid-cols-4 md:gap-6">
+            <StatCard
               label="Items in view"
               value={String(filteredWishlistItems.length)}
-              helper={`Total ${itemsInSelectedStatus.length} active items`}
-              icon="🧾"
+              icon={<Package />}
+              helper={`Total ${itemsInSelectedStatus.length} active`}
             />
 
-            <SummaryStat
+            <StatCard
               label="Target total"
               value={formatWishlistAmount(totalTargetAmount)}
+              icon={<Target />}
               helper={`${filteredItemsMissingPriceCount} without price`}
-              icon="🎯"
             />
 
-            <SummaryStat
+            <StatCard
               label="Saved total"
               value={formatWishlistAmount(totalSavedAmount)}
+              icon={<DollarSign />}
               helper={`${summaryProgressPercent}% of target`}
-              icon="💰"
-              tone="positive"
             />
 
-            <SummaryStat
+            <StatCard
               label="Ready to buy"
               value={String(readyToBuyCount)}
+              icon={<CheckCircle2 />}
               helper={`${filteredItemsWithTargetPrice.length} priced items`}
-              icon="✅"
-              tone="positive"
             />
           </section>
         ) : null
@@ -941,7 +945,7 @@ export const Wishlist = () => {
           onResetFilters={resetWishlistFilters}
         />
       ) : (
-        <section className="mx-auto mt-8 grid w-full max-w-6xl gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="mx-auto mt-8 grid w-full max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 md:gap-5 lg:gap-6">
           {filteredWishlistItems.map((item) => (
             <WishlistItemCard
               key={item.id}

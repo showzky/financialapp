@@ -3,18 +3,16 @@ import type { BudgetCategoryType } from '@/types/budget'
 import type { BudgetState } from '@/types/budget'
 import { RecurringManager } from '@/components/RecurringManager'
 import type { RecurringTransaction } from '@/types/recurring'
+import type { ThemePreset } from '@/styles/themePresets'
 
-type ThemeMode = 'light' | 'dark'
-type AccentKey = 'blue' | 'teal' | 'violet'
 type CurrencySymbol = 'KR' | '$' | '€'
 
 type SettingsDrawerProps = {
   isOpen: boolean
   onClose: () => void
-  themeMode: ThemeMode
-  onThemeModeChange: (mode: ThemeMode) => void
-  accent: AccentKey
-  onAccentChange: (accent: AccentKey) => void
+  selectedThemeId: string
+  availableThemes: ThemePreset[]
+  onThemeSelect: (themeId: string) => void
   currencySymbol: CurrencySymbol
   onCurrencyChange: (symbol: CurrencySymbol) => void
   onExportData: () => void
@@ -30,19 +28,12 @@ type SettingsDrawerProps = {
   onDeleteRecurring: (id: string) => void
 }
 
-const accentPalette: Record<AccentKey, string> = {
-  blue: '#6c7df0',
-  teal: '#15b8a6',
-  violet: '#8757eb',
-}
-
 export const SettingsDrawer = ({
   isOpen,
   onClose,
-  themeMode,
-  onThemeModeChange,
-  accent,
-  onAccentChange,
+  selectedThemeId,
+  availableThemes,
+  onThemeSelect,
   currencySymbol,
   onCurrencyChange,
   onExportData,
@@ -99,37 +90,31 @@ export const SettingsDrawer = ({
             </h3>
 
             <div className="space-y-2">
-              <p className="text-xs text-text-muted">Theme mode</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onThemeModeChange('light')}
-                  className={`settings-toggle ${themeMode === 'light' ? 'is-on' : ''}`}
-                >
-                  Light
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onThemeModeChange('dark')}
-                  className={`settings-toggle ${themeMode === 'dark' ? 'is-on' : ''}`}
-                >
-                  Dark
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs text-text-muted">Primary accent</p>
-              <div className="grid grid-cols-3 gap-2">
-                {(['blue', 'teal', 'violet'] as const).map((accentKey) => (
+              <p className="text-xs text-text-muted">Theme preset</p>
+              <div className="grid gap-2">
+                {availableThemes.map((theme) => (
                   <button
-                    key={accentKey}
+                    key={theme.id}
                     type="button"
-                    onClick={() => onAccentChange(accentKey)}
-                    className={`settings-swatch ${accent === accentKey ? 'is-on' : ''}`}
+                    onClick={() => onThemeSelect(theme.id)}
+                    className={`rounded-neo border border-transparent bg-surface px-3 py-2 text-left shadow-neo-sm transition hover:text-text-primary ${
+                      selectedThemeId === theme.id ? 'ring-2 ring-accent/35 text-text-primary' : 'text-text-muted'
+                    }`}
+                    aria-pressed={selectedThemeId === theme.id}
                   >
-                    <span style={{ backgroundColor: accentPalette[accentKey] }} />
-                    {accentKey}
+                    <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
+                      {theme.name}
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-4 opacity-85">{theme.description}</span>
+                    <span className="mt-2 flex items-center gap-1.5" aria-hidden="true">
+                      {theme.swatches.map((swatchColor) => (
+                        <span
+                          key={swatchColor}
+                          className="h-3 w-3 rounded-full border border-white/70 shadow-sm"
+                          style={{ backgroundColor: swatchColor }}
+                        />
+                      ))}
+                    </span>
                   </button>
                 ))}
               </div>

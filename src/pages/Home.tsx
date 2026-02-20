@@ -1,5 +1,5 @@
 // ADD THIS: Neumorphic home dashboard layout
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Sortable from 'sortablejs'
 import { AddCategoryModal } from '@/components/AddCategoryModal'
 import { BudgetCategoryCard } from '@/components/BudgetCategoryCard'
@@ -12,13 +12,8 @@ import { UpdateIncomeModal } from '@/components/UpdateIncomeModal'
 import type { BudgetCategoryType } from '@/types/budget'
 import { useBudgets } from '@/hooks/useBudgets'
 import { useRecurringAutomation } from '@/hooks/useRecurringAutomation'
+import { applyThemePreset, getThemePresetById, themePresets } from '@/styles/themePresets'
 import { formatCurrency } from '@/utils/currency'
-
-const accentPalette = {
-  blue: { accent: '#6c7df0', strong: '#4f61d8' },
-  teal: { accent: '#15b8a6', strong: '#0f8f82' },
-  violet: { accent: '#8757eb', strong: '#6e42ca' },
-} as const
 
 export const Home = () => {
   const {
@@ -39,11 +34,11 @@ export const Home = () => {
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false) // ADD THIS: income modal visibility
   const [isEditing, setIsEditing] = useState(false) // ADD THIS: settings edit mode toggle
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') return 'light'
-    return window.localStorage.getItem('finance-theme-mode') === 'dark' ? 'dark' : 'light'
+  // ADD THIS: persist the selected visual theme preset across sessions
+  const [selectedThemeId, setSelectedThemeId] = useState<string>(() => {
+    if (typeof window === 'undefined') return themePresets[0].id
+    return window.localStorage.getItem('finance-theme-preset') ?? themePresets[0].id
   })
-  const [accent, setAccent] = useState<keyof typeof accentPalette>('blue')
   const [currencySymbol, setCurrencySymbol] = useState<'KR' | '$' | '€'>('KR')
   const [defaultCategoryType, setDefaultCategoryType] = useState<BudgetCategoryType>('budget')
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
@@ -93,10 +88,11 @@ export const Home = () => {
   }, [isEditing, syncOrderFromDom])
 
   useEffect(() => {
-    // ADD THIS: apply theme globally so all routes/pages follow dark mode
-    document.documentElement.setAttribute('data-theme', themeMode)
-    window.localStorage.setItem('finance-theme-mode', themeMode)
-  }, [themeMode])
+    // ADD THIS: apply chosen theme preset globally using CSS variable tokens
+    const selectedTheme = getThemePresetById(selectedThemeId)
+    applyThemePreset(document.documentElement, selectedTheme)
+    window.localStorage.setItem('finance-theme-preset', selectedTheme.id)
+  }, [selectedThemeId])
 
   useEffect(() => {
     // ADD THIS: lock page scroll while settings drawer is open
@@ -156,8 +152,7 @@ export const Home = () => {
       exportedAt: new Date().toISOString(),
       state,
       settings: {
-        themeMode,
-        accent,
+        themePresetId: selectedThemeId,
         currencySymbol,
         defaultCategoryType,
       },
@@ -177,18 +172,8 @@ export const Home = () => {
     setIsEditing(false)
   }
 
-  const accentColors = accentPalette[accent]
-
   return (
-    <div
-      className="app-shell min-h-screen px-4 py-10 md:px-8 lg:px-12"
-      style={
-        {
-          '--color-accent': accentColors.accent,
-          '--color-accent-strong': accentColors.strong,
-        } as CSSProperties
-      }
-    >
+    <div className="app-shell min-h-screen px-4 py-10 md:px-8 lg:px-12">
       <div className={`mx-auto max-w-6xl space-y-8 ${isEditing ? 'editing-mode' : ''}`}>
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
@@ -196,7 +181,7 @@ export const Home = () => {
               Financial Budget Tracker
             </p>
             <h1 className="text-3xl font-semibold text-text-primary">{state.month}</h1>
-            <p className="text-sm text-text-muted">Neumorphism baseline ready for iteration</p>
+            <p className="text-sm text-text-muted">Andre sin finance tracker</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -312,10 +297,9 @@ export const Home = () => {
         <SettingsDrawer
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
-          themeMode={themeMode}
-          onThemeModeChange={setThemeMode}
-          accent={accent}
-          onAccentChange={setAccent}
+          selectedThemeId={selectedThemeId}
+          availableThemes={themePresets}
+          onThemeSelect={setSelectedThemeId}
           currencySymbol={currencySymbol}
           onCurrencyChange={setCurrencySymbol}
           onExportData={handleExportData}

@@ -30,329 +30,357 @@ export const WishlistItemCard = ({
   const priorityVisuals = {
     High: {
       dotClassName: 'bg-red-500',
-      badgeClassName: 'bg-red-100 text-red-700',
+      badgeClassName: 'bg-red-50 text-red-700 border border-red-100',
     },
     Medium: {
       dotClassName: 'bg-amber-500',
-      badgeClassName: 'bg-amber-100 text-amber-700',
+      badgeClassName: 'bg-amber-50 text-amber-700 border border-amber-100',
     },
     Low: {
       dotClassName: 'bg-emerald-500',
-      badgeClassName: 'bg-emerald-100 text-emerald-700',
+      badgeClassName: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
     },
   } as const
 
-  const priorityVisual = priorityVisuals[item.priority]
   const metadataStatusVisuals = {
-    fresh: 'bg-emerald-100 text-emerald-700',
-    stale: 'bg-amber-100 text-amber-700',
-    unknown: 'bg-slate-200 text-slate-700',
+    fresh: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+    stale: 'bg-amber-50 text-amber-700 border border-amber-100',
+    unknown: 'bg-slate-100 text-slate-700 border border-slate-200',
   } as const
 
   const metadataStatusLabel = {
-    fresh: 'Metadata: Fresh',
-    stale: 'Metadata: Stale',
-    unknown: 'Metadata: Unknown',
+    fresh: 'Fresh',
+    stale: 'Stale',
+    unknown: 'Unknown',
   } as const
 
-  const metadataCheckedAtLabel = item.metadataLastCheckedAt
-    ? `Checked ${new Date(item.metadataLastCheckedAt).toLocaleDateString()}`
-    : 'Not checked yet'
-
   const trendVisuals = {
-    up: 'bg-red-100 text-red-700',
-    down: 'bg-emerald-100 text-emerald-700',
-    flat: 'bg-slate-200 text-slate-700',
-    unknown: 'bg-slate-200 text-slate-700',
+    up: 'bg-red-50 text-red-700 border border-red-100',
+    down: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+    flat: 'bg-slate-100 text-slate-700 border border-slate-200',
+    unknown: 'bg-slate-100 text-slate-700 border border-slate-200',
   } as const
 
   const trendLabel = {
-    up: 'Price trend: Up',
-    down: 'Price trend: Down',
-    flat: 'Price trend: Flat',
-    unknown: 'Price trend: Unknown',
+    up: 'Up',
+    down: 'Down',
+    flat: 'Flat',
+    unknown: 'Unknown',
   } as const
 
-  const trendPercentLabel =
-    item.priceTrendPercent === null ? null : `${Math.abs(item.priceTrendPercent).toFixed(2)}%`
-
-  // ADD THIS: keep category tag placement consistent even when category is missing
   const categoryLabel = item.category.trim() === '' ? 'Uncategorized' : item.category.trim()
-
+  const metadataCheckedAtLabel = item.metadataLastCheckedAt
+    ? `Checked ${new Date(item.metadataLastCheckedAt).toLocaleDateString()}`
+    : 'Not checked yet'
+  const trendPercentLabel = item.priceTrendPercent === null ? null : `${Math.abs(item.priceTrendPercent).toFixed(1)}%`
   const targetPrice = item.price !== null && item.price > 0 ? item.price : null
   const hasTargetPrice = targetPrice !== null
   const isPurchased = item.status === 'purchased'
   const progressPercent = hasTargetPrice ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100)) : 0
+  const roundedProgressPercent = Math.round(progressPercent)
   const isReadyToBuy = hasTargetPrice && item.savedAmount >= targetPrice
   const remainingAmountToTarget = hasTargetPrice ? Math.max(0, targetPrice - item.savedAmount) : null
   const purchasedAtLabel = item.purchasedAt ? new Date(item.purchasedAt).toLocaleDateString() : null
-  // ADD THIS: stable labels for accessible action controls
   const itemTitleForAction = item.title.trim() === '' ? 'item' : item.title.trim()
+  const priorityVisual = priorityVisuals[item.priority]
+  const imageBadgeLabel = isPurchased ? 'Purchased' : isReadyToBuy ? 'Ready' : item.priority
+
+  // ADD THIS: reusable icon action button keeps horizontal actions compact and consistent
+  const IconAction = ({
+    ariaLabel,
+    title,
+    onClick,
+    href,
+    disabled = false,
+    tone = 'default',
+    children,
+  }: {
+    ariaLabel: string
+    title: string
+    onClick?: () => void
+    href?: string
+    disabled?: boolean
+    tone?: 'default' | 'primary' | 'positive' | 'danger'
+    children: React.ReactNode
+  }) => {
+    const toneClassMap = {
+      default: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+      primary: 'border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100',
+      positive: 'border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+      danger: 'border-red-100 bg-red-50 text-red-700 hover:bg-red-100',
+    } as const
+
+    const buttonClassName = `grid h-8 w-8 place-items-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${toneClassMap[tone]} disabled:cursor-not-allowed disabled:opacity-50`
+
+    if (href) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={ariaLabel}
+          title={title}
+          className={buttonClassName}
+        >
+          {children}
+        </a>
+      )
+    }
+
+    return (
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        title={title}
+        onClick={onClick}
+        disabled={disabled}
+        className={buttonClassName}
+      >
+        {children}
+      </button>
+    )
+  }
+
+  // ADD THIS: image section is locked to a 4/3 ratio and uses a compact corner badge
+  const ImageSection = () => (
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-100">
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt={item.title}
+          loading="lazy"
+          className="h-full w-full object-cover transition duration-300 md:group-hover:scale-[1.02]"
+        />
+      ) : (
+        <div className="grid h-full place-items-center text-text-muted">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-8 w-8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+          >
+            <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      )}
+
+      <span
+        className={`absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${
+          isPurchased
+            ? 'bg-emerald-100 text-emerald-700'
+            : isReadyToBuy
+              ? 'bg-emerald-100 text-emerald-700'
+              : priorityVisual.badgeClassName
+        }`}
+      >
+        {imageBadgeLabel}
+      </span>
+    </div>
+  )
+
+  // ADD THIS: one compact metadata row with priority, category, and freshness pills
+  const MetadataRow = () => (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${priorityVisual.badgeClassName}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${priorityVisual.dotClassName}`} aria-hidden="true" />
+        {item.priority}
+      </span>
+
+      <span className="inline-flex max-w-[42%] items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-700">
+        <span className="truncate">{categoryLabel}</span>
+      </span>
+
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${metadataStatusVisuals[item.metadataStatus]}`}
+        title={metadataCheckedAtLabel}
+      >
+        {metadataStatusLabel[item.metadataStatus]}
+      </span>
+    </div>
+  )
+
+  // ADD THIS: compact savings progress with a thin track and inline percentage
+  const SavingsProgress = () =>
+    hasTargetPrice ? (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-[0.72rem] font-medium text-slate-600">
+          <p className="truncate">Saved {formatWishlistPrice(item.savedAmount)}</p>
+          <p>{roundedProgressPercent}%</p>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+          <div
+            className={`h-full rounded-full transition-all ${isReadyToBuy ? 'bg-emerald-500' : 'bg-blue-500'}`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+    ) : (
+      <p className="text-[0.72rem] text-text-muted">Set a target price to track progress.</p>
+    )
+
+  // ADD THIS: icon-first action row capped to 4 visible actions for dense cards
+  const ActionsRow = () => (
+    <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+      <div className="flex items-center gap-1.5">
+        {isPurchased ? (
+          <IconAction
+            ariaLabel={`Restore ${itemTitleForAction} to active wishlist`}
+            title="Restore"
+            onClick={() => onRestorePurchased(item.id)}
+            tone="positive"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M4 4v6h6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M20 20v-6h-6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M20 8a8 8 0 0 0-14-4L4 10" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="m20 14-2 6a8 8 0 0 1-14-4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </IconAction>
+        ) : (
+          <>
+            <IconAction
+              ariaLabel={`Refresh metadata for ${itemTitleForAction}`}
+              title={isRefreshing ? 'Refreshing...' : 'Refresh metadata'}
+              onClick={() => onRefresh(item.id)}
+              disabled={isRefreshing}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M4 4v6h6" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M20 20v-6h-6" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M20 8a8 8 0 0 0-14-4L4 10" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="m20 14-2 6a8 8 0 0 1-14-4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </IconAction>
+
+            {isReadyToBuy ? (
+              <IconAction
+                ariaLabel={`Mark ${itemTitleForAction} as purchased`}
+                title="Mark purchased"
+                onClick={() => onMarkPurchased(item)}
+                tone="positive"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconAction>
+            ) : (
+              <IconAction
+                ariaLabel={`Add funds to ${itemTitleForAction}`}
+                title="Deposit funds"
+                onClick={() => onDeposit(item.id)}
+                tone="primary"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconAction>
+            )}
+          </>
+        )}
+
+        <IconAction
+          ariaLabel={`Visit product page for ${itemTitleForAction}`}
+          title="Visit product"
+          href={item.url}
+          tone="default"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </IconAction>
+      </div>
+
+      {!isPurchased ? (
+        <details className="relative">
+          <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M5 12h14M12 5v14" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
+
+          <div className="absolute right-0 z-50 mt-2 min-w-[8rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-md">
+            <button
+              type="button"
+              onClick={() => onVisitEdit(item)}
+              className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-blue-700 transition hover:bg-blue-50"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(item.id)}
+              className="mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-red-700 transition hover:bg-red-50"
+            >
+              Delete
+            </button>
+          </div>
+        </details>
+      ) : null}
+    </div>
+  )
 
   return (
     <article
-      className={`flex h-full flex-col overflow-hidden rounded-2xl shadow-neo-sm ${
-        isReadyToBuy ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'bg-surface'
+      className={`group relative flex h-full min-h-[320px] max-h-[450px] flex-col rounded-2xl border p-3 shadow-sm transition hover:z-30 focus-within:z-30 md:min-h-[400px] md:max-h-[550px] md:p-4 md:hover:scale-[1.02] md:hover:shadow-md ${
+        isReadyToBuy || isPurchased ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white'
       }`}
     >
-      <div className="grid h-36 place-items-center border-b border-slate-200 bg-slate-50 p-3">
-        {item.imageUrl ? (
-          <img src={item.imageUrl} alt={item.title} className="h-full w-full rounded-lg object-contain" loading="lazy" />
-        ) : (
-          <div className="grid place-items-center gap-3 text-text-muted">
-            <div className="grid h-14 w-14 place-items-center rounded-full bg-surface shadow-neo-inset">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-7 w-7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <p className="text-sm">Product Placeholder</p>
-          </div>
-        )}
-      </div>
+      <ImageSection />
 
-      {/* ADD THIS: flexible card body to keep action rows aligned at the bottom */}
-      <div className="flex flex-1 flex-col space-y-3 p-4">
-        <h3 className="line-clamp-2 text-2xl font-semibold text-text-primary">{item.title}</h3>
-        <p className="text-lg font-semibold text-text-primary">{formatWishlistPrice(item.price)}</p>
+      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5">
+        <div className="space-y-1">
+          <h3 className="line-clamp-2 text-base font-semibold leading-tight text-text-primary md:text-lg">{item.title}</h3>
 
-        {/* ADD THIS: position tags under price and above progress for clearer reading flow */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${priorityVisual.badgeClassName}`}
-          >
-            <span className={`h-2 w-2 rounded-full ${priorityVisual.dotClassName}`} aria-hidden="true" />
-            {item.priority} priority
-          </span>
-
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${metadataStatusVisuals[item.metadataStatus]}`}
-            title={metadataCheckedAtLabel}
-          >
-            {metadataStatusLabel[item.metadataStatus]}
-          </span>
-
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="inline-block mr-1 h-4 w-4 text-slate-500"
-              fill="none"
-              viewBox="0 0 20 20"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden="true"
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-sm font-semibold text-text-primary md:text-base">{formatWishlistPrice(item.price)}</p>
+            <span
+              className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${trendVisuals[item.priceTrendDirection]}`}
+              title={
+                item.previousTrackedPrice !== null && item.latestTrackedPrice !== null
+                  ? `From ${formatWishlistPrice(item.previousTrackedPrice)} to ${formatWishlistPrice(item.latestTrackedPrice)}`
+                  : 'Trend appears after at least two tracked prices.'
+              }
             >
-              <path d="M17.707 10.293l-8-8A1 1 0 008.586 2H3a1 1 0 00-1 1v5.586a1 1 0 00.293.707l8 8a1 1 0 001.414 0l6-6a1 1 0 000-1.414z" />
-              <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" />
-            </svg>
-            {categoryLabel}
-          </span>
-
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${trendVisuals[item.priceTrendDirection]}`}
-            title={
-              item.previousTrackedPrice !== null && item.latestTrackedPrice !== null
-                ? `From ${formatWishlistPrice(item.previousTrackedPrice)} to ${formatWishlistPrice(item.latestTrackedPrice)}`
-                : 'Trend will appear after at least two tracked prices.'
-            }
-          >
-            {trendLabel[item.priceTrendDirection]}
-            {trendPercentLabel ? <span>({trendPercentLabel})</span> : null}
-          </span>
-
-          {isPurchased ? (
-            // ADD THIS: explicit archive badge so purchased items are instantly recognizable
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              Purchased
+              {trendLabel[item.priceTrendDirection]}{trendPercentLabel ? ` ${trendPercentLabel}` : ''}
             </span>
-          ) : null}
+          </div>
         </div>
 
-        {hasTargetPrice ? (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <p className="font-medium text-slate-700">Saved: {formatWishlistPrice(item.savedAmount)}</p>
-              <p className="text-slate-600">{Math.round(progressPercent)}%</p>
-            </div>
+        <MetadataRow />
+        <SavingsProgress />
 
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
-              <div
-                className={`h-full rounded-full transition-all ${isReadyToBuy ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-
-            {isReadyToBuy ? <p className="text-sm font-medium text-emerald-700">Ready to buy</p> : null}
-          </div>
-        ) : (
-          <p className="text-sm text-text-muted">Set a product price to track deposit progress.</p>
-        )}
+        <p className="truncate text-[0.72rem] text-text-muted" title={getDomainFromUrl(item.url)}>
+          {getDomainFromUrl(item.url)}
+        </p>
 
         {isPurchased ? (
-          <p className="text-sm font-medium text-emerald-700">
-            Purchased{purchasedAtLabel ? ` on ${purchasedAtLabel}` : ''}
+          <p className="text-[0.72rem] font-medium text-emerald-700">
+            Purchased{purchasedAtLabel ? ` · ${purchasedAtLabel}` : ''}
             {item.purchasedAmount !== null ? ` · ${formatWishlistPrice(item.purchasedAmount)}` : ''}
           </p>
         ) : null}
 
-        {/* ADD THIS: bottom action block pinned to the end for row alignment */}
-        <div className="mt-auto space-y-3">
-          <p className="inline-flex items-center gap-2 text-sm text-text-muted">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            >
-              <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {getDomainFromUrl(item.url)}
+        {!isPurchased && hasTargetPrice && !isReadyToBuy && remainingAmountToTarget !== null ? (
+          <p className="text-[0.72rem] text-text-muted" aria-live="polite">
+            Add {formatWishlistPrice(remainingAmountToTarget)} more to mark purchased.
           </p>
+        ) : null}
 
-          {/* ADD THIS: tighter, wrapping action row so all buttons stay visible */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {isPurchased ? (
-              <button
-                type="button"
-                onClick={() => onRestorePurchased(item.id)}
-                aria-label={`Restore ${itemTitleForAction} to active wishlist`}
-                className="rounded-xl bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-200"
-              >
-                Restore
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onRefresh(item.id)}
-                  disabled={isRefreshing}
-                  aria-label={`Refresh metadata for ${itemTitleForAction}`}
-                  className="rounded-xl bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
-                </button>
+        {!isPurchased && !hasTargetPrice ? (
+          <p className="text-[0.72rem] text-text-muted" aria-live="polite">
+            Add a target price to unlock purchased state.
+          </p>
+        ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => onDeposit(item.id)}
-                  aria-label={`Add funds to ${itemTitleForAction}`}
-                  className="rounded-xl bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
-                >
-                  Deposit
-                </button>
+        {refreshError ? <p className="text-[0.72rem] text-red-600">{refreshError}</p> : null}
 
-                {isReadyToBuy ? (
-                  <button
-                    type="button"
-                    onClick={() => onMarkPurchased(item)}
-                    aria-label={`Mark ${itemTitleForAction} as purchased`}
-                    className="rounded-xl bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-200"
-                  >
-                    Mark purchased
-                  </button>
-                ) : null}
-              </>
-            )}
-
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Visit product page for ${itemTitleForAction}`}
-              className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Visit
-            </a>
-
-            {!isPurchased ? (
-              <>
-                <button
-                  type="button"
-                  aria-label={`Edit ${itemTitleForAction}`}
-                  onClick={() => onVisitEdit(item)}
-                  className="grid h-9 w-9 place-items-center rounded-lg text-blue-600 transition hover:bg-blue-50"
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <path d="m13.5 5.5 5 5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path
-                      d="M4 20h4l10-10a1.8 1.8 0 0 0-4-4L4 16v4Z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-
-                <button
-                  type="button"
-                  aria-label={`Delete ${itemTitleForAction}`}
-                  onClick={() => onDelete(item.id)}
-                  className="grid h-9 w-9 place-items-center rounded-lg text-red-600 transition hover:bg-red-50"
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <path d="M3 6h18" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M8 6V4h8v2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </>
-            ) : null}
-          </div>
-
-          {!isPurchased && hasTargetPrice && !isReadyToBuy && remainingAmountToTarget !== null ? (
-            // ADD THIS: keep next-step guidance visible when purchase action is not yet available
-            <p className="text-xs text-text-muted" aria-live="polite">
-              Add {formatWishlistPrice(remainingAmountToTarget)} more to unlock “Mark purchased”.
-            </p>
-          ) : null}
-
-          {!isPurchased && !hasTargetPrice ? (
-            // ADD THIS: explain why purchase action is unavailable when target price is missing
-            <p className="text-xs text-text-muted" aria-live="polite">
-              Set a target price to unlock “Mark purchased”.
-            </p>
-          ) : null}
-
-          {refreshError ? <p className="text-xs text-red-600">{refreshError}</p> : null}
-        </div>
+        <ActionsRow />
       </div>
     </article>
   )
