@@ -2,6 +2,31 @@
 import type { BudgetCategoryType } from '@/types/budget'
 import type { BudgetState } from '@/types/budget'
 import { RecurringManager } from '@/components/RecurringManager'
+import { useTheme } from '@/context/ThemeContext'
+import { type Theme } from '@/context/ThemeContext'
+
+// ADD THIS: small Theme mode buttons component
+const ThemeModeButtons = () => {
+  const { theme, setTheme } = useTheme()
+
+  const options: Theme[] = ['light', 'dark', 'system']
+
+  return (
+    <>
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => setTheme(opt)}
+          className={`rounded-neo border px-2 py-1 text-sm font-medium transition ${theme === opt ? 'ring-2 ring-accent/30 text-text-primary' : 'text-text-muted'}`}
+          aria-pressed={theme === opt}
+        >
+          {opt === 'system' ? 'System' : opt[0].toUpperCase() + opt.slice(1)}
+        </button>
+      ))}
+    </>
+  )
+}
 import type { RecurringTransaction } from '@/types/recurring'
 import type { ThemePreset } from '@/styles/themePresets'
 
@@ -117,6 +142,13 @@ export const SettingsDrawer = ({
                     </span>
                   </button>
                 ))}
+              </div>
+            </div>
+            <div className="mt-3 space-y-2">
+              <p className="text-xs text-text-muted">Color mode</p>
+              <div className="grid grid-cols-3 gap-2">
+                {/* ADD THIS: use ThemeContext to toggle color mode */}
+                <ThemeModeButtons />
               </div>
             </div>
           </section>
