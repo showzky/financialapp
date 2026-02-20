@@ -1,4 +1,4 @@
-// ADD THIS: shared backend client using secure cookie-based auth
+// ADD THIS: shared backend client using explicit environment configuration
 const configuredBackendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() ?? ''
 const isDevelopmentMode = import.meta.env.DEV
 

@@ -20,7 +20,6 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 - Apply to production DB only after staging passes
 
 Migration source of truth is [backend/migrations/README.md](migrations/README.md).
-
 ## Required environment values (`backend/.env`)
 
 - `DATABASE_URL`: PostgreSQL connection string from Supabase Database settings

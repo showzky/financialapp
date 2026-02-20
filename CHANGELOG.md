@@ -12,7 +12,6 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Enforced explicit frontend backend API configuration in development by requiring `VITE_BACKEND_URL` (no silent production fallback).
 - Expanded backend environment validation to support `staging` mode and block remote-looking database URLs in local development.
 - Updated CI to typecheck backend code in addition to frontend lint/test/build checks.
-
 ### Fixed
 
 ## [1.1.0] - 2026-02-19

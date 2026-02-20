@@ -10,14 +10,9 @@ import { Notes } from '@/pages/Notes'
 import { userApi } from '@/services/userApi'
 import { Wishlist } from '@/pages/Wishlist'
 
-const isLocalDevHost = (): boolean => {
-  if (!import.meta.env.DEV) return false
-  const currentHost = window.location.hostname.toLowerCase()
-  return currentHost === 'localhost' || currentHost === '127.0.0.1'
-}
-
 const shouldBypassLoginOnLocalhost = (): boolean => {
-  return isLocalDevHost() && import.meta.env.VITE_DISABLE_LOGIN_ON_LOCALHOST === 'true'
+  // ADD THIS: always require login on localhost to prevent unauthorized API calls
+  return false
 }
 
 // ADD THIS: Protected route guard based on backend session cookie validation
