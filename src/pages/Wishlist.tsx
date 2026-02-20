@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { wishlistApi, type WishlistItemDto } from '@/services/wishlistApi'
 import { WishlistCategoryFilter } from '@/components/WishlistCategoryFilter'
+import { WishlistFilteredEmptyState } from '@/components/WishlistFilteredEmptyState'
 import { WishlistItemCard } from '@/components/WishlistItemCard'
 import { SummaryStat } from '@/components/SummaryStat'
 import {
@@ -306,6 +307,12 @@ export const Wishlist = () => {
     setSelectedDepositId(null)
     setDepositAmount('')
     setHasTriedDepositSubmit(false)
+  }
+
+  // ADD THIS: one place to reset both filters for consistent empty-state recovery actions
+  const resetWishlistFilters = () => {
+    setSelectedCategoryFilter(allCategoryFilterLabel)
+    setSelectedPriorityFilter(allPriorityFilterLabel)
   }
 
   const upsertWishlistItem = async (item: UpsertWishlistItemDraft) => {
@@ -928,18 +935,11 @@ export const Wishlist = () => {
           </div>
         </section>
       ) : filteredWishlistItems.length === 0 ? (
-        <section className="mx-auto mt-8 grid w-full max-w-6xl place-items-center rounded-2xl bg-surface px-6 py-16 text-center shadow-neo-sm">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold text-text-primary">
-              {selectedWishlistStatus === activeWishlistLabel
-                ? 'No active products in this filter'
-                : 'No purchased products in this filter'}
-            </h2>
-            <p className="text-base text-text-muted">
-              Switch your filters or add a new item that matches this view.
-            </p>
-          </div>
-        </section>
+        <WishlistFilteredEmptyState
+          selectedStatus={selectedWishlistStatus}
+          onShowActive={() => setSelectedWishlistStatus(activeWishlistLabel)}
+          onResetFilters={resetWishlistFilters}
+        />
       ) : (
         <section className="mx-auto mt-8 grid w-full max-w-6xl gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filteredWishlistItems.map((item) => (
