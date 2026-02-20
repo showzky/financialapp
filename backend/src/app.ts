@@ -1,4 +1,5 @@
 // ADD THIS: secure express app bootstrap
+import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
@@ -17,6 +18,7 @@ const pinoHttp = pinoHttpModule.default ?? pinoHttpModule
 const app = express()
 
 app.set('trust proxy', 1)
+app.set('etag', false)
 
 app.use(
   rateLimit({
@@ -42,6 +44,7 @@ app.use(
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   }),
 )
+app.use(cookieParser())
 app.use(express.json({ limit: '100kb' }))
 app.use(express.urlencoded({ extended: false, limit: '100kb' }))
 app.use(pinoHttp({ logger }))

@@ -6,21 +6,18 @@ import { hasBackendConfig } from '@/services/backendClient'
 import { categoryApi } from '@/services/categoryApi'
 import { userApi } from '@/services/userApi'
 
-const sampleState: BudgetState = {
-  month: 'February 2026',
-  income: 6400,
-  categories: [
-    { id: 'housing', name: 'Housing', type: 'fixed', allocated: 1800, spent: 0 },
-    { id: 'groceries', name: 'Groceries', type: 'budget', allocated: 650, spent: 520 },
-    { id: 'transport', name: 'Transport', type: 'budget', allocated: 300, spent: 210 },
-    { id: 'savings', name: 'Savings', type: 'fixed', allocated: 900, spent: 0 },
-    { id: 'entertainment', name: 'Entertainment', type: 'budget', allocated: 300, spent: 180 },
-  ],
+const defaultDashboardState: BudgetState = {
+  month: new Date().toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  }),
+  income: 0,
+  categories: [],
 }
 
 const createInitialState = (): BudgetState => ({
-  ...sampleState,
-  categories: sampleState.categories.map((category) => ({ ...category })),
+  ...defaultDashboardState,
+  categories: defaultDashboardState.categories.map((category) => ({ ...category })),
 })
 
 const RECURRING_STORAGE_KEY = 'finance-recurring-transactions-v1'
@@ -318,7 +315,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const resetDashboard = () => {
-    // ADD THIS: restore dashboard to initial sample data
+    // ADD THIS: restore dashboard to initial empty state
     setState(createInitialState())
   }
 

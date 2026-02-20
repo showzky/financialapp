@@ -31,8 +31,11 @@ Migration source of truth is [backend/migrations/README.md](migrations/README.md
 - `LOCAL_AUTH_EMAIL`: your login email (required when `AUTH_PROVIDER=local`)
 - `LOCAL_AUTH_PASSWORD_HASH`: generated password hash (required when `AUTH_PROVIDER=local`)
 - `LOCAL_AUTH_JWT_SECRET`: long random secret for token signing (required when `AUTH_PROVIDER=local`)
-- `DEV_BYPASS_AUTH`: set `true` only when `NODE_ENV=development` and you intentionally want auth bypass for local testing
-- `ALLOW_DEV_AUTH_BYPASS`: legacy fallback toggle (prefer `DEV_BYPASS_AUTH`)
+- `APP_USERNAME`: bootstrap login username/email for first credential setup (optional)
+- `APP_PASSWORD_HASH`: bcrypt hash matching `APP_USERNAME` (optional)
+- `LOCAL_AUTH_COOKIE_SAME_SITE`: `strict` or `lax`
+- `LOCAL_AUTH_COOKIE_MAX_AGE_DAYS`: persistent login lifetime in days (default `30`)
+- `ALLOW_DEV_AUTH_BYPASS`: keep `false` unless explicitly needed in local testing
 
 ## Generate secure local credentials
 
@@ -42,7 +45,7 @@ Run this once:
 
 It prints these values for `backend/.env`:
 
-- `LOCAL_AUTH_PASSWORD_HASH`
+- `APP_PASSWORD_HASH`
 - `LOCAL_AUTH_JWT_SECRET`
 - `GENERATED_PASSWORD` (store this safely)
 
@@ -50,9 +53,8 @@ It prints these values for `backend/.env`:
 
 - Create `NewApp/.env.local` with:
 	- `VITE_BACKEND_URL=http://localhost:4000/api/v1`
-- Frontend expects a Supabase user access token in local storage key:
-	- `finance-access-token`
 - Development now fails fast when `VITE_BACKEND_URL` is missing to avoid accidental production API calls.
+- Local auth uses secure `httpOnly` cookie sessions (no frontend token storage).
 
 ## Security defaults
 
@@ -87,10 +89,7 @@ It prints these values for `backend/.env`:
 ## Login flow (`AUTH_PROVIDER=local`)
 
 1. `POST /api/v1/auth/login` with `email` + `password`
-2. Read `accessToken` from response
-3. Send `Authorization: Bearer <accessToken>` on all `/api/v1/*` protected routes
-
-## Development auth bypass (safe guardrails)
-
-- Bypass only activates when both `NODE_ENV=development` and `DEV_BYPASS_AUTH=true`.
-- In production, missing bearer tokens are always rejected.
+2. Backend verifies password via `bcrypt` against `auth_credentials.password_hash`
+3. Backend sets secure session cookie (`httpOnly`, `Secure`, `SameSite`, `maxAge`)
+4. Frontend calls protected `/api/v1/*` routes with `credentials: include`
+5. `POST /api/v1/auth/logout` clears session cookie

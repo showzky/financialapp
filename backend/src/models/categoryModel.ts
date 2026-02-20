@@ -1,4 +1,5 @@
 // ADD THIS: category data access layer using parameterized SQL
+import { randomUUID } from 'node:crypto'
 import { db } from '../config/db.js'
 
 export type BudgetCategoryType = 'budget' | 'fixed'
@@ -30,10 +31,17 @@ export type UpdateCategoryInput = {
 
 export const categoryModel = {
   async create(input: CreateCategoryInput): Promise<BudgetCategory> {
+    const categoryId = randomUUID()
+
     const result = await db.query<BudgetCategory>(
       `
-      INSERT INTO budget_categories (user_id, name, type, allocated, spent)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO budget_categories (id, user_id, name, type, allocated, spent)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (user_id, name)
+      DO UPDATE SET
+        type = EXCLUDED.type,
+        allocated = EXCLUDED.allocated,
+        spent = EXCLUDED.spent
       RETURNING
         id,
         user_id AS "userId",
@@ -43,7 +51,7 @@ export const categoryModel = {
         spent::float8 AS spent,
         created_at AS "createdAt"
       `,
-      [input.userId, input.name, input.type, input.allocated ?? 0, input.spent ?? 0],
+      [categoryId, input.userId, input.name, input.type, input.allocated ?? 0, input.spent ?? 0],
     )
 
     const row = result.rows[0]

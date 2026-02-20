@@ -22,27 +22,56 @@ const parseBearerToken = (authorizationHeader: string | undefined): string => {
   return token
 }
 
+const parseLocalAuthToken = (req: Request): string => {
+  const authorizationHeader = req.header('authorization')
+
+  if (authorizationHeader) {
+    return parseBearerToken(authorizationHeader)
+  }
+
+  const cookieToken = req.cookies?.[env.LOCAL_AUTH_COOKIE_NAME]
+  if (typeof cookieToken === 'string' && cookieToken.trim().length > 0) {
+    return cookieToken
+  }
+
+  throw new AppError('Missing authorization token', 401)
+}
+
+const isLocalhostRequest = (req: Request): boolean => {
+  const hostHeader = req.get('host')?.toLowerCase() ?? ''
+  const hostname = req.hostname?.toLowerCase() ?? ''
+  const forwardedHost = req.get('x-forwarded-host')?.toLowerCase() ?? ''
+
+  const hostsToCheck = [hostHeader, hostname, forwardedHost]
+
+  return hostsToCheck.some((value) =>
+    value === 'localhost' ||
+    value.startsWith('localhost:') ||
+    value === '127.0.0.1' ||
+    value.startsWith('127.0.0.1:') ||
+    value === '[::1]' ||
+    value.startsWith('[::1]:'),
+  )
+}
+
 export const requireAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     const authorizationHeader = req.header('authorization')
-    const canBypassAuthInDev =
-      env.NODE_ENV === 'development' && (env.DEV_BYPASS_AUTH || env.ALLOW_DEV_AUTH_BYPASS)
 
-    if (!authorizationHeader && canBypassAuthInDev) {
-      // ADD THIS: explicit local-development bypass, never active in production
+    if (env.AUTH_PROVIDER === 'local') {
+      const token = parseLocalAuthToken(req)
+      req.auth = await verifyLocalAuthToken(token)
+    } else if (!authorizationHeader) {
+      const canBypassDevAuth = env.NODE_ENV !== 'production' && env.ALLOW_DEV_AUTH_BYPASS && isLocalhostRequest(req)
+
+      if (!canBypassDevAuth) {
+        throw new AppError('Missing authorization header', 401)
+      }
+
       req.auth = {
         userId: env.DEV_USER_ID,
         email: env.DEV_USER_EMAIL,
       }
-    } else if (env.AUTH_PROVIDER === 'local') {
-      if (!authorizationHeader) {
-        throw new AppError('Missing authorization header', 401)
-      }
-
-      const token = parseBearerToken(authorizationHeader)
-      req.auth = await verifyLocalAuthToken(token)
-    } else if (!authorizationHeader) {
-      throw new AppError('Missing authorization header', 401)
     } else {
       const token = parseBearerToken(authorizationHeader)
 
@@ -66,12 +95,17 @@ export const requireAuth = async (req: Request, _res: Response, next: NextFuncti
             }
     }
 
-    const authUserId = req.auth.userId
-    await userModel.upsertFromAuth({
-      id: authUserId,
-      email: req.auth.email ?? `${authUserId}@financetracker.local`,
-      displayName: req.auth.email ? req.auth.email.split('@')[0] || env.DEV_USER_NAME : env.DEV_USER_NAME,
-    })
+    // ADD THIS: sync user profile but don't fail auth if DB is unavailable
+    try {
+      const authUserId = req.auth.userId
+      await userModel.upsertFromAuth({
+        id: authUserId,
+        email: req.auth.email ?? `${authUserId}@financetracker.local`,
+        displayName: req.auth.email ? req.auth.email.split('@')[0] || env.DEV_USER_NAME : env.DEV_USER_NAME,
+      })
+    } catch {
+      // Profile sync failed—continue anyway since auth itself succeeded
+    }
 
     next()
   } catch (error) {

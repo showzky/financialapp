@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/authApi'
-import { hasBackendConfig, setBackendAccessToken } from '@/services/backendClient'
+import { hasBackendConfig } from '@/services/backendClient'
 
 // ADD THIS: Frontend-only login screen UI (no real authentication yet)
 export const Login = () => {
@@ -32,7 +32,10 @@ export const Login = () => {
         password,
       })
 
-      setBackendAccessToken(response.accessToken)
+      if (!response.user?.id) {
+        throw new Error('Login session could not be created')
+      }
+
       navigate('/', { replace: true })
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Login failed')

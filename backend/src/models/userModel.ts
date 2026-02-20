@@ -21,31 +21,17 @@ export type UpdateUserInput = {
   monthlyIncome?: number | undefined
 }
 
-let hasEnsuredMonthlyIncomeColumn = false
-
-const ensureMonthlyIncomeColumn = async (): Promise<void> => {
-  if (hasEnsuredMonthlyIncomeColumn) return
-
-  await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS monthly_income NUMERIC(12, 2) NOT NULL DEFAULT 0
-  `)
-
-  hasEnsuredMonthlyIncomeColumn = true
-}
-
 export const userModel = {
   async upsertFromAuth(input: CreateUserInput): Promise<User> {
-    await ensureMonthlyIncomeColumn()
-
     const result = await db.query<User>(
       `
       INSERT INTO users (id, email, display_name, monthly_income)
-      VALUES ($1, $2, $3, $4)
+      VALUES ($1, $2, $3, COALESCE($4, 0))
       ON CONFLICT (id)
       DO UPDATE SET
         email = EXCLUDED.email,
-        display_name = EXCLUDED.display_name
+        display_name = EXCLUDED.display_name,
+        monthly_income = COALESCE($4, users.monthly_income)
       RETURNING
         id,
         email,
@@ -53,7 +39,7 @@ export const userModel = {
         monthly_income::float8 AS "monthlyIncome",
         created_at AS "createdAt"
       `,
-      [input.id, input.email, input.displayName, input.monthlyIncome ?? 0],
+      [input.id, input.email, input.displayName, input.monthlyIncome ?? null],
     )
 
     const row = result.rows[0]
@@ -65,8 +51,6 @@ export const userModel = {
   },
 
   async list(): Promise<User[]> {
-    await ensureMonthlyIncomeColumn()
-
     const result = await db.query<User>(
       `
       SELECT
@@ -84,8 +68,6 @@ export const userModel = {
   },
 
   async getById(id: string): Promise<User | null> {
-    await ensureMonthlyIncomeColumn()
-
     const result = await db.query<User>(
       `
       SELECT
@@ -105,8 +87,6 @@ export const userModel = {
   },
 
   async update(id: string, input: UpdateUserInput): Promise<User | null> {
-    await ensureMonthlyIncomeColumn()
-
     const result = await db.query<User>(
       `
       UPDATE users

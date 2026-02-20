@@ -26,13 +26,17 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url().min(1, 'SUPABASE_URL is required'),
   SUPABASE_JWT_AUDIENCE: z.string().min(1).default('authenticated'),
   SUPABASE_JWT_ISSUER: z.string().url().optional(),
+  APP_USERNAME: z.string().email().optional(),
+  APP_PASSWORD_HASH: z.string().min(1).optional(),
   LOCAL_AUTH_EMAIL: z.string().email().optional(),
   LOCAL_AUTH_PASSWORD_HASH: z.string().min(1).optional(),
   LOCAL_AUTH_USER_ID: z.string().uuid().default('00000000-0000-0000-0000-000000000001'),
   LOCAL_AUTH_USER_NAME: z.string().min(1).default('Local User'),
   LOCAL_AUTH_JWT_SECRET: z.string().min(32).optional(),
   LOCAL_AUTH_JWT_EXPIRES_IN: z.string().min(2).default('8h'),
-  DEV_BYPASS_AUTH: booleanFromEnv(false),
+  LOCAL_AUTH_COOKIE_NAME: z.string().min(3).default('finance_session'),
+  LOCAL_AUTH_COOKIE_SAME_SITE: z.enum(['strict', 'lax']).default('strict'),
+  LOCAL_AUTH_COOKIE_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   ALLOW_DEV_AUTH_BYPASS: booleanFromEnv(false),
   DATABASE_SSL: booleanFromEnv(true),
   DATABASE_SSL_REJECT_UNAUTHORIZED: booleanFromEnv(false),
@@ -43,27 +47,22 @@ const envSchema = z.object({
 .superRefine((value, ctx) => {
   // ADD THIS: strict conditional auth configuration validation
   if (value.AUTH_PROVIDER === 'local') {
-    if (!value.LOCAL_AUTH_EMAIL) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'LOCAL_AUTH_EMAIL is required when AUTH_PROVIDER=local',
-        path: ['LOCAL_AUTH_EMAIL'],
-      })
-    }
-
-    if (!value.LOCAL_AUTH_PASSWORD_HASH) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'LOCAL_AUTH_PASSWORD_HASH is required when AUTH_PROVIDER=local',
-        path: ['LOCAL_AUTH_PASSWORD_HASH'],
-      })
-    }
-
     if (!value.LOCAL_AUTH_JWT_SECRET) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'LOCAL_AUTH_JWT_SECRET is required when AUTH_PROVIDER=local',
         path: ['LOCAL_AUTH_JWT_SECRET'],
+      })
+    }
+
+    const hasBootstrapUsername = Boolean(value.APP_USERNAME)
+    const hasBootstrapHash = Boolean(value.APP_PASSWORD_HASH)
+
+    if (hasBootstrapUsername !== hasBootstrapHash) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'APP_USERNAME and APP_PASSWORD_HASH must be set together',
+        path: ['APP_USERNAME'],
       })
     }
   }

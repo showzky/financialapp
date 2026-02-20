@@ -13,8 +13,40 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Expanded backend environment validation to support `staging` mode and block remote-looking database URLs in local development.
 - Updated CI to typecheck backend code in addition to frontend lint/test/build checks.
 ### Fixed
+
+## [1.1.0] - 2026-02-19
+### Added
+- Wishlist page UI with route and top-nav entry point.
+- Add Product modal shell on the Wishlist page with title + URL fields and client-side validation (frontend only; no backend persistence yet).
+- Localhost-only frontend login bypass toggle for development via `VITE_DISABLE_LOGIN_ON_LOCALHOST`.
+- Persistent wishlist CRUD API (`/api/v1/wishlist`) with database-backed create, list, update, and delete operations.
+
+### Changed
+- Restored authentication flow to the previous cookie-based session model for login/logout and protected route checks.
+- Rolled backend auth-related implementation back to a known-good baseline to stabilize login and category API behavior.
+- Hardened backend dev auth bypass rules to allow bypass only for localhost requests in non-production when explicitly enabled.
+- Improved wishlist product preview extraction by prioritizing JSON-LD product metadata (title, image, and price) before OG/meta fallbacks.
+- Refactored inline wishlist category tag markup for readability without changing behavior.
+- Improved wishlist preview extraction for JS-heavy shops by parsing app JSON payload scripts and added short-lived cache for faster repeat URL previews.
+- Rebalanced wishlist product card media area so product images are less visually dominant.
+- Switched wishlist page persistence from browser localStorage to backend database writes/reads for add, edit, delete, and deposit updates.
+- Added category-based filtering on the wishlist page with a dedicated filter icon and selectable category chips.
+- Modularized wishlist UI rendering by extracting reusable category filter and wishlist item card components for easier maintenance.
+- Added wishlist item priority levels (High/Medium/Low) with weighted sorting, priority filtering, and card-level priority badges.
+- Replaced hardcoded dashboard starter categories with an empty initial state so cards are driven by real user data.
+- Added frontend duplicate URL warnings in the wishlist add/edit flow to prevent saving the same product twice.
+- Added metadata freshness status badges to wishlist cards to show whether scraped product details are fresh, stale, or unknown.
+- Added wishlist price snapshot tracking and trend calculation (up/down/flat/unknown) based on historical product prices.
+- Added a card-level price trend indicator on the wishlist page, including percentage change when enough price history exists.
+- Added a manual per-item metadata refresh action on wishlist cards with item-level loading and error states.
+- Added a compact wishlist analytics summary with responsive stat cards for filtered items, target total, saved total, and ready-to-buy count.
+- Standardized wishlist card layout rhythm so cards share equal height and action buttons align consistently across rows.
+
+### Fixed
+- Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.
 - Resolved Vercel build failures when Tailwind CSS 4 is installed by updating PostCSS configuration to use the Tailwind v4 plugin path.
 - Added `@tailwindcss/postcss` and a compatibility PostCSS loader so builds work reliably across Tailwind v3 and v4 dependency states.
+- Fixed wishlist URL preview autofill failures caused by `304 Not Modified` responses by forcing no-store/no-cache behavior for preview requests.
 
 ## [1.0.0] - 2026-02-16
 ### Added

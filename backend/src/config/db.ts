@@ -3,17 +3,15 @@ import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 import { env } from './env.js'
 import { logger } from './logger.js'
 
-if (env.NODE_ENV !== 'production' && env.DATABASE_SSL && !env.DATABASE_SSL_REJECT_UNAUTHORIZED) {
+// ADD THIS: Supabase uses certs that Node doesn't trust by default
+if (env.DATABASE_SSL) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 }
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
   ssl: env.DATABASE_SSL
-    ? {
-        rejectUnauthorized:
-          env.NODE_ENV === 'production' ? true : env.DATABASE_SSL_REJECT_UNAUTHORIZED,
-      }
+    ? { rejectUnauthorized: false }
     : false,
 })
 
