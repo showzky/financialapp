@@ -83,6 +83,8 @@ export const SettingsDrawer = ({
     onClose()
   }
 
+  const { selectedPresetId, setSelectedPresetId } = useTheme()
+
   return (
     <>
       <button
@@ -117,31 +119,48 @@ export const SettingsDrawer = ({
             <div className="space-y-2">
               <p className="text-xs text-text-muted">Theme preset</p>
               <div className="grid gap-2">
-                {availableThemes.map((theme) => (
-                  <button
-                    key={theme.id}
-                    type="button"
-                    onClick={() => onThemeSelect(theme.id)}
-                    className={`rounded-neo border border-transparent bg-surface px-3 py-2 text-left shadow-neo-sm transition hover:text-text-primary ${
-                      selectedThemeId === theme.id ? 'ring-2 ring-accent/35 text-text-primary' : 'text-text-muted'
-                    }`}
-                    aria-pressed={selectedThemeId === theme.id}
-                  >
-                    <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
-                      {theme.name}
-                    </span>
-                    <span className="mt-1 block text-[11px] leading-4 opacity-85">{theme.description}</span>
-                    <span className="mt-2 flex items-center gap-1.5" aria-hidden="true">
-                      {theme.swatches.map((swatchColor) => (
-                        <span
-                          key={swatchColor}
-                          className="h-3 w-3 rounded-full border border-white/70 shadow-sm"
-                          style={{ backgroundColor: swatchColor }}
-                        />
-                      ))}
-                    </span>
-                  </button>
-                ))}
+                {availableThemes.map((theme) => {
+                  const isActive = selectedThemeId === theme.id || selectedPresetId === theme.id
+
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => {
+                        try {
+                          setSelectedPresetId(theme.id)
+                        } catch {}
+                        onThemeSelect(theme.id)
+                      }}
+                      className={`relative rounded-neo border border-transparent bg-surface px-3 py-2 text-left shadow-neo-sm transition hover:text-text-primary ${
+                        isActive ? 'ring-2 ring-accent/35 text-text-primary' : 'text-text-muted'
+                      }`}
+                      aria-pressed={isActive}
+                    >
+                      <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
+                        {theme.name}
+                      </span>
+                      <span className="mt-1 block text-[11px] leading-4 opacity-85">{theme.description}</span>
+                      <span className="mt-2 flex items-center gap-1.5" aria-hidden="true">
+                        {theme.swatches.map((swatchColor) => (
+                          <span
+                            key={swatchColor}
+                            className="h-3 w-3 rounded-full border border-white/70 shadow-sm"
+                            style={{ backgroundColor: swatchColor }}
+                          />
+                        ))}
+                      </span>
+
+                      {isActive ? (
+                        <span className="absolute right-2 top-2 inline-flex items-center justify-center rounded-full bg-blue-600 p-1 text-white">
+                          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
               </div>
             </div>
             <div className="mt-3 space-y-2">
