@@ -8,6 +8,8 @@ type WishlistItemCardProps = {
   isRefreshing: boolean
   refreshError: string
   onDeposit: (itemId: string) => void
+  onMarkPurchased: (item: WishlistItem) => void
+  onRestorePurchased: (itemId: string) => void
   onVisitEdit: (item: WishlistItem) => void
   onDelete: (itemId: string) => void
 }
@@ -20,6 +22,8 @@ export const WishlistItemCard = ({
   isRefreshing,
   refreshError,
   onDeposit,
+  onMarkPurchased,
+  onRestorePurchased,
   onVisitEdit,
   onDelete,
 }: WishlistItemCardProps) => {
@@ -77,8 +81,10 @@ export const WishlistItemCard = ({
 
   const targetPrice = item.price !== null && item.price > 0 ? item.price : null
   const hasTargetPrice = targetPrice !== null
+  const isPurchased = item.status === 'purchased'
   const progressPercent = hasTargetPrice ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100)) : 0
   const isReadyToBuy = hasTargetPrice && item.savedAmount >= targetPrice
+  const purchasedAtLabel = item.purchasedAt ? new Date(item.purchasedAt).toLocaleDateString() : null
 
   return (
     <article
@@ -180,6 +186,13 @@ export const WishlistItemCard = ({
           <p className="text-sm text-text-muted">Set a product price to track deposit progress.</p>
         )}
 
+        {isPurchased ? (
+          <p className="text-sm font-medium text-emerald-700">
+            Purchased{purchasedAtLabel ? ` on ${purchasedAtLabel}` : ''}
+            {item.purchasedAmount !== null ? ` · ${formatWishlistPrice(item.purchasedAmount)}` : ''}
+          </p>
+        ) : null}
+
         {/* ADD THIS: bottom action block pinned to the end for row alignment */}
         <div className="mt-auto space-y-3">
           <p className="inline-flex items-center gap-2 text-sm text-text-muted">
@@ -198,29 +211,50 @@ export const WishlistItemCard = ({
             {getDomainFromUrl(item.url)}
           </p>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onRefresh(item.id)}
-              disabled={isRefreshing}
-              className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isRefreshing ? 'Refreshing…' : 'Refresh'}
-            </button>
+          {/* ADD THIS: tighter, wrapping action row so all buttons stay visible */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isPurchased ? (
+              <button
+                type="button"
+                onClick={() => onRestorePurchased(item.id)}
+                className="rounded-xl bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-200"
+              >
+                Restore
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onRefresh(item.id)}
+                  disabled={isRefreshing}
+                  className="rounded-xl bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                </button>
 
-            <button
-              type="button"
-              onClick={() => onDeposit(item.id)}
-              className="rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
-            >
-              Deposit
-            </button>
+                <button
+                  type="button"
+                  onClick={() => onDeposit(item.id)}
+                  className="rounded-xl bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                >
+                  Deposit
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onMarkPurchased(item)}
+                  className="rounded-xl bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-200"
+                >
+                  Mark purchased
+                </button>
+              </>
+            )}
 
             <a
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 font-semibold text-slate-800 transition hover:bg-slate-100"
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
             >
               <svg
                 aria-hidden="true"
@@ -237,49 +271,53 @@ export const WishlistItemCard = ({
               Visit
             </a>
 
-            <button
-              type="button"
-              aria-label="Edit product"
-              onClick={() => onVisitEdit(item)}
-              className="grid h-10 w-10 place-items-center rounded-lg text-blue-600 transition hover:bg-blue-50"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="m13.5 5.5 5 5" strokeLinecap="round" strokeLinejoin="round" />
-                <path
-                  d="M4 20h4l10-10a1.8 1.8 0 0 0-4-4L4 16v4Z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+            {!isPurchased ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="Edit product"
+                  onClick={() => onVisitEdit(item)}
+                  className="grid h-9 w-9 place-items-center rounded-lg text-blue-600 transition hover:bg-blue-50"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="m13.5 5.5 5 5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M4 20h4l10-10a1.8 1.8 0 0 0-4-4L4 16v4Z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
 
-            <button
-              type="button"
-              aria-label="Delete product"
-              onClick={() => onDelete(item.id)}
-              className="grid h-10 w-10 place-items-center rounded-lg text-red-600 transition hover:bg-red-50"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="M3 6h18" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M8 6V4h8v2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+                <button
+                  type="button"
+                  aria-label="Delete product"
+                  onClick={() => onDelete(item.id)}
+                  className="grid h-9 w-9 place-items-center rounded-lg text-red-600 transition hover:bg-red-50"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M3 6h18" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8 6V4h8v2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </>
+            ) : null}
           </div>
 
           {refreshError ? <p className="text-xs text-red-600">{refreshError}</p> : null}

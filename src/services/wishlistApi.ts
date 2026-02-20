@@ -3,6 +3,7 @@ import {
   type WishlistMetadataStatus,
   type WishlistPriceTrendDirection,
   type WishlistPriority,
+  type WishlistItemStatus,
 } from '@/types/wishlist'
 
 export type WishlistItemDto = {
@@ -14,6 +15,9 @@ export type WishlistItemDto = {
   imageUrl: string
   category: string
   priority: WishlistPriority
+  status: WishlistItemStatus
+  purchasedAt: string | null
+  purchasedAmount: number | null
   savedAmount: number
   metadataStatus: WishlistMetadataStatus
   metadataLastCheckedAt: string | null
@@ -74,6 +78,20 @@ export const wishlistApi = {
 
   remove: (id: string) => {
     return backendRequest<void>(`/wishlist/${id}`, { method: 'DELETE' })
+  },
+
+  markPurchased: (id: string, purchasedAmount?: number) => {
+    return backendRequest<WishlistItemDto>(`/wishlist/${id}/purchase`, {
+      method: 'PATCH',
+      body: JSON.stringify({ purchasedAmount }),
+    })
+  },
+
+  restorePurchased: (id: string) => {
+    return backendRequest<WishlistItemDto>(`/wishlist/${id}/restore`, {
+      method: 'PATCH',
+      body: JSON.stringify({}),
+    })
   },
 
   previewFromUrl: (url: string) => {

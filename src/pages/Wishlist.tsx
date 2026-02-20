@@ -5,6 +5,7 @@ import { WishlistItemCard } from '@/components/WishlistItemCard'
 import { SummaryStat } from '@/components/SummaryStat'
 import {
   type WishlistItem,
+  type WishlistItemStatus,
   type WishlistPriority,
   wishlistPriorityOptions,
   wishlistPriorityWeight,
@@ -109,6 +110,9 @@ const mapWishlistItemDto = (item: WishlistItemDto): WishlistItem => ({
   imageUrl: item.imageUrl,
   category: item.category,
   priority: normalizeWishlistPriority(item.priority),
+  status: item.status,
+  purchasedAt: item.purchasedAt,
+  purchasedAmount: item.purchasedAmount,
   savedAmount: item.savedAmount,
   normalizedUrl: item.normalizedUrl,
   metadataStatus: item.metadataStatus,
@@ -123,11 +127,14 @@ const mapWishlistItemDto = (item: WishlistItemDto): WishlistItem => ({
 export const Wishlist = () => {
   const allCategoryFilterLabel = 'All'
   const allPriorityFilterLabel = 'All'
+  const activeWishlistLabel: WishlistItemStatus = 'active'
+  const purchasedWishlistLabel: WishlistItemStatus = 'purchased'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [productForm, setProductForm] = useState<ProductFormState>({ ...emptyProductForm })
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
+  const [selectedWishlistStatus, setSelectedWishlistStatus] = useState<WishlistItemStatus>(activeWishlistLabel)
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(allCategoryFilterLabel)
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState(allPriorityFilterLabel)
   const [isWishlistLoading, setIsWishlistLoading] = useState(true)
@@ -197,11 +204,13 @@ export const Wishlist = () => {
   const selectedDepositItem =
     selectedDepositId === null ? null : wishlistItems.find((item) => item.id === selectedDepositId) ?? null
 
+  const itemsInSelectedStatus = wishlistItems.filter((item) => item.status === selectedWishlistStatus)
+
   const availableCategoryFilters = [
     allCategoryFilterLabel,
     ...Array.from(
       new Set(
-        wishlistItems
+        itemsInSelectedStatus
           .map((item) => item.category.trim())
           .filter((category) => category.length > 0),
       ),
@@ -210,7 +219,7 @@ export const Wishlist = () => {
 
   const availablePriorityFilters = [allPriorityFilterLabel, ...wishlistPriorityOptions]
 
-  const priorityAndCategoryFilteredItems = wishlistItems.filter((item) => {
+  const priorityAndCategoryFilteredItems = itemsInSelectedStatus.filter((item) => {
     const matchesCategory =
       selectedCategoryFilter === allCategoryFilterLabel || item.category.trim() === selectedCategoryFilter
     const matchesPriority =
@@ -250,7 +259,7 @@ export const Wishlist = () => {
     if (!availableCategoryFilters.includes(selectedCategoryFilter)) {
       setSelectedCategoryFilter(allCategoryFilterLabel)
     }
-  }, [availableCategoryFilters, selectedCategoryFilter])
+  }, [availableCategoryFilters, selectedCategoryFilter, allCategoryFilterLabel])
 
   useEffect(() => {
     let isMounted = true
@@ -368,6 +377,30 @@ export const Wishlist = () => {
     setDepositAmount('')
     setHasTriedDepositSubmit(false)
     setIsDepositModalOpen(true)
+  }
+
+  const handleMarkPurchased = async (item: WishlistItem) => {
+    if (item.status === purchasedWishlistLabel) return
+
+    const fallbackPrice = item.price !== null && item.price > 0 ? item.price : null
+
+    try {
+      const updated = await wishlistApi.markPurchased(item.id, fallbackPrice ?? undefined)
+      setWishlistItems((current) => current.map((wishlistItem) => (wishlistItem.id === item.id ? mapWishlistItemDto(updated) : wishlistItem)))
+      setWishlistError('')
+    } catch (error) {
+      setWishlistError(error instanceof Error ? error.message : 'Could not move item to purchased archive')
+    }
+  }
+
+  const handleRestorePurchased = async (itemId: string) => {
+    try {
+      const updated = await wishlistApi.restorePurchased(itemId)
+      setWishlistItems((current) => current.map((wishlistItem) => (wishlistItem.id === itemId ? mapWishlistItemDto(updated) : wishlistItem)))
+      setWishlistError('')
+    } catch (error) {
+      setWishlistError(error instanceof Error ? error.message : 'Could not restore purchased item')
+    }
   }
 
   const handleAddFunds = async () => {
@@ -787,6 +820,36 @@ export const Wishlist = () => {
       </section>
 
       {!isWishlistLoading && wishlistItems.length > 0 ? (
+        <section className="mx-auto mt-5 flex w-full max-w-6xl items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedWishlistStatus(activeWishlistLabel)}
+            className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+              selectedWishlistStatus === activeWishlistLabel
+                ? 'border-transparent bg-accent-strong text-white'
+                : 'border-slate-300 bg-surface text-text-primary hover:border-slate-400'
+            }`}
+            aria-pressed={selectedWishlistStatus === activeWishlistLabel}
+          >
+            Active ({wishlistItems.filter((item) => item.status === activeWishlistLabel).length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedWishlistStatus(purchasedWishlistLabel)}
+            className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+              selectedWishlistStatus === purchasedWishlistLabel
+                ? 'border-transparent bg-accent-strong text-white'
+                : 'border-slate-300 bg-surface text-text-primary hover:border-slate-400'
+            }`}
+            aria-pressed={selectedWishlistStatus === purchasedWishlistLabel}
+          >
+            Purchased ({wishlistItems.filter((item) => item.status === purchasedWishlistLabel).length})
+          </button>
+        </section>
+      ) : null}
+
+      {!isWishlistLoading && wishlistItems.length > 0 ? (
         <WishlistCategoryFilter
           categories={availableCategoryFilters}
           selectedCategory={selectedCategoryFilter}
@@ -799,37 +862,39 @@ export const Wishlist = () => {
 
       {!isWishlistLoading && wishlistItems.length > 0 ? (
         // ADD THIS: compact, responsive analytics summary for the active filtered view
-        <section className="mx-auto mt-4 grid w-full max-w-6xl gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryStat
-            label="Items in view"
-            value={String(filteredWishlistItems.length)}
-            helper={`Total ${wishlistItems.length} items`}
-            icon="🧾"
-          />
+        selectedWishlistStatus === activeWishlistLabel ? (
+          <section className="mx-auto mt-4 grid w-full max-w-6xl gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <SummaryStat
+              label="Items in view"
+              value={String(filteredWishlistItems.length)}
+              helper={`Total ${itemsInSelectedStatus.length} active items`}
+              icon="🧾"
+            />
 
-          <SummaryStat
-            label="Target total"
-            value={formatWishlistAmount(totalTargetAmount)}
-            helper={`${filteredItemsMissingPriceCount} without price`}
-            icon="🎯"
-          />
+            <SummaryStat
+              label="Target total"
+              value={formatWishlistAmount(totalTargetAmount)}
+              helper={`${filteredItemsMissingPriceCount} without price`}
+              icon="🎯"
+            />
 
-          <SummaryStat
-            label="Saved total"
-            value={formatWishlistAmount(totalSavedAmount)}
-            helper={`${summaryProgressPercent}% of target`}
-            icon="💰"
-            tone="positive"
-          />
+            <SummaryStat
+              label="Saved total"
+              value={formatWishlistAmount(totalSavedAmount)}
+              helper={`${summaryProgressPercent}% of target`}
+              icon="💰"
+              tone="positive"
+            />
 
-          <SummaryStat
-            label="Ready to buy"
-            value={String(readyToBuyCount)}
-            helper={`${filteredItemsWithTargetPrice.length} priced items`}
-            icon="✅"
-            tone="positive"
-          />
-        </section>
+            <SummaryStat
+              label="Ready to buy"
+              value={String(readyToBuyCount)}
+              helper={`${filteredItemsWithTargetPrice.length} priced items`}
+              icon="✅"
+              tone="positive"
+            />
+          </section>
+        ) : null
       ) : null}
 
       {isWishlistLoading ? (
@@ -865,7 +930,11 @@ export const Wishlist = () => {
       ) : filteredWishlistItems.length === 0 ? (
         <section className="mx-auto mt-8 grid w-full max-w-6xl place-items-center rounded-2xl bg-surface px-6 py-16 text-center shadow-neo-sm">
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold text-text-primary">No products in this category</h2>
+            <h2 className="text-2xl font-semibold text-text-primary">
+              {selectedWishlistStatus === activeWishlistLabel
+                ? 'No active products in this filter'
+                : 'No purchased products in this filter'}
+            </h2>
             <p className="text-base text-text-muted">
               Switch your filters or add a new item that matches this view.
             </p>
@@ -883,6 +952,8 @@ export const Wishlist = () => {
               isRefreshing={Boolean(refreshingItemById[item.id])}
               refreshError={refreshErrorById[item.id] ?? ''}
               onDeposit={handleOpenDepositModal}
+              onMarkPurchased={handleMarkPurchased}
+              onRestorePurchased={handleRestorePurchased}
               onVisitEdit={handleOpenEditModal}
               onDelete={handleDeleteProduct}
             />

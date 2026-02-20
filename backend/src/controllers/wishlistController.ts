@@ -51,6 +51,10 @@ const wishlistItemIdSchema = z.object({
   id: z.string().trim().min(1),
 })
 
+const purchaseWishlistItemSchema = z.object({
+  purchasedAmount: z.number().finite().nonnegative().optional(),
+})
+
 const blockedHostnames = new Set(['localhost', '127.0.0.1', '::1'])
 
 const isPrivateIpv4 = (value: string) => {
@@ -225,6 +229,16 @@ export const deleteWishlistItem = asyncHandler(async (req: Request, res: Respons
   }
 
   const { id } = wishlistItemIdSchema.parse(req.params)
+  const existing = await wishlistItemModel.getById(id, req.auth.userId)
+
+  if (!existing) {
+    throw new AppError('Wishlist item not found', 404)
+  }
+
+  if (existing.status === 'purchased') {
+    throw new AppError('Purchased items cannot be deleted. Restore it first.', 409)
+  }
+
   const removed = await wishlistItemModel.remove(id, req.auth.userId)
 
   if (!removed) {
@@ -272,4 +286,62 @@ export const previewWishlistProduct = asyncHandler(async (req: Request, res: Res
       sourceUrl: normalizedUrl,
     })
   }
+})
+
+export const markWishlistItemPurchased = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) {
+    throw new AppError('Unauthorized', 401)
+  }
+
+  const { id } = wishlistItemIdSchema.parse(req.params)
+  const payload = purchaseWishlistItemSchema.parse(req.body ?? {})
+  const existing = await wishlistItemModel.getById(id, req.auth.userId)
+
+  if (!existing) {
+    throw new AppError('Wishlist item not found', 404)
+  }
+
+  if (existing.status === 'purchased') {
+    res.status(200).json(existing)
+    return
+  }
+
+  const resolvedPurchasedAmount = payload.purchasedAmount ?? existing.price
+  if (resolvedPurchasedAmount === null) {
+    throw new AppError('Purchased amount is required when wishlist item has no price', 400)
+  }
+
+  const updated = await wishlistItemModel.markPurchased(id, req.auth.userId, resolvedPurchasedAmount)
+
+  if (!updated) {
+    throw new AppError('Wishlist item not found', 404)
+  }
+
+  res.status(200).json(updated)
+})
+
+export const restorePurchasedWishlistItem = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) {
+    throw new AppError('Unauthorized', 401)
+  }
+
+  const { id } = wishlistItemIdSchema.parse(req.params)
+  const existing = await wishlistItemModel.getById(id, req.auth.userId)
+
+  if (!existing) {
+    throw new AppError('Wishlist item not found', 404)
+  }
+
+  if (existing.status === 'active') {
+    res.status(200).json(existing)
+    return
+  }
+
+  const updated = await wishlistItemModel.restorePurchased(id, req.auth.userId)
+
+  if (!updated) {
+    throw new AppError('Wishlist item not found', 404)
+  }
+
+  res.status(200).json(updated)
 })

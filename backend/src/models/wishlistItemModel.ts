@@ -10,6 +10,9 @@ export type WishlistItem = {
   imageUrl: string
   category: string
   priority: 'High' | 'Medium' | 'Low'
+  status: 'active' | 'purchased'
+  purchasedAt: string | null
+  purchasedAmount: number | null
   savedAmount: number
   metadataStatus: 'fresh' | 'stale' | 'unknown'
   metadataLastCheckedAt: string | null
@@ -55,6 +58,9 @@ const wishlistSelect = `
   image_url AS "imageUrl",
   category,
   priority,
+  status,
+  purchased_at AS "purchasedAt",
+  purchased_amount::float8 AS "purchasedAmount",
   saved_amount::float8 AS "savedAmount",
   metadata_status AS "metadataStatus",
   metadata_last_checked_at AS "metadataLastCheckedAt",
@@ -77,6 +83,9 @@ const wishlistSelectWithTrend = `
   wi.image_url AS "imageUrl",
   wi.category,
   wi.priority,
+  wi.status,
+  wi.purchased_at AS "purchasedAt",
+  wi.purchased_amount::float8 AS "purchasedAmount",
   wi.saved_amount::float8 AS "savedAmount",
   wi.metadata_status AS "metadataStatus",
   wi.metadata_last_checked_at AS "metadataLastCheckedAt",
@@ -132,6 +141,7 @@ export const wishlistItemModel = {
         FROM wishlist_items
         WHERE user_id = $1
           AND normalized_url = $2
+          AND status = 'active'
           AND id <> $3
         ORDER BY created_at DESC
         LIMIT 1
@@ -148,6 +158,7 @@ export const wishlistItemModel = {
       FROM wishlist_items
       WHERE user_id = $1
         AND normalized_url = $2
+        AND status = 'active'
       ORDER BY created_at DESC
       LIMIT 1
       `,
@@ -283,5 +294,39 @@ export const wishlistItemModel = {
     )
 
     return result.rowCount === 1
+  },
+
+  async markPurchased(id: string, userId: string, purchasedAmount: number): Promise<WishlistItem | null> {
+    const result = await db.query<WishlistItem>(
+      `
+      UPDATE wishlist_items
+      SET
+        status = 'purchased',
+        purchased_at = COALESCE(purchased_at, NOW()),
+        purchased_amount = $3,
+        updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING ${wishlistSelect}
+      `,
+      [id, userId, purchasedAmount],
+    )
+
+    return result.rows[0] ?? null
+  },
+
+  async restorePurchased(id: string, userId: string): Promise<WishlistItem | null> {
+    const result = await db.query<WishlistItem>(
+      `
+      UPDATE wishlist_items
+      SET
+        status = 'active',
+        updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING ${wishlistSelect}
+      `,
+      [id, userId],
+    )
+
+    return result.rows[0] ?? null
   },
 }
