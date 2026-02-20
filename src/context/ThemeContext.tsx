@@ -58,7 +58,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return () => mql.removeEventListener('change', listener)
     }
     return undefined
-  }, [theme])
+  }, [theme, selectedPresetId]) // ADDED selectedPresetId dependency
 
   const setTheme = (t: Theme) => setThemeState(t)
 

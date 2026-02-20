@@ -2,7 +2,6 @@
 import type { BudgetCategoryType } from '@/types/budget'
 import type { BudgetState } from '@/types/budget'
 import { RecurringManager } from '@/components/RecurringManager'
-import { useEffect } from 'react'
 import { useTheme } from '@/context/ThemeContext'
 import { type Theme } from '@/context/ThemeContext'
 
@@ -41,9 +40,7 @@ type CurrencySymbol = 'KR' | '$' | '€'
 type SettingsDrawerProps = {
   isOpen: boolean
   onClose: () => void
-  selectedThemeId: string
   availableThemes: ThemePreset[]
-  onThemeSelect: (themeId: string) => void
   currencySymbol: CurrencySymbol
   onCurrencyChange: (symbol: CurrencySymbol) => void
   onExportData: () => void
@@ -62,9 +59,7 @@ type SettingsDrawerProps = {
 export const SettingsDrawer = ({
   isOpen,
   onClose,
-  selectedThemeId,
   availableThemes,
-  onThemeSelect,
   currencySymbol,
   onCurrencyChange,
   onExportData,
@@ -90,14 +85,6 @@ export const SettingsDrawer = ({
   }
 
   const { selectedPresetId, setSelectedPresetId } = useTheme()
-  // Keep ThemeContext in sync when parent prop changes
-  useEffect(() => {
-    if (selectedThemeId && selectedThemeId !== selectedPresetId) {
-      try {
-        setSelectedPresetId(selectedThemeId)
-      } catch {}
-    }
-  }, [selectedThemeId, selectedPresetId, setSelectedPresetId])
 
   return (
     <>
@@ -134,7 +121,7 @@ export const SettingsDrawer = ({
               <p className="text-xs text-text-muted">Theme preset</p>
               <div className="grid gap-2" role="list" aria-label="Theme presets">
                 {availableThemes.map((theme) => {
-                  const isActive = selectedThemeId === theme.id || selectedPresetId === theme.id
+                  const isActive = selectedPresetId === theme.id
 
                   return (
                     <div role="listitem">
@@ -145,7 +132,6 @@ export const SettingsDrawer = ({
                           try {
                             setSelectedPresetId(theme.id)
                           } catch {}
-                          onThemeSelect(theme.id)
                         }}
                         aria-label={`${theme.name} theme preset`}
                         className={`relative rounded-neo border border-transparent bg-surface px-3 py-2 text-left shadow-neo-sm transition ${

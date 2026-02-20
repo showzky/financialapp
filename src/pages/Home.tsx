@@ -12,8 +12,9 @@ import { UpdateIncomeModal } from '@/components/UpdateIncomeModal'
 import type { BudgetCategoryType } from '@/types/budget'
 import { useBudgets } from '@/hooks/useBudgets'
 import { useRecurringAutomation } from '@/hooks/useRecurringAutomation'
-import { applyThemePreset, getThemePresetById, themePresets } from '@/styles/themePresets'
+import { themePresets } from '@/styles/themePresets'
 import { formatCurrency } from '@/utils/currency'
+import { useTheme } from '@/context/ThemeContext' // ADD THIS
 
 export const Home = () => {
   const {
@@ -30,15 +31,14 @@ export const Home = () => {
     updateRecurringTransaction,
     deleteRecurringTransaction,
   } = useBudgets()
+
+  const { selectedPresetId } = useTheme() // ADD THIS
+
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false) // ADD THIS: modal visibility
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false) // ADD THIS: income modal visibility
   const [isEditing, setIsEditing] = useState(false) // ADD THIS: settings edit mode toggle
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  // ADD THIS: persist the selected visual theme preset across sessions
-  const [selectedThemeId, setSelectedThemeId] = useState<string>(() => {
-    if (typeof window === 'undefined') return themePresets[0].id
-    return window.localStorage.getItem('finance-theme-preset') ?? themePresets[0].id
-  })
+
   const [currencySymbol, setCurrencySymbol] = useState<'KR' | '$' | '€'>('KR')
   const [defaultCategoryType, setDefaultCategoryType] = useState<BudgetCategoryType>('budget')
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
@@ -86,13 +86,6 @@ export const Home = () => {
       sortableInstanceRef.current = null
     }
   }, [isEditing, syncOrderFromDom])
-
-  useEffect(() => {
-    // ADD THIS: apply chosen theme preset globally using CSS variable tokens
-    const selectedTheme = getThemePresetById(selectedThemeId)
-    applyThemePreset(document.documentElement, selectedTheme)
-    window.localStorage.setItem('finance-theme-preset', selectedTheme.id)
-  }, [selectedThemeId])
 
   useEffect(() => {
     // ADD THIS: lock page scroll while settings drawer is open
@@ -152,7 +145,7 @@ export const Home = () => {
       exportedAt: new Date().toISOString(),
       state,
       settings: {
-        themePresetId: selectedThemeId,
+        themePresetId: selectedPresetId,
         currencySymbol,
         defaultCategoryType,
       },
@@ -297,9 +290,7 @@ export const Home = () => {
         <SettingsDrawer
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
-          selectedThemeId={selectedThemeId}
           availableThemes={themePresets}
-          onThemeSelect={setSelectedThemeId}
           currencySymbol={currencySymbol}
           onCurrencyChange={setCurrencySymbol}
           onExportData={handleExportData}
