@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { wishlistApi, type WishlistItemDto } from '@/services/wishlistApi'
-import { WishlistCategoryFilter } from '@/components/WishlistCategoryFilter'
+import { WishlistFilters } from '@/components/WishlistFilters'
 import { WishlistFilteredEmptyState } from '@/components/WishlistFilteredEmptyState'
 import { WishlistItemCard } from '@/components/WishlistItemCard'
 import { SummaryStat } from '@/components/SummaryStat'
@@ -857,13 +857,14 @@ export const Wishlist = () => {
       ) : null}
 
       {!isWishlistLoading && wishlistItems.length > 0 ? (
-        <WishlistCategoryFilter
-          categories={availableCategoryFilters}
-          selectedCategory={selectedCategoryFilter}
+        <WishlistFilters
+          availableCategoryFilters={availableCategoryFilters}
+          availablePriorityFilters={availablePriorityFilters}
+          selectedCategoryFilter={selectedCategoryFilter}
+          selectedPriorityFilter={selectedPriorityFilter}
           onCategoryChange={setSelectedCategoryFilter}
-          priorities={availablePriorityFilters}
-          selectedPriority={selectedPriorityFilter}
           onPriorityChange={setSelectedPriorityFilter}
+          onClearAll={resetWishlistFilters}
         />
       ) : null}
 
