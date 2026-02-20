@@ -5,11 +5,21 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 ## Quick start
 
 1. Copy `.env.example` to `.env`
-2. Set your Supabase values in `backend/.env`
-3. Apply schema from `schema.sql`
+2. Configure `backend/.env` for **local development** database credentials
+3. Apply SQL migrations from `backend/migrations` to your local database
 4. Install deps: `pnpm install`
 5. Start dev server: `pnpm dev`
 
+## Migration workflow (safe local -> staging -> production)
+
+- Create migration file in `backend/migrations` using UTC timestamp naming:
+	- `YYYYMMDDHHMMSS_description.sql`
+- Apply migration to local DB first
+- Validate backend + frontend locally
+- Apply the same migration to staging DB and run smoke tests
+- Apply to production DB only after staging passes
+
+Migration source of truth is [backend/migrations/README.md](migrations/README.md).
 ## Required environment values (`backend/.env`)
 
 - `DATABASE_URL`: PostgreSQL connection string from Supabase Database settings
@@ -42,6 +52,7 @@ It prints these values for `backend/.env`:
 	- `VITE_BACKEND_URL=http://localhost:4000/api/v1`
 - Frontend expects a Supabase user access token in local storage key:
 	- `finance-access-token`
+- Development now fails fast when `VITE_BACKEND_URL` is missing to avoid accidental production API calls.
 
 ## Security defaults
 

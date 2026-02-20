@@ -16,8 +16,15 @@ Neumorphic React + TypeScript app with Tailwind tokens, ESLint/Prettier, and Vit
 ## Getting started
 
 1. Install dependencies: `pnpm install`
-2. Run the dev server: `pnpm dev`
-3. Open `http://localhost:5173`
+2. Create `.env.local` from `.env.example` and set `VITE_BACKEND_URL` to your local backend API (example: `http://localhost:4000/api/v1`)
+3. Run the dev server: `pnpm dev`
+4. Open `http://localhost:5173`
+
+## Environment safety
+
+- Development mode requires `VITE_BACKEND_URL` and will fail fast if missing.
+- Use separate credentials for local, staging, and production backends/databases.
+- Apply database changes through versioned SQL files in [backend/migrations/README.md](backend/migrations/README.md).
 
 ## Scripts
 

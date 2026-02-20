@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project follows Semantic Versioning principles.
 
 ## [Unreleased]
+### Added
+- Added backend migration scaffolding in `backend/migrations` with a runbook for local → staging → production SQL rollout.
+
+### Changed
+- Enforced explicit frontend backend API configuration in development by requiring `VITE_BACKEND_URL` (no silent production fallback).
+- Expanded backend environment validation to support `staging` mode and block remote-looking database URLs in local development.
+- Updated CI to typecheck backend code in addition to frontend lint/test/build checks.
 ### Fixed
 - Resolved Vercel build failures when Tailwind CSS 4 is installed by updating PostCSS configuration to use the Tailwind v4 plugin path.
 - Added `@tailwindcss/postcss` and a compatibility PostCSS loader so builds work reliably across Tailwind v3 and v4 dependency states.
