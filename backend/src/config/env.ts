@@ -18,7 +18,7 @@ const booleanFromEnv = (fallback: boolean) =>
     .default(fallback)
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   CORS_ORIGIN: z.string().url().or(z.literal('*')).default('http://localhost:5173'),
@@ -63,6 +63,24 @@ const envSchema = z.object({
         code: z.ZodIssueCode.custom,
         message: 'APP_USERNAME and APP_PASSWORD_HASH must be set together',
         path: ['APP_USERNAME'],
+      })
+    }
+  }
+
+  // ADD THIS: prevent accidental production database usage during local development
+  if (value.NODE_ENV === 'development') {
+    const normalizedDatabaseUrl = value.DATABASE_URL.toLowerCase()
+    const looksLikeProductionHost =
+      normalizedDatabaseUrl.includes('supabase.co') ||
+      normalizedDatabaseUrl.includes('render.com') ||
+      normalizedDatabaseUrl.includes('railway.app')
+
+    if (looksLikeProductionHost) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'DATABASE_URL looks like a remote host while NODE_ENV=development. Use local/staging credentials to avoid production writes.',
+        path: ['DATABASE_URL'],
       })
     }
   }

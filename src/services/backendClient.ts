@@ -1,8 +1,12 @@
 // ADD THIS: shared backend client using secure cookie-based auth
-const defaultBackendUrl = 'https://financialapp-8hyo.onrender.com/api/v1'
+const configuredBackendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() ?? ''
+const isDevelopmentMode = import.meta.env.DEV
 
-export const apiBaseUrl =
-  (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() || defaultBackendUrl
+if (isDevelopmentMode && configuredBackendUrl.length === 0) {
+  throw new Error('VITE_BACKEND_URL must be set in development (for example: http://localhost:4000/api/v1)')
+}
+
+export const apiBaseUrl = configuredBackendUrl
 
 export const hasBackendConfig = (): boolean => apiBaseUrl.length > 0
 

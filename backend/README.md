@@ -5,21 +5,21 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 ## Quick start
 
 1. Copy `.env.example` to `.env`
-2. Set your Supabase values in `backend/.env`
-3. Link and apply DB migrations (`supabase link`, `supabase db push`)
+2. Configure `backend/.env` for **local development** database credentials
+3. Apply SQL migrations from `backend/migrations` to your local database
 4. Install deps: `pnpm install`
 5. Start dev server: `pnpm dev`
 
-## Migration workflow (Supabase CLI)
+## Migration workflow (safe local -> staging -> production)
 
-- Link once:
-	- `supabase link --project-ref emsbfqqpbvksuwxeekzu`
-- Create migration file:
-	- `supabase migration new <migration_name>`
-- Apply pending migrations:
-	- `supabase db push`
+- Create migration file in `backend/migrations` using UTC timestamp naming:
+	- `YYYYMMDDHHMMSS_description.sql`
+- Apply migration to local DB first
+- Validate backend + frontend locally
+- Apply the same migration to staging DB and run smoke tests
+- Apply to production DB only after staging passes
 
-Baseline migration is in [supabase/migrations/20260217113000_initial_schema.sql](../supabase/migrations/20260217113000_initial_schema.sql).
+Migration source of truth is [backend/migrations/README.md](migrations/README.md).
 
 ## Required environment values (`backend/.env`)
 
@@ -54,6 +54,7 @@ It prints these values for `backend/.env`:
 
 - Create `NewApp/.env.local` with:
 	- `VITE_BACKEND_URL=http://localhost:4000/api/v1`
+- Development now fails fast when `VITE_BACKEND_URL` is missing to avoid accidental production API calls.
 - Local auth uses secure `httpOnly` cookie sessions (no frontend token storage).
 
 ## Security defaults
