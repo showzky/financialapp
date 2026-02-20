@@ -14,6 +14,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Updated CI to typecheck backend code in addition to frontend lint/test/build checks.
 ### Fixed
 
+## [1.2.0] - 2026-02-20
+### Added
+- End-to-end "Wishlist Item Notes" feature: added a nullable `notes` TEXT column to `wishlist_items`, backend normalization and sanitization utility, server-side validation and mapping, and frontend UI (add/edit modal textarea) with client-side character counter (2000 chars max).
+- Card-level notes preview with inline expand/collapse and a small notes section component (`src/components/WishlistItemCard.tsx`).
+- API contract and types updated to include `notes` on create/update responses and requests (`src/services/wishlistApi.ts`, `src/types/wishlist.ts`).
+- Database migration created (`backend/migrations/20260220150000_add_wishlist_item_notes.sql`) and mirrored to `supabase/migrations/20260220150000_add_wishlist_item_notes.sql` for `supabase db push` compatibility.
+- Backend and frontend typechecks/builds validated locally; added modular sanitizer utility at `backend/src/utils/wishlistNotes.ts` to centralize notes handling.
+
+### Changed
+- Committed changes to `main` and pushed to remote; see commit `9c92375`.
+
+
 ## [1.1.0] - 2026-02-19
 ### Added
 - Wishlist page UI with route and top-nav entry point.
