@@ -6,20 +6,23 @@ import './index.css'
 import App from './App.tsx'
 import { BudgetProvider } from '@/context/BudgetContext' // ADD THIS
 import { FinanceDataProvider } from '@/context/FinanceDataContext' // ADD THIS
+import { ThemeProvider } from '@/context/ThemeContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       {' '}
       {/* ADD THIS: router provider */}
-      <BudgetProvider>
-        <FinanceDataProvider>
-          {' '}
-          {/* ADD THIS: active + history state provider */}
-          <App />
-          <SpeedInsights />
-        </FinanceDataProvider>
-      </BudgetProvider>
+      <ThemeProvider>
+        <BudgetProvider>
+          <FinanceDataProvider>
+            {' '}
+            {/* ADD THIS: active + history state provider */}
+            <App />
+            <SpeedInsights />
+          </FinanceDataProvider>
+        </BudgetProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 )
