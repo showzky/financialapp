@@ -2,6 +2,7 @@
 import type { BudgetCategoryType } from '@/types/budget'
 import type { BudgetState } from '@/types/budget'
 import { RecurringManager } from '@/components/RecurringManager'
+import { useEffect } from 'react'
 import { useTheme } from '@/context/ThemeContext'
 import { type Theme } from '@/context/ThemeContext'
 
@@ -84,6 +85,14 @@ export const SettingsDrawer = ({
   }
 
   const { selectedPresetId, setSelectedPresetId } = useTheme()
+  // Keep ThemeContext in sync when parent prop changes
+  useEffect(() => {
+    if (selectedThemeId && selectedThemeId !== selectedPresetId) {
+      try {
+        setSelectedPresetId(selectedThemeId)
+      } catch {}
+    }
+  }, [selectedThemeId, selectedPresetId, setSelectedPresetId])
 
   return (
     <>
