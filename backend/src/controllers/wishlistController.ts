@@ -4,6 +4,7 @@ import type { Request, Response } from 'express'
 import { getProductData } from '../services/productMetadataService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
+import { normalizeWishlistNotes, WISHLIST_NOTES_MAX_LENGTH } from '../utils/wishlistNotes.js'
 import { wishlistItemModel } from '../models/wishlistItemModel.js'
 import { wishlistPriceSnapshotModel } from '../models/wishlistPriceSnapshotModel.js'
 
@@ -19,6 +20,7 @@ const wishlistItemSchema = z.object({
   price: z.number().finite().nonnegative().nullable(),
   imageUrl: z.string().trim().url().or(z.literal('')).optional(),
   category: z.string().trim().max(100).optional(),
+  notes: z.string().max(WISHLIST_NOTES_MAX_LENGTH).optional(),
   priority: wishlistPrioritySchema.optional(),
   savedAmount: z.number().finite().nonnegative().optional(),
 })
@@ -30,6 +32,7 @@ const wishlistItemUpdateSchema = z
     price: z.number().finite().nonnegative().nullable().optional(),
     imageUrl: z.string().trim().url().or(z.literal('')).optional(),
     category: z.string().trim().max(100).optional(),
+    notes: z.string().max(WISHLIST_NOTES_MAX_LENGTH).optional(),
     priority: wishlistPrioritySchema.optional(),
     savedAmount: z.number().finite().nonnegative().optional(),
   })
@@ -40,6 +43,7 @@ const wishlistItemUpdateSchema = z
       value.price !== undefined ||
       value.imageUrl !== undefined ||
       value.category !== undefined ||
+      value.notes !== undefined ||
       value.priority !== undefined ||
       value.savedAmount !== undefined,
     {
@@ -149,6 +153,7 @@ export const createWishlistItem = asyncHandler(async (req: Request, res: Respons
 
   const payload = wishlistItemSchema.parse(req.body)
   const normalizedUrl = normalizeWishlistUrl(payload.url)
+  const normalizedNotes = normalizeWishlistNotes(payload.notes)
   const duplicate = await wishlistItemModel.findByNormalizedUrl(req.auth.userId, normalizedUrl)
 
   if (duplicate) {
@@ -163,6 +168,7 @@ export const createWishlistItem = asyncHandler(async (req: Request, res: Respons
     price: payload.price,
     imageUrl: payload.imageUrl ?? '',
     category: payload.category ?? '',
+    notes: normalizedNotes ?? null,
     priority: payload.priority ?? 'Medium',
     savedAmount: payload.savedAmount ?? 0,
   })
@@ -195,6 +201,7 @@ export const updateWishlistItem = asyncHandler(async (req: Request, res: Respons
   const { id } = wishlistItemIdSchema.parse(req.params)
   const payload = wishlistItemUpdateSchema.parse(req.body)
   const normalizedUrl = payload.url ? normalizeWishlistUrl(payload.url) : undefined
+  const normalizedNotes = normalizeWishlistNotes(payload.notes)
 
   if (normalizedUrl) {
     const duplicate = await wishlistItemModel.findByNormalizedUrl(req.auth.userId, normalizedUrl, id)
@@ -206,6 +213,7 @@ export const updateWishlistItem = asyncHandler(async (req: Request, res: Respons
   const updated = await wishlistItemModel.update(id, req.auth.userId, {
     ...payload,
     normalizedUrl,
+    notes: normalizedNotes,
   })
 
   if (!updated) {

@@ -21,6 +21,7 @@ export type WishlistItem = {
   price: number | null
   imageUrl: string
   category: string
+  notes: string | null
   priority: WishlistPriority
   status: WishlistItemStatus
   purchasedAt: string | null

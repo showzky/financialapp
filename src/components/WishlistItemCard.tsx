@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { type WishlistItem } from '@/types/wishlist'
 
 type WishlistItemCardProps = {
@@ -27,6 +28,7 @@ export const WishlistItemCard = ({
   onVisitEdit,
   onDelete,
 }: WishlistItemCardProps) => {
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false)
   const priorityVisuals = {
     High: {
       dotClassName: 'bg-red-500',
@@ -84,6 +86,14 @@ export const WishlistItemCard = ({
   const itemTitleForAction = item.title.trim() === '' ? 'item' : item.title.trim()
   const priorityVisual = priorityVisuals[item.priority]
   const imageBadgeLabel = isPurchased ? 'Purchased' : isReadyToBuy ? 'Ready' : item.priority
+  const notesPreviewCharacterLimit = 200
+  const normalizedNotes = item.notes?.trim() ?? ''
+  const hasNotes = normalizedNotes.length > 0
+  const shouldTruncateNotes = normalizedNotes.length > notesPreviewCharacterLimit
+  const displayedNotes =
+    hasNotes && !isNotesExpanded && shouldTruncateNotes
+      ? `${normalizedNotes.slice(0, notesPreviewCharacterLimit)}...`
+      : normalizedNotes
 
   // ADD THIS: reusable icon action button keeps horizontal actions compact and consistent
   const IconAction = ({
@@ -222,6 +232,28 @@ export const WishlistItemCard = ({
       <p className="text-[0.72rem] text-text-muted">Set a target price to track progress.</p>
     )
 
+  const NotesSection = () => {
+    if (!hasNotes) {
+      return null
+    }
+
+    return (
+      <div className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">Notes</p>
+        <p className="whitespace-pre-line break-words text-[0.72rem] text-slate-700">{displayedNotes}</p>
+        {shouldTruncateNotes ? (
+          <button
+            type="button"
+            onClick={() => setIsNotesExpanded((current) => !current)}
+            className="text-[0.72rem] font-semibold text-blue-700 hover:text-blue-800"
+          >
+            {isNotesExpanded ? 'Show less' : 'Show more'}
+          </button>
+        ) : null}
+      </div>
+    )
+  }
+
   // ADD THIS: icon-first action row capped to 4 visible actions for dense cards
   const ActionsRow = () => (
     <div className="mt-auto flex items-center justify-between gap-2 pt-1">
@@ -354,6 +386,7 @@ export const WishlistItemCard = ({
 
         <MetadataRow />
         <SavingsProgress />
+        <NotesSection />
 
         <p className="truncate text-[0.72rem] text-text-muted" title={getDomainFromUrl(item.url)}>
           {getDomainFromUrl(item.url)}

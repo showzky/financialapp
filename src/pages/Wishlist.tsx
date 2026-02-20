@@ -20,6 +20,7 @@ type ProductFormState = {
   price: string
   imageUrl: string
   category: string
+  notes: string
   priority: WishlistPriority
 }
 
@@ -29,6 +30,7 @@ const emptyProductForm: ProductFormState = {
   price: '',
   imageUrl: '',
   category: '',
+  notes: '',
   priority: 'Medium',
 }
 
@@ -77,6 +79,7 @@ type UpsertWishlistItemDraft = {
   price: number | null
   imageUrl: string
   category: string
+  notes: string | null
   priority: WishlistPriority
 }
 
@@ -112,6 +115,7 @@ const mapWishlistItemDto = (item: WishlistItemDto): WishlistItem => ({
   price: item.price,
   imageUrl: item.imageUrl,
   category: item.category,
+  notes: item.notes,
   priority: normalizeWishlistPriority(item.priority),
   status: item.status,
   purchasedAt: item.purchasedAt,
@@ -158,6 +162,9 @@ export const Wishlist = () => {
   const normalizedUrl = productForm.url.trim()
   const normalizedImageUrl = productForm.imageUrl.trim()
   const normalizedCategory = productForm.category.trim()
+  const notesCharacterLimit = 2000
+  const notesLength = productForm.notes.length
+  const hasValidNotesLength = notesLength <= notesCharacterLimit
   const normalizedPriority = normalizeWishlistPriority(productForm.priority)
   const normalizedPrice = productForm.price.trim()
   const normalizedDepositAmount = depositAmount.trim()
@@ -198,7 +205,8 @@ export const Wishlist = () => {
   const hasValidImageUrlFormat = !isImageUrlPresent || isValidHttpUrl(normalizedImageUrl)
   const hasValidPriceFormat =
     normalizedPrice === '' || (!Number.isNaN(Number(normalizedPrice)) && Number(normalizedPrice) >= 0)
-  const isFormValid = normalizedTitle !== '' && hasValidUrlFormat && hasValidImageUrlFormat && hasValidPriceFormat
+  const isFormValid =
+    normalizedTitle !== '' && hasValidUrlFormat && hasValidImageUrlFormat && hasValidPriceFormat && hasValidNotesLength
   const hasValidDepositAmount =
     normalizedDepositAmount !== '' &&
     !Number.isNaN(Number(normalizedDepositAmount)) &&
@@ -328,6 +336,7 @@ export const Wishlist = () => {
         price: item.price,
         imageUrl: item.imageUrl,
         category: item.category,
+        notes: item.notes,
         priority: item.priority,
         savedAmount: existing.savedAmount,
       })
@@ -347,6 +356,7 @@ export const Wishlist = () => {
       price: item.price,
       imageUrl: item.imageUrl,
       category: item.category,
+      notes: item.notes,
       priority: item.priority,
       savedAmount: 0,
     })
@@ -365,6 +375,7 @@ export const Wishlist = () => {
       price: item.price === null ? '' : String(item.price),
       imageUrl: item.imageUrl,
       category: item.category,
+      notes: item.notes ?? '',
       priority: item.priority,
     })
     setHasTriedSubmit(false)
@@ -687,6 +698,26 @@ export const Wishlist = () => {
                   </select>
                 </div>
 
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label htmlFor="wishlist-notes" className="text-base font-semibold text-slate-900 sm:text-lg">
+                      Notes (optional)
+                    </label>
+                    <span className="text-xs text-slate-500">
+                      {notesLength}/{notesCharacterLimit}
+                    </span>
+                  </div>
+                  <textarea
+                    id="wishlist-notes"
+                    rows={4}
+                    placeholder="Add context about why you want this item"
+                    value={productForm.notes}
+                    onChange={(e) => updateProductForm({ notes: e.target.value })}
+                    maxLength={notesCharacterLimit}
+                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                  />
+                </div>
+
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
                   {addProductError ? (
                     <p className="w-full text-sm text-red-600 sm:mr-auto sm:w-auto">{addProductError}</p>
@@ -720,6 +751,7 @@ export const Wishlist = () => {
                           price: parsedPrice,
                           imageUrl: normalizedImageUrl,
                           category: normalizedCategory,
+                          notes: productForm.notes,
                           priority: normalizedPriority,
                         })
 

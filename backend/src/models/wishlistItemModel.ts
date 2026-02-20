@@ -9,6 +9,7 @@ export type WishlistItem = {
   price: number | null
   imageUrl: string
   category: string
+  notes: string | null
   priority: 'High' | 'Medium' | 'Low'
   status: 'active' | 'purchased'
   purchasedAt: string | null
@@ -33,6 +34,7 @@ export type CreateWishlistItemInput = {
   price: number | null
   imageUrl?: string
   category?: string
+  notes?: string | null
   priority?: 'High' | 'Medium' | 'Low'
   savedAmount?: number
 }
@@ -44,6 +46,7 @@ export type UpdateWishlistItemInput = {
   price?: number | null | undefined
   imageUrl?: string | undefined
   category?: string | undefined
+  notes?: string | null | undefined
   priority?: 'High' | 'Medium' | 'Low' | undefined
   savedAmount?: number | undefined
 }
@@ -57,6 +60,7 @@ const wishlistSelect = `
   price::float8 AS price,
   image_url AS "imageUrl",
   category,
+  notes,
   priority,
   status,
   purchased_at AS "purchasedAt",
@@ -82,6 +86,7 @@ const wishlistSelectWithTrend = `
   wi.price::float8 AS price,
   wi.image_url AS "imageUrl",
   wi.category,
+  wi.notes,
   wi.priority,
   wi.status,
   wi.purchased_at AS "purchasedAt",
@@ -179,13 +184,14 @@ export const wishlistItemModel = {
         price,
         image_url,
         category,
+        notes,
         priority,
         saved_amount,
         metadata_status,
         metadata_last_checked_at,
         metadata_last_success_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'fresh', NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'fresh', NOW(), NOW())
       RETURNING ${wishlistSelect}
       `,
       [
@@ -196,6 +202,7 @@ export const wishlistItemModel = {
         input.price,
         input.imageUrl ?? '',
         input.category ?? '',
+        input.notes ?? null,
         input.priority ?? 'Medium',
         input.savedAmount ?? 0,
       ],
@@ -240,6 +247,7 @@ export const wishlistItemModel = {
 
   async update(id: string, userId: string, input: UpdateWishlistItemInput): Promise<WishlistItem | null> {
     const hasPriceUpdate = input.price !== undefined
+    const hasNotesUpdate = input.notes !== undefined
     const shouldRefreshMetadata =
       input.title !== undefined ||
       input.url !== undefined ||
@@ -258,9 +266,10 @@ export const wishlistItemModel = {
         category = COALESCE($7, category),
         priority = COALESCE($8, priority),
         saved_amount = COALESCE($10, saved_amount),
-        metadata_status = CASE WHEN $12 THEN 'fresh' ELSE metadata_status END,
-        metadata_last_checked_at = CASE WHEN $12 THEN NOW() ELSE metadata_last_checked_at END,
-        metadata_last_success_at = CASE WHEN $12 THEN NOW() ELSE metadata_last_success_at END,
+        notes = CASE WHEN $13 THEN $12 ELSE notes END,
+        metadata_status = CASE WHEN $14 THEN 'fresh' ELSE metadata_status END,
+        metadata_last_checked_at = CASE WHEN $14 THEN NOW() ELSE metadata_last_checked_at END,
+        metadata_last_success_at = CASE WHEN $14 THEN NOW() ELSE metadata_last_success_at END,
         updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING ${wishlistSelect}
@@ -277,6 +286,8 @@ export const wishlistItemModel = {
         hasPriceUpdate,
         input.savedAmount ?? null,
         input.normalizedUrl ?? null,
+        input.notes === undefined ? null : input.notes,
+        hasNotesUpdate,
         shouldRefreshMetadata,
       ],
     )

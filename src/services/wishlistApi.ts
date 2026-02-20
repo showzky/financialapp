@@ -14,6 +14,7 @@ export type WishlistItemDto = {
   price: number | null
   imageUrl: string
   category: string
+  notes: string | null
   priority: WishlistPriority
   status: WishlistItemStatus
   purchasedAt: string | null
@@ -43,6 +44,7 @@ type UpsertWishlistItemPayload = {
   price: number | null
   imageUrl?: string
   category?: string
+  notes?: string | null
   priority?: WishlistPriority
   savedAmount?: number
 }
@@ -53,6 +55,7 @@ type UpdateWishlistItemPayload = {
   price?: number | null
   imageUrl?: string
   category?: string
+  notes?: string | null
   priority?: WishlistPriority
   savedAmount?: number
 }
