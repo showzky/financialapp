@@ -8,6 +8,7 @@
   --color-text-muted: #657394;
   --color-shadow-dark: #c2c8d4;
   --color-shadow-light: #ffffff;
+  --color-success: #16a34a;
   --app-bg: radial-gradient(circle at 20% 20%, #f4f8ff, #e8edf5 45%, #e2e7f2 100%);
   --radius-neo: 18px;
 }
@@ -20,6 +21,7 @@
   --color-text-muted: #97a7ca;
   --color-shadow-dark: #161b27;
   --color-shadow-light: #2b3347;
+  --color-success: #16a34a;
   --app-bg: radial-gradient(circle at 20% 20%, #121926, #171f2e 45%, #1a2434 100%);
 }
 
@@ -38,20 +40,20 @@ body {
   box-sizing: border-box;
 }
 
-/* pink scrollbar utility – use on an overflow container */
-.scrollbar-pink::-webkit-scrollbar {
+/* success scrollbar utility – use on an overflow container */
+.scrollbar-success::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-.scrollbar-pink::-webkit-scrollbar-track {
+.scrollbar-success::-webkit-scrollbar-track {
   background: transparent;
 }
-.scrollbar-pink::-webkit-scrollbar-thumb {
-  background-color: #ec4899; /* tailwind pink-500 */
+.scrollbar-success::-webkit-scrollbar-thumb {
+  background-color: var(--color-success);
   border-radius: 4px;
 }
 /* Firefox */
-.scrollbar-pink {
+.scrollbar-success {
   scrollbar-width: thin;
-  scrollbar-color: #ec4899 transparent;
+  scrollbar-color: var(--color-success) transparent;
 }

@@ -5,7 +5,15 @@ type RecurringAutomationToastProps = {
   onClose: () => void
 }
 
+import { useEffect } from 'react'
+
 export const RecurringAutomationToast = ({ message, onClose }: RecurringAutomationToastProps) => {
+  // automatically close after 1 second to avoid lingering forever
+  useEffect(() => {
+    const t = setTimeout(onClose, 1000)
+    return () => clearTimeout(t)
+  }, [onClose])
+
   return (
     <div className="fixed bottom-6 right-6 z-[90] max-w-sm rounded-neo bg-surface px-4 py-3 shadow-neo-md">
       <div className="flex items-start gap-3">

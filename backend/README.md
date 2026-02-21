@@ -13,13 +13,14 @@ Secure Node.js + Express + TypeScript backend for the Financial App.
 ## Migration workflow (safe local -> staging -> production)
 
 - Create migration file in `backend/migrations` using UTC timestamp naming:
-	- `YYYYMMDDHHMMSS_description.sql`
+  - `YYYYMMDDHHMMSS_description.sql`
 - Apply migration to local DB first
 - Validate backend + frontend locally
 - Apply the same migration to staging DB and run smoke tests
 - Apply to production DB only after staging passes
 
 Migration source of truth is [backend/migrations/README.md](migrations/README.md).
+
 ## Required environment values (`backend/.env`)
 
 - `DATABASE_URL`: PostgreSQL connection string from Supabase Database settings
@@ -52,7 +53,7 @@ It prints these values for `backend/.env`:
 ## Frontend-to-backend connection
 
 - Create `NewApp/.env.local` with:
-	- `VITE_BACKEND_URL=http://localhost:4000/api/v1`
+  - `VITE_BACKEND_URL=http://localhost:4000/api/v1`
 - Development now fails fast when `VITE_BACKEND_URL` is missing to avoid accidental production API calls.
 - Local auth uses secure `httpOnly` cookie sessions (no frontend token storage).
 
@@ -91,6 +92,12 @@ It prints these values for `backend/.env`:
 - `PATCH /api/v1/loans/:id`
 - `PATCH /api/v1/loans/:id/repaid`
 - `DELETE /api/v1/loans/:id`
+
+### Loans migration
+
+Run the SQL migration located at `backend/migrations/20260220183000_add_loans_given.sql` to create the
+`loans_given` table and associated indexes. This migration is also mirrored under
+`supabase/migrations` for consistency.
 
 ## Login flow (`AUTH_PROVIDER=local`)
 

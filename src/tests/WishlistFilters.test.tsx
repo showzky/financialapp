@@ -21,7 +21,7 @@ describe('WishlistFilters', () => {
         onClearFilters={noop}
         defaultCategoryLabel={defaultCategory}
         defaultPriorityLabel={defaultPriority}
-      />
+      />,
     )
 
     // panel is rendered but collapsed via CSS
@@ -43,7 +43,7 @@ describe('WishlistFilters', () => {
         onClearFilters={noop}
         defaultCategoryLabel={defaultCategory}
         defaultPriorityLabel={defaultPriority}
-      />
+      />,
     )
 
     const toggle = screen.getByRole('button', {
