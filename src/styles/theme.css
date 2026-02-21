@@ -1,86 +1,37 @@
-/* Base theme tokens for major colour scheme changes */
+/* ADD THIS: Neumorphic theme tokens */
 :root {
-  /* foundation */
-  --color-surface: #fafafa;
-  --color-surface-strong: #f2f2f2;
-  --color-bg-gradient-start: #ffffff;
-  --color-bg-gradient-end: #f7f7f7;
-
-  /* primary branding */
-  --color-accent: #5a87ff;
-  --color-accent-strong: #3c5cd2;
-  --color-accent-light: #e0e7ff;
-
-  /* text & muted */
-  --color-text-primary: #232a3e;
-  --color-text-muted: #6b7280;
-  --color-text-inverse: #ffffff;
-
-  /* shadows */
-  --color-shadow-dark: rgba(0,0,0,0.08);
-  --color-shadow-light: rgba(255,255,255,0.8);
-
-  /* radii & spacing */
-  --radius-neo: 14px;
-  --radius-sm: 8px;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-
-  /* font base */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --color-surface: #e8edf5;
+  --color-surface-strong: #dde4ef;
+  --color-accent: #6c7df0;
+  --color-accent-strong: #4f61d8;
+  --color-text-primary: #1f2a44;
+  --color-text-muted: #657394;
+  --color-shadow-dark: #c2c8d4;
+  --color-shadow-light: #ffffff;
+  --app-bg: radial-gradient(circle at 20% 20%, #f4f8ff, #e8edf5 45%, #e2e7f2 100%);
+  --radius-neo: 18px;
 }
 
-/* dark theme overrides */
+/* ADD THIS: global dark palette, applied app-wide via data attribute */
 :root[data-theme='dark'] {
-  --color-surface: #1e1e2e;
-  --color-surface-strong: #252539;
-  --color-bg-gradient-start: #1a1a26;
-  --color-bg-gradient-end: #232331;
-
-  --color-accent: #6a9cff;
-  --color-accent-strong: #4e7dd6;
-  --color-accent-light: #2a334a;
-
-  --color-text-primary: #e2e2e8;
-  --color-text-muted: #9ca3af;
-  --color-text-inverse: #000000;
-
-  --color-shadow-dark: rgba(0,0,0,0.5);
-  --color-shadow-light: rgba(255,255,255,0.1);
+  --color-surface: #1f2533;
+  --color-surface-strong: #252c3d;
+  --color-text-primary: #eaf1ff;
+  --color-text-muted: #97a7ca;
+  --color-shadow-dark: #161b27;
+  --color-shadow-light: #2b3347;
+  --app-bg: radial-gradient(circle at 20% 20%, #121926, #171f2e 45%, #1a2434 100%);
 }
 
-/* Base page styling for soft, raised surfaces */
+/* ADD THIS: Base page styling for soft, raised surfaces */
 body {
-  background: linear-gradient(135deg, var(--color-bg-gradient-start), var(--color-bg-gradient-end));
+  background: var(--app-bg);
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.6;
+  font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  transition: background 0.32s ease, color 0.24s ease;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-top: var(--space-lg);
-  margin-bottom: var(--space-md);
-}
-
-p {
-  margin-bottom: var(--space-md);
-}
-
-a {
-  color: var(--color-accent);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-a:hover {
-  color: var(--color-accent-strong);
+  transition:
+    background 0.32s ease,
+    color 0.28s ease;
 }
 
 * {
