@@ -25,10 +25,7 @@ const loginSchema = z.object({
   password: z.string().min(8).max(128),
 })
 
-const sendSuccessfulLogin = async (
-  res: Response,
-  input: { userId: string; email: string },
-) => {
+const sendSuccessfulLogin = async (res: Response, input: { userId: string; email: string }) => {
   const accessToken = await createLocalAuthToken({ userId: input.userId, email: input.email })
 
   // ADD THIS: store session token in secure httpOnly cookie instead of exposing token to JS
@@ -83,8 +80,16 @@ authRouter.post('/login', async (req, res, next) => {
 
     // ADD THIS: optional bootstrap from env for first-time setup
     const bootstrapUsername = env.APP_USERNAME?.trim().toLowerCase()
-    if (!credential && bootstrapUsername && env.APP_PASSWORD_HASH && bootstrapUsername === loginUsername) {
-      const isBootstrapPasswordMatch = await verifyPasswordHash(parsed.password, env.APP_PASSWORD_HASH)
+    if (
+      !credential &&
+      bootstrapUsername &&
+      env.APP_PASSWORD_HASH &&
+      bootstrapUsername === loginUsername
+    ) {
+      const isBootstrapPasswordMatch = await verifyPasswordHash(
+        parsed.password,
+        env.APP_PASSWORD_HASH,
+      )
       if (isBootstrapPasswordMatch) {
         await syncUserProfile({
           userId: env.LOCAL_AUTH_USER_ID,

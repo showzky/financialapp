@@ -16,9 +16,12 @@ export const WishlistFilteredEmptyState = ({
       <section className="mx-auto mt-8 grid w-full max-w-6xl place-items-center rounded-2xl bg-surface px-6 py-16 text-center shadow-neo-sm">
         <div className="space-y-3">
           {/* ADD THIS: richer purchased-empty copy so users understand what to do next */}
-          <h2 className="text-2xl font-semibold text-text-primary">No purchased items in this view yet</h2>
+          <h2 className="text-2xl font-semibold text-text-primary">
+            No purchased items in this view yet
+          </h2>
           <p className="max-w-2xl text-base text-text-muted">
-            Items appear here after they are marked as purchased from the Active items tab once savings reach the target price.
+            Items appear here after they are marked as purchased from the Active items tab once
+            savings reach the target price.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
@@ -44,8 +47,12 @@ export const WishlistFilteredEmptyState = ({
   return (
     <section className="mx-auto mt-8 grid w-full max-w-6xl place-items-center rounded-2xl bg-surface px-6 py-16 text-center shadow-neo-sm">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold text-text-primary">No active products in this filter</h2>
-        <p className="text-base text-text-muted">Switch your filters or add a new item that matches this view.</p>
+        <h2 className="text-2xl font-semibold text-text-primary">
+          No active products in this filter
+        </h2>
+        <p className="text-base text-text-muted">
+          Switch your filters or add a new item that matches this view.
+        </p>
       </div>
     </section>
   )

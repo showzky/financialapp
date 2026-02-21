@@ -37,13 +37,9 @@ export const createLocalAuthToken = async (payload: {
     .setIssuedAt()
 
   try {
-    return await baseToken
-      .setExpirationTime(env.LOCAL_AUTH_JWT_EXPIRES_IN)
-      .sign(secret)
+    return await baseToken.setExpirationTime(env.LOCAL_AUTH_JWT_EXPIRES_IN).sign(secret)
   } catch {
-    return baseToken
-      .setExpirationTime('8h')
-      .sign(secret)
+    return baseToken.setExpirationTime('8h').sign(secret)
   }
 }
 
@@ -70,4 +66,3 @@ export const verifyLocalAuthToken = async (
     ...(typeof payload.email === 'string' ? { email: payload.email } : {}),
   }
 }
-

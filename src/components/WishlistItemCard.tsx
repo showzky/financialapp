@@ -74,14 +74,19 @@ export const WishlistItemCard = ({
   const metadataCheckedAtLabel = item.metadataLastCheckedAt
     ? `Checked ${new Date(item.metadataLastCheckedAt).toLocaleDateString()}`
     : 'Not checked yet'
-  const trendPercentLabel = item.priceTrendPercent === null ? null : `${Math.abs(item.priceTrendPercent).toFixed(1)}%`
+  const trendPercentLabel =
+    item.priceTrendPercent === null ? null : `${Math.abs(item.priceTrendPercent).toFixed(1)}%`
   const targetPrice = item.price !== null && item.price > 0 ? item.price : null
   const hasTargetPrice = targetPrice !== null
   const isPurchased = item.status === 'purchased'
-  const progressPercent = hasTargetPrice ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100)) : 0
+  const progressPercent = hasTargetPrice
+    ? Math.min(100, Math.max(0, (item.savedAmount / targetPrice) * 100))
+    : 0
   const roundedProgressPercent = Math.round(progressPercent)
   const isReadyToBuy = hasTargetPrice && item.savedAmount >= targetPrice
-  const remainingAmountToTarget = hasTargetPrice ? Math.max(0, targetPrice - item.savedAmount) : null
+  const remainingAmountToTarget = hasTargetPrice
+    ? Math.max(0, targetPrice - item.savedAmount)
+    : null
   const purchasedAtLabel = item.purchasedAt ? new Date(item.purchasedAt).toLocaleDateString() : null
   const itemTitleForAction = item.title.trim() === '' ? 'item' : item.title.trim()
   const priorityVisual = priorityVisuals[item.priority]
@@ -195,8 +200,13 @@ export const WishlistItemCard = ({
   // ADD THIS: one compact metadata row with priority, category, and freshness pills
   const MetadataRow = () => (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${priorityVisual.badgeClassName}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${priorityVisual.dotClassName}`} aria-hidden="true" />
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${priorityVisual.badgeClassName}`}
+      >
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${priorityVisual.dotClassName}`}
+          aria-hidden="true"
+        />
         {item.priority}
       </span>
 
@@ -240,7 +250,9 @@ export const WishlistItemCard = ({
     return (
       <div className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-2">
         <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">Notes</p>
-        <p className="whitespace-pre-line break-words text-[0.72rem] text-slate-700">{displayedNotes}</p>
+        <p className="whitespace-pre-line break-words text-[0.72rem] text-slate-700">
+          {displayedNotes}
+        </p>
         {shouldTruncateNotes ? (
           <button
             type="button"
@@ -265,7 +277,14 @@ export const WishlistItemCard = ({
             onClick={() => onRestorePurchased(item.id)}
             tone="positive"
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
               <path d="M4 4v6h6" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M20 20v-6h-6" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M20 8a8 8 0 0 0-14-4L4 10" strokeLinecap="round" strokeLinejoin="round" />
@@ -280,7 +299,14 @@ export const WishlistItemCard = ({
               onClick={() => onRefresh(item.id)}
               disabled={isRefreshing}
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
                 <path d="M4 4v6h6" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M20 20v-6h-6" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M20 8a8 8 0 0 0-14-4L4 10" strokeLinecap="round" strokeLinejoin="round" />
@@ -295,7 +321,14 @@ export const WishlistItemCard = ({
                 onClick={() => onMarkPurchased(item)}
                 tone="positive"
               >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
                   <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </IconAction>
@@ -306,7 +339,14 @@ export const WishlistItemCard = ({
                 onClick={() => onDeposit(item.id)}
                 tone="primary"
               >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
                   <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </IconAction>
@@ -320,7 +360,14 @@ export const WishlistItemCard = ({
           href={item.url}
           tone="default"
         >
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
             <path d="M14 5h5v5" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M10 14 19 5" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M19 13v6H5V5h6" strokeLinecap="round" strokeLinejoin="round" />
@@ -331,7 +378,14 @@ export const WishlistItemCard = ({
       {!isPurchased ? (
         <details className="relative">
           <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
               <path d="M5 12h14M12 5v14" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </summary>
@@ -360,17 +414,23 @@ export const WishlistItemCard = ({
   return (
     <article
       className={`group relative flex h-full min-h-[320px] max-h-[450px] flex-col rounded-2xl border p-3 shadow-sm transition hover:z-30 focus-within:z-30 md:min-h-[400px] md:max-h-[550px] md:p-4 md:hover:scale-[1.02] md:hover:shadow-md ${
-        isReadyToBuy || isPurchased ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white'
+        isReadyToBuy || isPurchased
+          ? 'border-emerald-200 bg-emerald-50/40'
+          : 'border-slate-200 bg-white'
       }`}
     >
       <ImageSection />
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5">
         <div className="space-y-1">
-          <h3 className="line-clamp-2 text-base font-semibold leading-tight text-text-primary md:text-lg">{item.title}</h3>
+          <h3 className="line-clamp-2 text-base font-semibold leading-tight text-text-primary md:text-lg">
+            {item.title}
+          </h3>
 
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-semibold text-text-primary md:text-base">{formatWishlistPrice(item.price)}</p>
+            <p className="truncate text-sm font-semibold text-text-primary md:text-base">
+              {formatWishlistPrice(item.price)}
+            </p>
             <span
               className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${trendVisuals[item.priceTrendDirection]}`}
               title={
@@ -379,7 +439,8 @@ export const WishlistItemCard = ({
                   : 'Trend appears after at least two tracked prices.'
               }
             >
-              {trendLabel[item.priceTrendDirection]}{trendPercentLabel ? ` ${trendPercentLabel}` : ''}
+              {trendLabel[item.priceTrendDirection]}
+              {trendPercentLabel ? ` ${trendPercentLabel}` : ''}
             </span>
           </div>
         </div>

@@ -37,8 +37,10 @@ const scoreImageCandidate = (url: string) => {
   if (normalized.includes('/img/')) score += 5
   if (normalized.includes('/product')) score += 4
   if (normalized.includes('secure')) score += 2
-  if (normalized.includes('logo') || normalized.includes('favicon') || normalized.includes('icon')) score -= 8
-  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg') || normalized.endsWith('.webp')) score += 2
+  if (normalized.includes('logo') || normalized.includes('favicon') || normalized.includes('icon'))
+    score -= 8
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg') || normalized.endsWith('.webp'))
+    score += 2
 
   return score
 }
@@ -93,10 +95,7 @@ const fallbackTitleFromUrl = (value: string) => {
     const last = parsed.pathname.split('/').filter(Boolean).at(-1)
     if (!last) return parsed.hostname
 
-    return decodeURIComponent(last)
-      .replace(/[-_]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
+    return decodeURIComponent(last).replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
   } catch {
     return value
   }
@@ -362,7 +361,9 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
     })
 
     html = response.data
-    const requestWithResponseUrl = response.request as { res?: { responseUrl?: string } } | undefined
+    const requestWithResponseUrl = response.request as
+      | { res?: { responseUrl?: string } }
+      | undefined
     finalUrl = requestWithResponseUrl?.res?.responseUrl || url
   } catch {
     throw new AppError('Could not fetch product data', 502)
@@ -371,11 +372,13 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
   const $ = load(html)
 
   const jsonLdExtractions: JsonLdExtraction[] = []
-  $('script[type="application/ld+json"]').toArray().forEach((tag) => {
-    const raw = $(tag).text()
-    if (!raw) return
-    jsonLdExtractions.push(extractJsonLdMetadata(raw))
-  })
+  $('script[type="application/ld+json"]')
+    .toArray()
+    .forEach((tag) => {
+      const raw = $(tag).text()
+      if (!raw) return
+      jsonLdExtractions.push(extractJsonLdMetadata(raw))
+    })
 
   const appJsonExtractions: JsonLdExtraction[] = []
   $('script#__NEXT_DATA__, script#__NUXT_DATA__, script[type="application/json"][id*="data" i]')
@@ -388,7 +391,8 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
 
   const allExtractions = [...jsonLdExtractions, ...appJsonExtractions]
 
-  const jsonLdTitle = allExtractions.flatMap((entry) => entry.titles).find((entry) => entry.trim().length > 0) || ''
+  const jsonLdTitle =
+    allExtractions.flatMap((entry) => entry.titles).find((entry) => entry.trim().length > 0) || ''
 
   const title =
     jsonLdTitle ||
@@ -406,7 +410,9 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
 
   const imageCandidates = new Set<string>()
 
-  $('meta[property="og:image:secure_url"], meta[property="og:image:url"], meta[property="og:image"], meta[name="twitter:image"], meta[name="twitter:image:src"]')
+  $(
+    'meta[property="og:image:secure_url"], meta[property="og:image:url"], meta[property="og:image"], meta[name="twitter:image"], meta[name="twitter:image:src"]',
+  )
     .toArray()
     .forEach((tag) => {
       const content = $(tag).attr('content')?.trim()
@@ -414,16 +420,19 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
       imageCandidates.add(content)
     })
 
-  allExtractions.flatMap((entry) => entry.images).forEach((candidate) => imageCandidates.add(candidate))
+  allExtractions
+    .flatMap((entry) => entry.images)
+    .forEach((candidate) => imageCandidates.add(candidate))
 
-  const bestImage = Array.from(imageCandidates)
-    .map((candidate) => toAbsoluteUrl(candidate, finalUrl))
-    .filter(Boolean)
-    .map((candidate) => ({
-      candidate,
-      score: scoreImageCandidate(candidate),
-    }))
-    .sort((a, b) => b.score - a.score)[0]?.candidate || ''
+  const bestImage =
+    Array.from(imageCandidates)
+      .map((candidate) => toAbsoluteUrl(candidate, finalUrl))
+      .filter(Boolean)
+      .map((candidate) => ({
+        candidate,
+        score: scoreImageCandidate(candidate),
+      }))
+      .sort((a, b) => b.score - a.score)[0]?.candidate || ''
 
   const jsonLdPrice =
     allExtractions

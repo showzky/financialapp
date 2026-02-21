@@ -99,6 +99,8 @@ export const wishlistApi = {
 
   previewFromUrl: (url: string) => {
     const encoded = encodeURIComponent(url)
-    return backendRequest<WishlistPreviewResponse>(`/wishlist/preview?url=${encoded}`, { method: 'GET' })
+    return backendRequest<WishlistPreviewResponse>(`/wishlist/preview?url=${encoded}`, {
+      method: 'GET',
+    })
   },
 }

@@ -27,7 +27,11 @@ export const authCredentialModel = {
     return result.rows[0] ?? null
   },
 
-  async upsert(input: { userId: string; username: string; passwordHash: string }): Promise<AuthCredential> {
+  async upsert(input: {
+    userId: string
+    username: string
+    passwordHash: string
+  }): Promise<AuthCredential> {
     const result = await db.query<AuthCredential>(
       `
       INSERT INTO auth_credentials (user_id, username, password_hash)

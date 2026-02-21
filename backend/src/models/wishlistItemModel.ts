@@ -245,7 +245,11 @@ export const wishlistItemModel = {
     return result.rows[0] ?? null
   },
 
-  async update(id: string, userId: string, input: UpdateWishlistItemInput): Promise<WishlistItem | null> {
+  async update(
+    id: string,
+    userId: string,
+    input: UpdateWishlistItemInput,
+  ): Promise<WishlistItem | null> {
     const hasPriceUpdate = input.price !== undefined
     const hasNotesUpdate = input.notes !== undefined
     const shouldRefreshMetadata =
@@ -307,7 +311,11 @@ export const wishlistItemModel = {
     return result.rowCount === 1
   },
 
-  async markPurchased(id: string, userId: string, purchasedAmount: number): Promise<WishlistItem | null> {
+  async markPurchased(
+    id: string,
+    userId: string,
+    purchasedAmount: number,
+  ): Promise<WishlistItem | null> {
     const result = await db.query<WishlistItem>(
       `
       UPDATE wishlist_items

@@ -37,3 +37,21 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* pink scrollbar utility – use on an overflow container */
+.scrollbar-pink::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-pink::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-pink::-webkit-scrollbar-thumb {
+  background-color: #ec4899; /* tailwind pink-500 */
+  border-radius: 4px;
+}
+/* Firefox */
+.scrollbar-pink {
+  scrollbar-width: thin;
+  scrollbar-color: #ec4899 transparent;
+}

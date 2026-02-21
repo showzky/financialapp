@@ -1,4 +1,5 @@
 // ADD THIS: Slide-out settings drawer with overlay and neumorphic controls
+import { Link } from 'react-router-dom'
 import type { BudgetCategoryType } from '@/types/budget'
 import type { BudgetState } from '@/types/budget'
 import { RecurringManager } from '@/components/RecurringManager'
@@ -37,6 +38,11 @@ import type { ThemePreset } from '@/styles/themePresets'
 
 type CurrencySymbol = 'KR' | '$' | '€'
 
+type LoanShortcut = {
+  dueSoonCount: number
+  overdueCount: number
+}
+
 type SettingsDrawerProps = {
   isOpen: boolean
   onClose: () => void
@@ -54,6 +60,7 @@ type SettingsDrawerProps = {
   onAddRecurring: (entry: Omit<RecurringTransaction, 'id' | 'lastAppliedDate'>) => void
   onUpdateRecurring: (id: string, updates: Partial<RecurringTransaction>) => void
   onDeleteRecurring: (id: string) => void
+  loanShortcut?: LoanShortcut
 }
 
 export const SettingsDrawer = ({
@@ -73,6 +80,7 @@ export const SettingsDrawer = ({
   onAddRecurring,
   onUpdateRecurring,
   onDeleteRecurring,
+  loanShortcut,
 }: SettingsDrawerProps) => {
   const handleResetClick = () => {
     // ADD THIS: secondary confirmation warning before destructive reset
@@ -131,7 +139,9 @@ export const SettingsDrawer = ({
                         onClick={() => {
                           try {
                             setSelectedPresetId(theme.id)
-                          } catch {}
+                          } catch {
+                            // Ignore preset write errors and keep current selection.
+                          }
                         }}
                         aria-label={`${theme.name} theme preset`}
                         className={`relative rounded-neo border border-transparent bg-surface px-3 py-2 text-left shadow-neo-sm transition ${
@@ -144,7 +154,9 @@ export const SettingsDrawer = ({
                         <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
                           {theme.name}
                         </span>
-                        <span className="mt-1 block text-[11px] leading-4 opacity-85">{theme.description}</span>
+                        <span className="mt-1 block text-[11px] leading-4 opacity-85">
+                          {theme.description}
+                        </span>
                         <span className="mt-2 flex items-center gap-1.5" aria-hidden="true">
                           {theme.swatches.map((swatchColor) => (
                             <span
@@ -158,11 +170,25 @@ export const SettingsDrawer = ({
                         {isActive ? (
                           <span
                             className="absolute right-2 top-2 inline-flex items-center justify-center rounded-full p-1 text-white"
-                            style={{ backgroundColor: 'var(--color-accent)', boxShadow: '0 0 0 3px rgba(0,0,0,0.12)' }}
+                            style={{
+                              backgroundColor: 'var(--color-accent)',
+                              boxShadow: '0 0 0 3px rgba(0,0,0,0.12)',
+                            }}
                             aria-hidden="true"
                           >
-                            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              className="h-3 w-3"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                d="M5 13l4 4L19 7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
                             </svg>
                           </span>
                         ) : null}
@@ -238,6 +264,28 @@ export const SettingsDrawer = ({
                 {isEditing ? 'Editing enabled' : 'Editing disabled'}
               </button>
             </div>
+          </section>
+
+          <section className="neo-card space-y-3 p-4">
+            {/* ADD THIS: compact shortcut badges for near-term loan follow-up */}
+            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-text-muted">
+              Loan Shortcut
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-surface-strong px-2.5 py-1 text-xs font-semibold text-amber-700">
+                Due soon {loanShortcut?.dueSoonCount ?? 0}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-surface-strong px-2.5 py-1 text-xs font-semibold text-red-700">
+                Overdue {loanShortcut?.overdueCount ?? 0}
+              </span>
+            </div>
+            <Link
+              to="/loans"
+              onClick={onClose}
+              className="settings-action inline-flex items-center justify-center"
+            >
+              Open loans
+            </Link>
           </section>
 
           <section className="neo-card space-y-3 p-4">

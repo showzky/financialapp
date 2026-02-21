@@ -44,17 +44,22 @@ const isLocalhostRequest = (req: Request): boolean => {
 
   const hostsToCheck = [hostHeader, hostname, forwardedHost]
 
-  return hostsToCheck.some((value) =>
-    value === 'localhost' ||
-    value.startsWith('localhost:') ||
-    value === '127.0.0.1' ||
-    value.startsWith('127.0.0.1:') ||
-    value === '[::1]' ||
-    value.startsWith('[::1]:'),
+  return hostsToCheck.some(
+    (value) =>
+      value === 'localhost' ||
+      value.startsWith('localhost:') ||
+      value === '127.0.0.1' ||
+      value.startsWith('127.0.0.1:') ||
+      value === '[::1]' ||
+      value.startsWith('[::1]:'),
   )
 }
 
-export const requireAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+export const requireAuth = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const authorizationHeader = req.header('authorization')
 
@@ -62,7 +67,8 @@ export const requireAuth = async (req: Request, _res: Response, next: NextFuncti
       const token = parseLocalAuthToken(req)
       req.auth = await verifyLocalAuthToken(token)
     } else if (!authorizationHeader) {
-      const canBypassDevAuth = env.NODE_ENV !== 'production' && env.ALLOW_DEV_AUTH_BYPASS && isLocalhostRequest(req)
+      const canBypassDevAuth =
+        env.NODE_ENV !== 'production' && env.ALLOW_DEV_AUTH_BYPASS && isLocalhostRequest(req)
 
       if (!canBypassDevAuth) {
         throw new AppError('Missing authorization header', 401)
@@ -101,7 +107,9 @@ export const requireAuth = async (req: Request, _res: Response, next: NextFuncti
       await userModel.upsertFromAuth({
         id: authUserId,
         email: req.auth.email ?? `${authUserId}@financetracker.local`,
-        displayName: req.auth.email ? req.auth.email.split('@')[0] || env.DEV_USER_NAME : env.DEV_USER_NAME,
+        displayName: req.auth.email
+          ? req.auth.email.split('@')[0] || env.DEV_USER_NAME
+          : env.DEV_USER_NAME,
       })
     } catch {
       // Profile sync failed—continue anyway since auth itself succeeded

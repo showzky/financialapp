@@ -22,7 +22,8 @@ type ActiveFilterChip = {
 
 const priorityToneMap: Record<string, string> = {
   High: 'border-transparent bg-red-500 text-white shadow-sm hover:bg-red-500/90 focus-visible:ring-red-400',
-  Medium: 'border-transparent bg-amber-500 text-white shadow-sm hover:bg-amber-500/90 focus-visible:ring-amber-400',
+  Medium:
+    'border-transparent bg-amber-500 text-white shadow-sm hover:bg-amber-500/90 focus-visible:ring-amber-400',
   Low: 'border-transparent bg-emerald-500 text-white shadow-sm hover:bg-emerald-500/90 focus-visible:ring-emerald-400',
 }
 
@@ -121,7 +122,7 @@ const FilterGroup = ({
         const unselectedClasses =
           'border-slate-300 bg-white text-text-primary hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-indigo-400 focus-visible:ring-offset-2'
         const prioritySelected = variant === 'priority' && priorityToneMap[option]
-        const optionClasses = `${baseClasses} ${isSelected ? prioritySelected ?? selectedCategoryClasses : unselectedClasses}`
+        const optionClasses = `${baseClasses} ${isSelected ? (prioritySelected ?? selectedCategoryClasses) : unselectedClasses}`
 
         return (
           <button
@@ -133,7 +134,14 @@ const FilterGroup = ({
           >
             {isSelected ? (
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3 w-3">
-                <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M5 13l4 4L19 7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             ) : null}
             <span className="leading-none">{option}</span>
@@ -180,7 +188,14 @@ export const WishlistFilters = ({
     }
 
     return chips
-  }, [selectedCategory, selectedPriority, defaultCategoryLabel, defaultPriorityLabel, onCategoryChange, onPriorityChange])
+  }, [
+    selectedCategory,
+    selectedPriority,
+    defaultCategoryLabel,
+    defaultPriorityLabel,
+    onCategoryChange,
+    onPriorityChange,
+  ])
 
   const activeFilterCount = activeFilterChips.length
   const collapsedSummary = activeFilterChips.map((chip) => chip.label).join(' · ')
@@ -189,15 +204,26 @@ export const WishlistFilters = ({
   return (
     <section className="mx-auto mt-6 w-full max-w-6xl rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <FilterToggle isOpen={isExpanded} activeCount={activeFilterCount} onToggle={() => setIsExpanded((current) => !current)} />
+        <FilterToggle
+          isOpen={isExpanded}
+          activeCount={activeFilterCount}
+          onToggle={() => setIsExpanded((current) => !current)}
+        />
         {!isExpanded && activeFilterCount === 0 ? (
-          <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Showing all items</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+            Showing all items
+          </p>
         ) : null}
         {!isExpanded && activeFilterCount > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs text-text-muted">{collapsedSummary}</p>
             {activeFilterChips.map((chip) => (
-              <FilterChip key={chip.id} label={chip.label} onRemove={chip.onRemove} tone={chip.tone} />
+              <FilterChip
+                key={chip.id}
+                label={chip.label}
+                onRemove={chip.onRemove}
+                tone={chip.tone}
+              />
             ))}
           </div>
         ) : null}
@@ -212,7 +238,9 @@ export const WishlistFilters = ({
         <div className="space-y-6 pb-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Active filters</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+                Active filters
+              </p>
               <button
                 type="button"
                 onClick={onClearFilters}
@@ -228,7 +256,12 @@ export const WishlistFilters = ({
                 </p>
               ) : (
                 activeFilterChips.map((chip) => (
-                  <FilterChip key={`expanded-${chip.id}`} label={chip.label} onRemove={chip.onRemove} tone={chip.tone} />
+                  <FilterChip
+                    key={`expanded-${chip.id}`}
+                    label={chip.label}
+                    onRemove={chip.onRemove}
+                    tone={chip.tone}
+                  />
                 ))
               )}
             </div>

@@ -7,6 +7,11 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 ## [Unreleased]
 ### Added
 - Added backend migration scaffolding in `backend/migrations` with a runbook for local → staging → production SQL rollout.
+- Added server-backed Loan Area feature with dashboard summary, dedicated loans page, and CRUD endpoints for loans given to others.
+- Added due-state logic (`outstanding`, `due_soon`, `overdue`, `repaid`) and server-computed days remaining for consistent highlighting across clients.
+- Added migration `20260220183000_add_loans_given.sql` in both `backend/migrations` and `supabase/migrations`.
+- Added frontend loan modules: `src/services/loanApi.ts`, `src/types/loan.ts`, `src/components/LoanAreaCard.tsx`, `src/components/LoanTable.tsx`, `src/components/AddLoanModal.tsx`, and `src/pages/Loans.tsx`.
+- Added loan status utility tests in `src/tests/loanStatus.test.ts`.
 
 ### Changed
 - Enforced explicit frontend backend API configuration in development by requiring `VITE_BACKEND_URL` (no silent production fallback).

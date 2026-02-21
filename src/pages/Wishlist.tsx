@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { wishlistApi, type WishlistItemDto } from '@/services/wishlistApi'
 // ADD THIS: modularized filters widget with chips and priority styling
 import { WishlistFilters } from '@/components/WishlistFilters'
@@ -50,7 +50,9 @@ const normalizeWishlistUrl = (value: string) => {
   const filteredParams = [...parsed.searchParams.entries()]
     .filter(([key]) => {
       const normalizedKey = key.toLowerCase()
-      return !normalizedKey.startsWith('utm_') && normalizedKey !== 'fbclid' && normalizedKey !== 'gclid'
+      return (
+        !normalizedKey.startsWith('utm_') && normalizedKey !== 'fbclid' && normalizedKey !== 'gclid'
+      )
     })
     .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
       if (leftKey === rightKey) {
@@ -141,7 +143,8 @@ export const Wishlist = () => {
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
-  const [selectedWishlistStatus, setSelectedWishlistStatus] = useState<WishlistItemStatus>(activeWishlistLabel)
+  const [selectedWishlistStatus, setSelectedWishlistStatus] =
+    useState<WishlistItemStatus>(activeWishlistLabel)
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(allCategoryFilterLabel)
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState(allPriorityFilterLabel)
   const [isWishlistLoading, setIsWishlistLoading] = useState(true)
@@ -204,35 +207,48 @@ export const Wishlist = () => {
   const isImageUrlPresent = normalizedImageUrl !== ''
   const hasValidImageUrlFormat = !isImageUrlPresent || isValidHttpUrl(normalizedImageUrl)
   const hasValidPriceFormat =
-    normalizedPrice === '' || (!Number.isNaN(Number(normalizedPrice)) && Number(normalizedPrice) >= 0)
+    normalizedPrice === '' ||
+    (!Number.isNaN(Number(normalizedPrice)) && Number(normalizedPrice) >= 0)
   const isFormValid =
-    normalizedTitle !== '' && hasValidUrlFormat && hasValidImageUrlFormat && hasValidPriceFormat && hasValidNotesLength
+    normalizedTitle !== '' &&
+    hasValidUrlFormat &&
+    hasValidImageUrlFormat &&
+    hasValidPriceFormat &&
+    hasValidNotesLength
   const hasValidDepositAmount =
     normalizedDepositAmount !== '' &&
     !Number.isNaN(Number(normalizedDepositAmount)) &&
     Number(normalizedDepositAmount) > 0
 
   const selectedDepositItem =
-    selectedDepositId === null ? null : wishlistItems.find((item) => item.id === selectedDepositId) ?? null
+    selectedDepositId === null
+      ? null
+      : (wishlistItems.find((item) => item.id === selectedDepositId) ?? null)
 
-  const itemsInSelectedStatus = wishlistItems.filter((item) => item.status === selectedWishlistStatus)
+  const itemsInSelectedStatus = wishlistItems.filter(
+    (item) => item.status === selectedWishlistStatus,
+  )
 
-  const availableCategoryFilters = [
-    allCategoryFilterLabel,
-    ...Array.from(
-      new Set(
-        itemsInSelectedStatus
-          .map((item) => item.category.trim())
-          .filter((category) => category.length > 0),
-      ),
-    ).sort((leftCategory, rightCategory) => leftCategory.localeCompare(rightCategory)),
-  ]
+  const availableCategoryFilters = useMemo(
+    () => [
+      allCategoryFilterLabel,
+      ...Array.from(
+        new Set(
+          itemsInSelectedStatus
+            .map((item) => item.category.trim())
+            .filter((category) => category.length > 0),
+        ),
+      ).sort((leftCategory, rightCategory) => leftCategory.localeCompare(rightCategory)),
+    ],
+    [allCategoryFilterLabel, itemsInSelectedStatus],
+  )
 
   const availablePriorityFilters = [allPriorityFilterLabel, ...wishlistPriorityOptions]
 
   const priorityAndCategoryFilteredItems = itemsInSelectedStatus.filter((item) => {
     const matchesCategory =
-      selectedCategoryFilter === allCategoryFilterLabel || item.category.trim() === selectedCategoryFilter
+      selectedCategoryFilter === allCategoryFilterLabel ||
+      item.category.trim() === selectedCategoryFilter
     const matchesPriority =
       selectedPriorityFilter === allPriorityFilterLabel || item.priority === selectedPriorityFilter
 
@@ -257,14 +273,24 @@ export const Wishlist = () => {
   const filteredItemsWithTargetPrice = filteredWishlistItems.filter(
     (item) => item.price !== null && Number.isFinite(item.price) && item.price > 0,
   )
-  const filteredItemsMissingPriceCount = filteredWishlistItems.filter((item) => item.price === null).length
-  const totalTargetAmount = filteredItemsWithTargetPrice.reduce((sum, item) => sum + (item.price ?? 0), 0)
-  const totalSavedAmount = filteredItemsWithTargetPrice.reduce((sum, item) => sum + item.savedAmount, 0)
+  const filteredItemsMissingPriceCount = filteredWishlistItems.filter(
+    (item) => item.price === null,
+  ).length
+  const totalTargetAmount = filteredItemsWithTargetPrice.reduce(
+    (sum, item) => sum + (item.price ?? 0),
+    0,
+  )
+  const totalSavedAmount = filteredItemsWithTargetPrice.reduce(
+    (sum, item) => sum + item.savedAmount,
+    0,
+  )
   const readyToBuyCount = filteredItemsWithTargetPrice.filter(
     (item) => item.savedAmount >= (item.price ?? 0),
   ).length
   const summaryProgressPercent =
-    totalTargetAmount === 0 ? 0 : Math.min(100, Math.round((totalSavedAmount / totalTargetAmount) * 100))
+    totalTargetAmount === 0
+      ? 0
+      : Math.min(100, Math.round((totalSavedAmount / totalTargetAmount) * 100))
 
   useEffect(() => {
     if (!availableCategoryFilters.includes(selectedCategoryFilter)) {
@@ -286,8 +312,9 @@ export const Wishlist = () => {
         if (!isMounted) return
         setWishlistError(error instanceof Error ? error.message : 'Could not load wishlist items')
       } finally {
-        if (!isMounted) return
-        setIsWishlistLoading(false)
+        if (isMounted) {
+          setIsWishlistLoading(false)
+        }
       }
     }
 
@@ -361,10 +388,7 @@ export const Wishlist = () => {
       savedAmount: 0,
     })
 
-    setWishlistItems((current) => [
-      mapWishlistItemDto(created),
-      ...current,
-    ])
+    setWishlistItems((current) => [mapWishlistItemDto(created), ...current])
   }
 
   const handleOpenEditModal = (item: WishlistItem) => {
@@ -406,17 +430,27 @@ export const Wishlist = () => {
 
     try {
       const updated = await wishlistApi.markPurchased(item.id, fallbackPrice ?? undefined)
-      setWishlistItems((current) => current.map((wishlistItem) => (wishlistItem.id === item.id ? mapWishlistItemDto(updated) : wishlistItem)))
+      setWishlistItems((current) =>
+        current.map((wishlistItem) =>
+          wishlistItem.id === item.id ? mapWishlistItemDto(updated) : wishlistItem,
+        ),
+      )
       setWishlistError('')
     } catch (error) {
-      setWishlistError(error instanceof Error ? error.message : 'Could not move item to purchased archive')
+      setWishlistError(
+        error instanceof Error ? error.message : 'Could not move item to purchased archive',
+      )
     }
   }
 
   const handleRestorePurchased = async (itemId: string) => {
     try {
       const updated = await wishlistApi.restorePurchased(itemId)
-      setWishlistItems((current) => current.map((wishlistItem) => (wishlistItem.id === itemId ? mapWishlistItemDto(updated) : wishlistItem)))
+      setWishlistItems((current) =>
+        current.map((wishlistItem) =>
+          wishlistItem.id === itemId ? mapWishlistItemDto(updated) : wishlistItem,
+        ),
+      )
       setWishlistError('')
     } catch (error) {
       setWishlistError(error instanceof Error ? error.message : 'Could not restore purchased item')
@@ -438,9 +472,7 @@ export const Wishlist = () => {
       })
 
       setWishlistItems((current) =>
-        current.map((item) =>
-          item.id === selectedDepositId ? mapWishlistItemDto(updated) : item,
-        ),
+        current.map((item) => (item.id === selectedDepositId ? mapWishlistItemDto(updated) : item)),
       )
 
       setWishlistError('')
@@ -462,8 +494,12 @@ export const Wishlist = () => {
       setProductForm((current) => ({
         ...current,
         title: current.title.trim() === '' && preview.title ? preview.title : current.title,
-        imageUrl: current.imageUrl.trim() === '' && preview.imageUrl ? preview.imageUrl : current.imageUrl,
-        price: current.price.trim() === '' && preview.price !== null ? String(preview.price) : current.price,
+        imageUrl:
+          current.imageUrl.trim() === '' && preview.imageUrl ? preview.imageUrl : current.imageUrl,
+        price:
+          current.price.trim() === '' && preview.price !== null
+            ? String(preview.price)
+            : current.price,
       }))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not auto-fetch product info'
@@ -493,7 +529,9 @@ export const Wishlist = () => {
       }
 
       const nextTitle = preview.title?.trim() ? preview.title.trim() : existingItem.title
-      const nextImageUrl = preview.imageUrl?.trim() ? preview.imageUrl.trim() : existingItem.imageUrl
+      const nextImageUrl = preview.imageUrl?.trim()
+        ? preview.imageUrl.trim()
+        : existingItem.imageUrl
       const nextPrice = preview.price !== null ? preview.price : existingItem.price
 
       const updated = await wishlistApi.update(itemId, {
@@ -516,7 +554,8 @@ export const Wishlist = () => {
         return
       }
 
-      const errorMessage = error instanceof Error ? error.message : 'Could not refresh metadata for this item.'
+      const errorMessage =
+        error instanceof Error ? error.message : 'Could not refresh metadata for this item.'
       setRefreshErrorById((current) => ({ ...current, [itemId]: errorMessage }))
     } finally {
       if (refreshRequestTokenRef.current[itemId] === requestToken) {
@@ -576,7 +615,10 @@ export const Wishlist = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="wishlist-product-title" className="text-base font-semibold text-slate-900 sm:text-lg">
+                  <label
+                    htmlFor="wishlist-product-title"
+                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                  >
                     Product Title
                   </label>
                   <input
@@ -593,7 +635,10 @@ export const Wishlist = () => {
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <label htmlFor="wishlist-product-price" className="text-base font-semibold text-slate-900 sm:text-lg">
+                  <label
+                    htmlFor="wishlist-product-price"
+                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                  >
                     Price
                   </label>
                   <input
@@ -606,12 +651,17 @@ export const Wishlist = () => {
                     className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                   />
                   {hasTriedSubmit && !hasValidPriceFormat ? (
-                    <p className="text-sm text-red-600">Price must be a valid non-negative number.</p>
+                    <p className="text-sm text-red-600">
+                      Price must be a valid non-negative number.
+                    </p>
                   ) : null}
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <label htmlFor="wishlist-product-url" className="text-base font-semibold text-slate-900 sm:text-lg">
+                  <label
+                    htmlFor="wishlist-product-url"
+                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                  >
                     Product URL
                   </label>
                   <input
@@ -635,7 +685,9 @@ export const Wishlist = () => {
                     <p className="text-sm text-red-600">Product URL is required.</p>
                   ) : null}
                   {hasTriedSubmit && isUrlPresent && !hasValidUrlFormat ? (
-                    <p className="text-sm text-red-600">Enter a valid URL starting with http:// or https://.</p>
+                    <p className="text-sm text-red-600">
+                      Enter a valid URL starting with http:// or https://.
+                    </p>
                   ) : null}
                 </div>
 
@@ -655,12 +707,17 @@ export const Wishlist = () => {
                     className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                   />
                   {hasTriedSubmit && isImageUrlPresent && !hasValidImageUrlFormat ? (
-                    <p className="text-sm text-red-600">Image URL must start with http:// or https://.</p>
+                    <p className="text-sm text-red-600">
+                      Image URL must start with http:// or https://.
+                    </p>
                   ) : null}
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <label htmlFor="wishlist-category" className="text-base font-semibold text-slate-900 sm:text-lg">
+                  <label
+                    htmlFor="wishlist-category"
+                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                  >
                     Category (optional)
                   </label>
                   <select
@@ -679,7 +736,10 @@ export const Wishlist = () => {
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <label htmlFor="wishlist-priority" className="text-base font-semibold text-slate-900 sm:text-lg">
+                  <label
+                    htmlFor="wishlist-priority"
+                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                  >
                     Priority
                   </label>
                   <select
@@ -700,7 +760,10 @@ export const Wishlist = () => {
 
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <label htmlFor="wishlist-notes" className="text-base font-semibold text-slate-900 sm:text-lg">
+                    <label
+                      htmlFor="wishlist-notes"
+                      className="text-base font-semibold text-slate-900 sm:text-lg"
+                    >
                       Notes (optional)
                     </label>
                     <span className="text-xs text-slate-500">
@@ -720,7 +783,9 @@ export const Wishlist = () => {
 
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
                   {addProductError ? (
-                    <p className="w-full text-sm text-red-600 sm:mr-auto sm:w-auto">{addProductError}</p>
+                    <p className="w-full text-sm text-red-600 sm:mr-auto sm:w-auto">
+                      {addProductError}
+                    </p>
                   ) : null}
 
                   <button
@@ -810,7 +875,10 @@ export const Wishlist = () => {
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  <label htmlFor="wishlist-deposit-amount" className="text-base font-semibold text-slate-900">
+                  <label
+                    htmlFor="wishlist-deposit-amount"
+                    className="text-base font-semibold text-slate-900"
+                  >
                     Deposit Amount
                   </label>
                   <input
@@ -823,7 +891,9 @@ export const Wishlist = () => {
                     className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
                   />
                   {hasTriedDepositSubmit && !hasValidDepositAmount ? (
-                    <p className="text-sm text-red-600">Enter a valid deposit amount greater than 0.</p>
+                    <p className="text-sm text-red-600">
+                      Enter a valid deposit amount greater than 0.
+                    </p>
                   ) : null}
                 </div>
 
@@ -885,7 +955,8 @@ export const Wishlist = () => {
             }`}
             aria-pressed={selectedWishlistStatus === purchasedWishlistLabel}
           >
-            Purchased ({wishlistItems.filter((item) => item.status === purchasedWishlistLabel).length})
+            Purchased (
+            {wishlistItems.filter((item) => item.status === purchasedWishlistLabel).length})
           </button>
         </section>
       ) : null}
@@ -956,8 +1027,16 @@ export const Wishlist = () => {
                 stroke="currentColor"
                 strokeWidth="1.7"
               >
-                <path d="M12 3 4 7.5 12 12l8-4.5L12 3Z" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M4 7.5V16.5L12 21l8-4.5V7.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M12 3 4 7.5 12 12l8-4.5L12 3Z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M4 7.5V16.5L12 21l8-4.5V7.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
                 <path d="M12 12v9" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
@@ -965,7 +1044,8 @@ export const Wishlist = () => {
             <div className="space-y-2">
               <h2 className="text-3xl font-semibold text-text-primary">Your wishlist is empty</h2>
               <p className="max-w-2xl text-base leading-relaxed text-text-muted">
-                Start building your wishlist by adding products you love. Click the “Add Product” button to get started.
+                Start building your wishlist by adding products you love. Click the “Add Product”
+                button to get started.
               </p>
             </div>
           </div>

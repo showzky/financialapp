@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Sortable from 'sortablejs'
 import { AddCategoryModal } from '@/components/AddCategoryModal'
 import { BudgetCategoryCard } from '@/components/BudgetCategoryCard'
+import { LoanAreaCard } from '@/components/LoanAreaCard'
 import { NeoCard } from '@/components/NeoCard'
 import { ProgressBar } from '@/components/ProgressBar'
 import { RecurringAutomationToast } from '@/components/RecurringAutomationToast'
@@ -10,8 +11,10 @@ import { SettingsDrawer } from '@/components/SettingsDrawer'
 import { SummaryStat } from '@/components/SummaryStat'
 import { UpdateIncomeModal } from '@/components/UpdateIncomeModal'
 import type { BudgetCategoryType } from '@/types/budget'
+import type { LoanSummary } from '@/types/loan'
 import { useBudgets } from '@/hooks/useBudgets'
 import { useRecurringAutomation } from '@/hooks/useRecurringAutomation'
+import { loanApi } from '@/services/loanApi'
 import { themePresets } from '@/styles/themePresets'
 import { formatCurrency } from '@/utils/currency'
 import { useTheme } from '@/context/ThemeContext' // ADD THIS
@@ -38,6 +41,9 @@ export const Home = () => {
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false) // ADD THIS: income modal visibility
   const [isEditing, setIsEditing] = useState(false) // ADD THIS: settings edit mode toggle
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [loanSummary, setLoanSummary] = useState<LoanSummary | null>(null)
+  const [isLoanSummaryLoading, setIsLoanSummaryLoading] = useState(true)
+  const [loanSummaryError, setLoanSummaryError] = useState('')
 
   const [currencySymbol, setCurrencySymbol] = useState<'KR' | '$' | '€'>('KR')
   const [defaultCategoryType, setDefaultCategoryType] = useState<BudgetCategoryType>('budget')
@@ -86,6 +92,32 @@ export const Home = () => {
       sortableInstanceRef.current = null
     }
   }, [isEditing, syncOrderFromDom])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadLoanSummary = async () => {
+      try {
+        const summary = await loanApi.getSummary()
+        if (!isMounted) return
+        setLoanSummary(summary)
+        setLoanSummaryError('')
+      } catch (error) {
+        if (!isMounted) return
+        setLoanSummaryError(error instanceof Error ? error.message : 'Could not load loan summary')
+      } finally {
+        if (isMounted) {
+          setIsLoanSummaryLoading(false)
+        }
+      }
+    }
+
+    void loadLoanSummary()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     // ADD THIS: lock page scroll while settings drawer is open
@@ -255,6 +287,13 @@ export const Home = () => {
           <ProgressBar value={totals.spent} max={Math.max(totals.allocated, 1)} />
         </NeoCard>
 
+        <LoanAreaCard
+          summary={loanSummary}
+          isLoading={isLoanSummaryLoading}
+          error={loanSummaryError}
+          currencySymbol={currencySymbol}
+        />
+
         <section ref={sortableRef} className="grid gap-4 md:grid-cols-2">
           {state.categories.map((category) => (
             <div key={category.id} data-category-id={category.id} className="sortable-item">
@@ -304,6 +343,10 @@ export const Home = () => {
           onAddRecurring={addRecurringTransaction}
           onUpdateRecurring={updateRecurringTransaction}
           onDeleteRecurring={deleteRecurringTransaction}
+          loanShortcut={{
+            dueSoonCount: loanSummary?.dueSoonCount ?? 0,
+            overdueCount: loanSummary?.overdueCount ?? 0,
+          }}
         />
 
         {automationMessage ? (

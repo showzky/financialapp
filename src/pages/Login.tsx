@@ -58,18 +58,16 @@ export const Login = () => {
         <div className="w-full max-w-md rounded-3xl border border-cyan-300/20 bg-white/5 p-8 shadow-[0_0_40px_rgba(34,211,238,0.15)] backdrop-blur-xl">
           <div className="mb-8">
             <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">Personal Finance</p>
-            <h1 className="mt-2 text-3xl font-semibold leading-tight">
-              Secure Access
-            </h1>
-            <p className="mt-2 text-sm text-white/70">
-              Sign in to access your private dashboard.
-            </p>
+            <h1 className="mt-2 text-3xl font-semibold leading-tight">Secure Access</h1>
+            <p className="mt-2 text-sm text-white/70">Sign in to access your private dashboard.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* ADD THIS: Email input */}
             <div>
-              <label className="mb-1 block text-xs uppercase tracking-wider text-white/70">Email</label>
+              <label className="mb-1 block text-xs uppercase tracking-wider text-white/70">
+                Email
+              </label>
               <input
                 type="email"
                 required
@@ -82,7 +80,9 @@ export const Login = () => {
 
             {/* ADD THIS: Password input with show/hide */}
             <div>
-              <label className="mb-1 block text-xs uppercase tracking-wider text-white/70">Password</label>
+              <label className="mb-1 block text-xs uppercase tracking-wider text-white/70">
+                Password
+              </label>
               <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/30 px-3 focus-within:border-cyan-300/60 focus-within:ring-2 focus-within:ring-cyan-400/30">
                 <input
                   type={showPassword ? 'text' : 'password'}

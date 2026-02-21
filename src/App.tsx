@@ -6,6 +6,7 @@ import { History } from '@/pages/History'
 import { HistorySnapshot } from '@/pages/HistorySnapshot'
 import { Home } from '@/pages/Home'
 import { Login } from '@/pages/Login'
+import { Loans } from '@/pages/Loans'
 import { Notes } from '@/pages/Notes'
 import { userApi } from '@/services/userApi'
 import { Wishlist } from '@/pages/Wishlist'
@@ -17,14 +18,16 @@ const shouldBypassLoginOnLocalhost = (): boolean => {
 
 // ADD THIS: Protected route guard based on backend session cookie validation
 const RequireFrontendLogin = () => {
-  if (shouldBypassLoginOnLocalhost()) {
-    return <Outlet />
-  }
+  const shouldBypassLogin = shouldBypassLoginOnLocalhost()
 
-  const [isCheckingSession, setIsCheckingSession] = useState(true)
-  const [hasSession, setHasSession] = useState(false)
+  const [isCheckingSession, setIsCheckingSession] = useState(!shouldBypassLogin)
+  const [hasSession, setHasSession] = useState(shouldBypassLogin)
 
   useEffect(() => {
+    if (shouldBypassLogin) {
+      return
+    }
+
     let isMounted = true
 
     void userApi
@@ -45,7 +48,11 @@ const RequireFrontendLogin = () => {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [shouldBypassLogin])
+
+  if (shouldBypassLogin) {
+    return <Outlet />
+  }
 
   if (isCheckingSession) {
     return <div className="mx-auto max-w-6xl p-6 text-sm text-text-muted">Checking session...</div>
@@ -70,6 +77,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/loans" element={<Loans />} />
           <Route path="/history" element={<History />} />
           <Route path="/history/:id" element={<HistorySnapshot />} />
         </Route>

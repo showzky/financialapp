@@ -10,9 +10,7 @@ if (env.DATABASE_SSL) {
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  ssl: env.DATABASE_SSL
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: env.DATABASE_SSL ? { rejectUnauthorized: false } : false,
 })
 
 pool.on('error', (error: Error) => {
@@ -20,7 +18,10 @@ pool.on('error', (error: Error) => {
 })
 
 export const db = {
-  query: <T extends QueryResultRow>(text: string, params: unknown[] = []): Promise<QueryResult<T>> => {
+  query: <T extends QueryResultRow>(
+    text: string,
+    params: unknown[] = [],
+  ): Promise<QueryResult<T>> => {
     return pool.query<T>(text, params)
   },
 }

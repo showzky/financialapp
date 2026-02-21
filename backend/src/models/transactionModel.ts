@@ -94,7 +94,11 @@ export const transactionModel = {
     return result.rows[0] ?? null
   },
 
-  async update(id: string, userId: string, input: UpdateTransactionInput): Promise<Transaction | null> {
+  async update(
+    id: string,
+    userId: string,
+    input: UpdateTransactionInput,
+  ): Promise<Transaction | null> {
     const result = await db.query<Transaction>(
       `
       UPDATE transactions
@@ -113,7 +117,14 @@ export const transactionModel = {
         transaction_date AS "transactionDate",
         created_at AS "createdAt"
       `,
-      [id, userId, input.categoryId ?? null, input.amount ?? null, input.note ?? null, input.transactionDate ?? null],
+      [
+        id,
+        userId,
+        input.categoryId ?? null,
+        input.amount ?? null,
+        input.note ?? null,
+        input.transactionDate ?? null,
+      ],
     )
 
     return result.rows[0] ?? null

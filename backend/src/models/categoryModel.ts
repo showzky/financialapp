@@ -104,7 +104,11 @@ export const categoryModel = {
     return result.rows[0] ?? null
   },
 
-  async update(id: string, userId: string, input: UpdateCategoryInput): Promise<BudgetCategory | null> {
+  async update(
+    id: string,
+    userId: string,
+    input: UpdateCategoryInput,
+  ): Promise<BudgetCategory | null> {
     const result = await db.query<BudgetCategory>(
       `
       UPDATE budget_categories
@@ -123,7 +127,14 @@ export const categoryModel = {
         spent::float8 AS spent,
         created_at AS "createdAt"
       `,
-      [id, userId, input.name ?? null, input.type ?? null, input.allocated ?? null, input.spent ?? null],
+      [
+        id,
+        userId,
+        input.name ?? null,
+        input.type ?? null,
+        input.allocated ?? null,
+        input.spent ?? null,
+      ],
     )
 
     return result.rows[0] ?? null

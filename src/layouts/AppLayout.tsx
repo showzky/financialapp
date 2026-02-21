@@ -60,6 +60,18 @@ export const AppLayout = () => {
           >
             Wishlist
           </NavLink>
+          <NavLink
+            to="/loans"
+            className={({ isActive }) =>
+              `rounded-neo px-4 py-2 text-sm font-semibold transition ${
+                isActive
+                  ? 'bg-surface shadow-neo-inset text-text-primary'
+                  : 'bg-surface shadow-neo-sm text-text-muted'
+              }`
+            }
+          >
+            Loans
+          </NavLink>
           <button
             type="button"
             onClick={handleLogout}

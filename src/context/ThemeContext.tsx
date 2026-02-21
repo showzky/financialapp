@@ -21,7 +21,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw === 'light' || raw === 'dark' || raw === 'system') return raw
-    } catch {}
+    } catch {
+      // Ignore storage access errors (e.g. private browsing restrictions).
+    }
     return 'system'
   })
 
@@ -29,29 +31,41 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const raw = localStorage.getItem(STORAGE_KEY_PRESET)
       if (raw) return raw
-    } catch {}
+    } catch {
+      // Ignore storage access errors (e.g. private browsing restrictions).
+    }
     return getThemePresetById('aurora-mist').id
   })
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, theme)
-    } catch {}
+    } catch {
+      // Ignore storage write errors and continue with in-memory state.
+    }
 
     const apply = () => {
-      const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      const prefersDark =
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches
       const resolvedIsDark = theme === 'system' ? prefersDark : theme === 'dark'
       document.documentElement.setAttribute('data-theme', resolvedIsDark ? 'dark' : 'light')
 
       try {
         const preset = getThemePresetById(selectedPresetId)
         applyThemePreset(document.documentElement, preset)
-      } catch {}
+      } catch {
+        // Ignore preset application errors and keep current theme variables.
+      }
     }
 
     apply()
 
-    const mql = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null
+    const mql =
+      typeof window !== 'undefined' && window.matchMedia
+        ? window.matchMedia('(prefers-color-scheme: dark)')
+        : null
     const listener = () => apply()
     if (mql && mql.addEventListener) {
       mql.addEventListener('change', listener)
@@ -66,23 +80,29 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSelectedPresetIdState(id)
     try {
       localStorage.setItem(STORAGE_KEY_PRESET, id)
-    } catch {}
+    } catch {
+      // Ignore storage write errors and continue with in-memory state.
+    }
   }
 
-  const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const prefersDark =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
   const isDark = theme === 'system' ? prefersDark : theme === 'dark'
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isDark, selectedPresetId, setSelectedPresetId }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, isDark, selectedPresetId, setSelectedPresetId }}
+    >
       {children}
     </ThemeContext.Provider>
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTheme = (): ThemeContextValue => {
   const ctx = useContext(ThemeContext)
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider')
   return ctx
 }
-
-export default ThemeContext

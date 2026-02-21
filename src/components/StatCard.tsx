@@ -35,9 +35,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       `}
     >
       {/* Label Row */}
-      <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-        {label}
-      </span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</span>
 
       {/* Value + Icon Row */}
       <div className="flex items-center justify-between gap-3">
@@ -45,20 +43,14 @@ export const StatCard: React.FC<StatCardProps> = ({
           {value}
         </h3>
         <div className="shrink-0 text-slate-400 transition-colors group-hover:text-blue-500">
-          <div className="h-6 w-6">
-            {icon}
-          </div>
+          <div className="h-6 w-6">{icon}</div>
         </div>
       </div>
 
       {/* Footer Row: Helper + Trend */}
       {(helper || trend) && (
         <div className="flex items-center justify-between gap-2 border-t border-slate-50 pt-1">
-          {helper && (
-            <span className="truncate text-sm text-slate-600">
-              {helper}
-            </span>
-          )}
+          {helper && <span className="truncate text-sm text-slate-600">{helper}</span>}
           {trend && (
             <span
               className={`flex items-center text-sm font-bold ${

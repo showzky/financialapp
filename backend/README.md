@@ -85,6 +85,12 @@ It prints these values for `backend/.env`:
 - `GET /api/v1/transactions/:id`
 - `PATCH /api/v1/transactions/:id`
 - `DELETE /api/v1/transactions/:id`
+- `GET /api/v1/loans`
+- `GET /api/v1/loans/summary`
+- `POST /api/v1/loans`
+- `PATCH /api/v1/loans/:id`
+- `PATCH /api/v1/loans/:id/repaid`
+- `DELETE /api/v1/loans/:id`
 
 ## Login flow (`AUTH_PROVIDER=local`)
 

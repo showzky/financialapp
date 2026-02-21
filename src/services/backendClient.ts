@@ -3,7 +3,9 @@ const configuredBackendUrl = (import.meta.env.VITE_BACKEND_URL as string | undef
 const isDevelopmentMode = import.meta.env.DEV
 
 if (isDevelopmentMode && configuredBackendUrl.length === 0) {
-  throw new Error('VITE_BACKEND_URL must be set in development (for example: http://localhost:4000/api/v1)')
+  throw new Error(
+    'VITE_BACKEND_URL must be set in development (for example: http://localhost:4000/api/v1)',
+  )
 }
 
 export const apiBaseUrl = configuredBackendUrl

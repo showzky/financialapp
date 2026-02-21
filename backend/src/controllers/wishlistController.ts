@@ -92,17 +92,11 @@ const isBlockedHost = (hostname: string) => {
 const buildFallbackTitleFromUrl = (value: string) => {
   try {
     const parsed = new URL(value)
-    const fromPath = parsed.pathname
-      .split('/')
-      .filter(Boolean)
-      .at(-1)
+    const fromPath = parsed.pathname.split('/').filter(Boolean).at(-1)
 
     if (!fromPath) return parsed.hostname
 
-    return decodeURIComponent(fromPath)
-      .replace(/[-_]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
+    return decodeURIComponent(fromPath).replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
   } catch {
     return value
   }
@@ -123,7 +117,9 @@ const normalizeWishlistUrl = (value: string) => {
   const filteredParams = [...parsed.searchParams.entries()]
     .filter(([key]) => {
       const normalizedKey = key.toLowerCase()
-      return !normalizedKey.startsWith('utm_') && normalizedKey !== 'fbclid' && normalizedKey !== 'gclid'
+      return (
+        !normalizedKey.startsWith('utm_') && normalizedKey !== 'fbclid' && normalizedKey !== 'gclid'
+      )
     })
     .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
       if (leftKey === rightKey) {
@@ -204,7 +200,11 @@ export const updateWishlistItem = asyncHandler(async (req: Request, res: Respons
   const normalizedNotes = normalizeWishlistNotes(payload.notes)
 
   if (normalizedUrl) {
-    const duplicate = await wishlistItemModel.findByNormalizedUrl(req.auth.userId, normalizedUrl, id)
+    const duplicate = await wishlistItemModel.findByNormalizedUrl(
+      req.auth.userId,
+      normalizedUrl,
+      id,
+    )
     if (duplicate) {
       throw new AppError('A wishlist item with this URL already exists', 409)
     }
@@ -319,7 +319,11 @@ export const markWishlistItemPurchased = asyncHandler(async (req: Request, res: 
     throw new AppError('Purchased amount is required when wishlist item has no price', 400)
   }
 
-  const updated = await wishlistItemModel.markPurchased(id, req.auth.userId, resolvedPurchasedAmount)
+  const updated = await wishlistItemModel.markPurchased(
+    id,
+    req.auth.userId,
+    resolvedPurchasedAmount,
+  )
 
   if (!updated) {
     throw new AppError('Wishlist item not found', 404)

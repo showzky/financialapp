@@ -1,12 +1,12 @@
 import { Router } from 'express'
 import {
-	createWishlistItem,
-	deleteWishlistItem,
-	listWishlistItems,
-	markWishlistItemPurchased,
-	previewWishlistProduct,
-	restorePurchasedWishlistItem,
-	updateWishlistItem,
+  createWishlistItem,
+  deleteWishlistItem,
+  listWishlistItems,
+  markWishlistItemPurchased,
+  previewWishlistProduct,
+  restorePurchasedWishlistItem,
+  updateWishlistItem,
 } from '../controllers/wishlistController.js'
 
 export const wishlistRouter = Router()
