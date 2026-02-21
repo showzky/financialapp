@@ -117,7 +117,7 @@ export const Loans = () => {
             type="button"
             onClick={() => setIsAddModalOpen(true)}
             aria-label="Add new loan"
-            className="inline-flex items-center justify-center rounded-xl border border-primary bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="inline-flex items-center justify-center rounded-xl border border-primary/50 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             + Add loan
           </button>
@@ -129,8 +129,10 @@ export const Loans = () => {
               key={filterKey}
               type="button"
               onClick={() => setFilter(filterKey)}
-              className={`neo-card px-3 py-2 text-xs font-semibold ${
-                filter === filterKey ? 'text-accent-strong shadow-neo-inset' : 'text-text-muted'
+              className={`glass-panel px-3 py-2 text-xs font-semibold transition-all ${
+                filter === filterKey
+                  ? 'bg-primary/20 text-text-primary border-primary/40'
+                  : 'text-text-muted hover:bg-white/5'
               }`}
             >
               {filterLabels[filterKey]}
@@ -138,7 +140,7 @@ export const Loans = () => {
           ))}
         </section>
 
-        {error ? <div className="neo-card p-3 text-sm text-red-500">{error}</div> : null}
+        {error ? <div className="glass-panel p-3 text-sm text-error">{error}</div> : null}
 
         {successMessage && (
           <RecurringAutomationToast
@@ -148,7 +150,7 @@ export const Loans = () => {
         )}
 
         {isLoading ? (
-          <div className="neo-card p-6 text-sm text-text-muted">Loading loans…</div>
+          <div className="glass-panel p-6 text-sm text-text-muted">Loading loans…</div>
         ) : (
           <LoanTable
             loans={filteredLoans}

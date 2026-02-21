@@ -1,12 +1,12 @@
-# Financial Budget Tracker (Neumorphism)
+# Financial Budget Tracker (Neumorphism & Glass HUD)
 
 My personal finance tracker built with React + TypeScript.
 
 ## Overview
 
-Neumorphic React + TypeScript app with Tailwind tokens, ESLint/Prettier, and Vitest + Testing Library. Includes budget state management, category and income modals, recurring automation support, and history snapshots.
+A hybrid-aesthetic React + TypeScript app featuring soft Neumorphic surfaces for general UI and a high-tech Glassmorphic HUD (Heads-Up Display) for data-heavy sections like Loans. Built with Tailwind tokens, ESLint/Prettier, and Vitest + Testing Library.
 
-Includes a server-backed Loan Area for tracking loans given to others with due-date status, repayment tracking, and a compact dashboard summary card. See [docs/loan-tracking.md](docs/loan-tracking.md) for full details.
+Includes a server-backed Loan Area for tracking loans given to others with due-date status, repayment tracking, and a compact dashboard summary card. See [docs/loan-tracking.md](docs/loan-tracking.md) and [docs/glass-hud-spec.md](docs/glass-hud-spec.md) for architecture details.
 
 ## Stack
 

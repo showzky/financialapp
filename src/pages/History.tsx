@@ -8,7 +8,7 @@ export const History = () => {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header className="flex items-center justify-between rounded-neo bg-surface p-4 shadow-neo-md">
+      <header className="glass-panel flex items-center justify-between p-4">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Monthly Records</h1>
           <p className="text-sm text-text-muted">
@@ -18,7 +18,7 @@ export const History = () => {
         <button
           type="button"
           onClick={createSnapshotFromActive}
-          className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-text-primary"
+          className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
         >
           + Capture Current Month
         </button>

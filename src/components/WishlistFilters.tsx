@@ -50,7 +50,7 @@ const FilterToggle = ({
     onClick={onToggle}
     aria-expanded={isOpen}
     aria-controls="wishlist-filter-panel"
-    className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-text-primary transition-transform duration-200 hover:scale-102 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+    className="glass-panel flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
   >
     <span>Filters{activeCount > 0 ? ` (${activeCount})` : ''}</span>
     <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}>
@@ -116,11 +116,11 @@ const FilterGroup = ({
       {options.map((option) => {
         const isSelected = option === selectedValue
         const baseClasses =
-          'inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+          'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
         const selectedCategoryClasses =
-          'border-transparent bg-indigo-600 text-white shadow-sm hover:bg-indigo-600/90 focus-visible:ring-indigo-400 focus-visible:ring-offset-white'
+          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:ring-primary'
         const unselectedClasses =
-          'border-slate-300 bg-white text-text-primary hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-indigo-400 focus-visible:ring-offset-2'
+          'glass-panel text-text-primary hover:bg-white/5 focus-visible:ring-accent/40'
         const prioritySelected = variant === 'priority' && priorityToneMap[option]
         const optionClasses = `${baseClasses} ${isSelected ? (prioritySelected ?? selectedCategoryClasses) : unselectedClasses}`
 

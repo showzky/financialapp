@@ -24,12 +24,13 @@
 }
 
 @layer components {
+  /* Deprecated: transition to glass-panel Utility in theme.css */
   .neo-card {
-    @apply bg-surface shadow-neo-md rounded-neo border border-transparent transition duration-200; /* ADD THIS */
+    @apply glass-panel;
   }
 
   .neo-pressable {
-    @apply shadow-neo-sm hover:shadow-neo-md active:shadow-neo-inset; /* ADD THIS */
+    @apply transition-all hover:bg-white/10 active:scale-[0.98];
   }
 
   /* ADD THIS: editing mode and drag/drop visuals */
@@ -54,10 +55,7 @@
   }
 
   .delete-chip {
-    background: var(--color-surface);
-    box-shadow:
-      inset 5px 5px 10px var(--color-shadow-dark),
-      inset -5px -5px 10px var(--color-shadow-light);
+    @apply glass-panel grid place-items-center rounded-full;
     transition:
       transform 0.2s ease,
       color 0.2s ease;
@@ -65,16 +63,12 @@
 
   .delete-chip:hover {
     transform: scale(1.06);
-    color: #c63d4f;
+    @apply text-error;
   }
 
   .sortable-chosen .category-card {
     transform: scale(1.05);
-    box-shadow:
-      16px 16px 32px rgba(156, 166, 185, 0.42),
-      -12px -12px 24px rgba(255, 255, 255, 0.8);
-    opacity: 0.8;
-    z-index: 20;
+    @apply shadow-xl opacity-80 z-20;
   }
 
   .sortable-drag .category-card {
@@ -83,12 +77,9 @@
   }
 
   .sortable-ghost {
-    border: 2px dashed rgba(109, 121, 160, 0.45);
-    border-radius: var(--radius-neo);
-    background: rgba(232, 237, 245, 0.62);
-    box-shadow:
-      inset 10px 10px 18px var(--color-shadow-dark),
-      inset -10px -10px 18px var(--color-shadow-light);
+    @apply rounded-xl border-2 border-dashed;
+    border-color: rgba(108, 125, 240, 0.4);
+    background: rgba(108, 125, 240, 0.05);
   }
 
   .sortable-ghost .category-card {

@@ -7,12 +7,20 @@
   --primary-cta-bg: #4f61d8;
   --primary-cta-foreground: #ffffff;
   --color-text-primary: #1f2a44;
-  --color-text-muted: #334155;
+  --color-text-muted: #475569; /* CHANGED THIS: darkened for glass contrast */
   --color-shadow-dark: #c2c8d4;
   --color-shadow-light: #ffffff;
   --color-success: #16a34a;
+  --color-warning: #b45309;
+  --color-error: #dc2626;
   --app-bg: radial-gradient(circle at 20% 20%, #f4f8ff, #e8edf5 45%, #e2e7f2 100%);
   --radius-neo: 18px;
+  /* Glass HUD HUD defaults (Aurora/Light) */
+  --glass-bg: rgba(255, 255, 255, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-blur: 20px;
+  --glass-saturate: 160%;
+  --glass-filter-legacy: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 /* ADD THIS: global dark palette, applied app-wide via data attribute */
@@ -22,11 +30,28 @@
   --primary-cta-bg: #8ea0ff;
   --primary-cta-foreground: #0f172a;
   --color-text-primary: #eaf1ff;
-  --color-text-muted: #334155;
+  --color-text-muted: #94a3b8;
   --color-shadow-dark: #161b27;
   --color-shadow-light: #2b3347;
-  --color-success: #16a34a;
+  --color-success: #22c55e;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
   --app-bg: radial-gradient(circle at 20% 20%, #121926, #171f2e 45%, #1a2434 100%);
+  /* Glass HUD overrides (Midnight/Dark) */
+  --glass-bg: rgba(15, 23, 42, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 20px;
+  --glass-saturate: 160%;
+  --glass-filter-legacy: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+/* ADD THIS: Sunset Bloom specific glass tokens */
+:root[data-theme-preset='sunset-bloom'] {
+  --glass-bg: rgba(255, 245, 235, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-blur: 20px;
+  --glass-saturate: 160%;
+  --glass-filter-legacy: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 /* ADD THIS: Base page styling for soft, raised surfaces */
@@ -42,6 +67,19 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* High-Tech Glassmorphic HUD utility */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-filter-legacy);
+  -webkit-backdrop-filter: var(--glass-filter-legacy);
+  border: 1px solid var(--glass-border);
+  border-top-color: rgba(255, 255, 255, 0.2); /* Top-edge highlight */
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  transition: all 0.2s ease;
 }
 
 /* success scrollbar utility – use on an overflow container */

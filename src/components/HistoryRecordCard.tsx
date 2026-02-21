@@ -34,7 +34,7 @@ export const HistoryRecordCard = ({ record, onDelete }: HistoryRecordCardProps) 
 
       <Link
         to={`/history/${record.id}`}
-        className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-text-primary"
+        className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
       >
         Open
       </Link>
@@ -42,7 +42,7 @@ export const HistoryRecordCard = ({ record, onDelete }: HistoryRecordCardProps) 
       <button
         type="button"
         onClick={handleDelete}
-        className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-rose-600"
+        className="glass-panel px-4 py-2 text-sm font-semibold text-rose-600 transition-all hover:bg-white/10"
       >
         Delete
       </button>

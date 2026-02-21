@@ -14,6 +14,9 @@ const config: Config = {
         'primary-foreground': 'var(--primary-cta-foreground)',
         'text-primary': 'var(--color-text-primary)',
         'text-muted': 'var(--color-text-muted)',
+        success: 'var(--color-success)',
+        warning: 'var(--color-warning)',
+        error: 'var(--color-error)',
       },
       boxShadow: {
         'neo-sm': '8px 8px 16px var(--color-shadow-dark), -8px -8px 16px var(--color-shadow-light)',

@@ -76,8 +76,17 @@ describe('LoanTable', () => {
 
     expect(screen.getByText('John Doe')).toBeInTheDocument()
     expect(screen.getByText('Jane Smith')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Mark repaid' })).toHaveLength(3)
-    expect(screen.getByText('Delete')).toBeInTheDocument()
+
+    // Verify Glass HUD buttons
+    const markRepaidButtons = screen.getAllByRole('button', { name: 'Mark repaid' })
+    expect(markRepaidButtons).toHaveLength(3)
+    markRepaidButtons.forEach((btn) => {
+      expect(btn).toHaveClass('glass-panel')
+    })
+
+    const deleteButton = screen.getByText('Delete')
+    expect(deleteButton).toBeInTheDocument()
+    expect(deleteButton).toHaveClass('glass-panel')
   })
 
   it('shows delete button only for repaid loans', () => {
@@ -116,7 +125,7 @@ describe('LoanTable', () => {
     expect(mockOnDelete).toHaveBeenCalledWith('2') // repaid loan id
   })
 
-  it('shows "Deleting…" when deletingId matches', () => {
+  it('shows "Deleting…" with glass-panel style when deletingId matches', () => {
     render(
       <LoanTable
         loans={sampleLoans}
@@ -128,7 +137,54 @@ describe('LoanTable', () => {
       />,
     )
 
-    expect(screen.getByText('Deleting…')).toBeInTheDocument()
+    const deletingBtn = screen.getByText('Deleting…')
+    expect(deletingBtn).toBeInTheDocument()
+    expect(deletingBtn).toHaveClass('glass-panel')
+  })
+
+  it('renders the repaid loans toggle with glass-panel style', () => {
+    render(
+      <LoanTable
+        loans={sampleLoans}
+        currencySymbol="KR"
+        onMarkRepaid={mockOnMarkRepaid}
+        markingId={null}
+        onDelete={mockOnDelete}
+        deletingId={null}
+      />,
+    )
+
+    const toggleButton = screen.getByText(/Repaid loans \(\d+\)/).closest('button')
+    expect(toggleButton).toBeInTheDocument()
+    expect(toggleButton).toHaveClass('glass-panel')
+  })
+
+  it('has the main glass-panel container style', () => {
+    const { container } = render(
+      <LoanTable
+        loans={sampleLoans}
+        currencySymbol="KR"
+        onMarkRepaid={mockOnMarkRepaid}
+        markingId={null}
+      />,
+    )
+
+    expect(container.firstChild).toHaveClass('glass-panel')
+  })
+
+  it('renders empty state with glass-panel style', () => {
+    render(
+      <LoanTable
+        loans={[]}
+        currencySymbol="KR"
+        onMarkRepaid={mockOnMarkRepaid}
+        markingId={null}
+      />,
+    )
+
+    const emptyState = screen.getByText(/No loans yet/)
+    expect(emptyState).toBeInTheDocument()
+    expect(emptyState).toHaveClass('glass-panel')
   })
 
   it('does not show delete button when onDelete is not provided', () => {
@@ -162,17 +218,17 @@ describe('LoanTable', () => {
 
     // Check due_soon status has correct classes
     const dueSoonStatus = screen.getByText('Due soon')
-    expect(dueSoonStatus).toHaveClass('bg-amber-100', 'text-amber-700')
+    expect(dueSoonStatus).toHaveClass('bg-warning/10', 'text-warning')
 
     // Check overdue status has correct classes
     const overdueStatus = screen.getByText('Overdue')
-    expect(overdueStatus).toHaveClass('bg-red-100', 'text-red-700')
+    expect(overdueStatus).toHaveClass('bg-error/10', 'text-error')
 
     // Check repaid status has correct classes
     const statusSpans = screen.getAllByText('Repaid')
     const repaidStatus = statusSpans.find(
-      (span) => span.tagName === 'SPAN' && span.classList.contains('bg-emerald-100'),
+      (span) => span.tagName === 'SPAN' && span.classList.contains('bg-success/10'),
     )
-    expect(repaidStatus).toHaveClass('bg-emerald-100', 'text-emerald-700')
+    expect(repaidStatus).toHaveClass('bg-success/10', 'text-success')
   })
 })

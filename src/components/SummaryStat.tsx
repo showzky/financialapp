@@ -4,8 +4,8 @@ import { NeoCard } from './NeoCard'
 
 const toneStyles: Record<'neutral' | 'positive' | 'warning', string> = {
   neutral: 'text-text-muted',
-  positive: 'text-green-600',
-  warning: 'text-amber-600',
+  positive: 'text-success', // CHANGED THIS: semantic
+  warning: 'text-warning', // CHANGED THIS: semantic
 }
 
 type SummaryStatProps = {
@@ -27,7 +27,9 @@ export const SummaryStat = ({
 }: SummaryStatProps) => (
   <NeoCard
     as={onClick ? 'button' : 'div'}
-    className={`flex flex-col gap-2 p-4 text-left md:p-5 ${onClick ? 'cursor-pointer' : ''}`}
+    className={`flex flex-col gap-2 p-4 text-left transition-all md:p-5 ${
+      onClick ? 'cursor-pointer hover:bg-white/10' : ''
+    }`}
     onClick={onClick}
   >
     <div className="flex items-center justify-between">

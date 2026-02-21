@@ -13,10 +13,13 @@ export const HistorySnapshot = () => {
 
   if (!record) {
     return (
-      <NeoCard className="mx-auto max-w-6xl p-6">
+      <NeoCard className="mx-auto max-w-6xl p-6 glass-panel">
         <h1 className="text-xl font-semibold text-text-primary">Snapshot not found</h1>
         <p className="mt-2 text-sm text-text-muted">This historical record no longer exists.</p>
-        <Link to="/history" className="neo-card neo-pressable mt-4 inline-flex px-4 py-2 text-sm">
+        <Link
+          to="/history"
+          className="glass-panel mt-4 inline-flex px-4 py-2 text-sm transition-all hover:bg-white/10"
+        >
           Back to History
         </Link>
       </NeoCard>
@@ -33,7 +36,7 @@ export const HistorySnapshot = () => {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header className="history-header rounded-neo p-4 shadow-neo-md">
+      <header className="history-header glass-panel p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Historical View</p>
@@ -45,13 +48,13 @@ export const HistorySnapshot = () => {
             <button
               type="button"
               onClick={handleDelete}
-              className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-rose-600"
+              className="glass-panel px-4 py-2 text-sm font-semibold text-rose-600 transition-all hover:bg-white/10"
             >
               Delete Record
             </button>
             <Link
               to="/"
-              className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-text-primary"
+              className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
             >
               Back to Active Dashboard
             </Link>

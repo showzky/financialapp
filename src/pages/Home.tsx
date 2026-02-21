@@ -212,7 +212,7 @@ export const Home = () => {
             <button
               type="button"
               onClick={() => setIsEditing((current) => !current)}
-              className="neo-card neo-pressable px-3 py-2 text-sm font-semibold text-text-primary shadow-sm border border-rose-100"
+              className="glass-panel px-3 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
               aria-label="Toggle settings"
             >
               ⚙ Edit Layout
@@ -220,14 +220,14 @@ export const Home = () => {
             <button
               type="button"
               onClick={() => setIsAddCategoryOpen(true)}
-              className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-text-primary shadow-sm border border-rose-100"
+              className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
             >
               + Add category
             </button>
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="neo-card px-3 py-2 text-sm font-semibold text-text-muted shadow-sm border border-rose-100"
+              className="glass-panel px-3 py-2 text-sm font-semibold text-text-muted transition-all hover:bg-white/10"
               aria-label="Open settings"
             >
               ⚙
@@ -236,7 +236,7 @@ export const Home = () => {
               <button
                 type="button"
                 onClick={handleDoneEditing}
-                className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-accent-strong shadow-neo-sm"
+                className="glass-panel px-4 py-2 text-sm font-semibold text-accent-strong transition-all hover:bg-white/10"
               >
                 Done
               </button>

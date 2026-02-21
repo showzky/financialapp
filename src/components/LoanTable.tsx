@@ -15,9 +15,9 @@ type LoanTableProps = {
 
 const statusClasses: Record<Loan['status'], string> = {
   outstanding: 'bg-surface-strong text-text-primary',
-  due_soon: 'bg-amber-100 text-amber-700',
-  overdue: 'bg-red-100 text-red-700',
-  repaid: 'bg-emerald-100 text-emerald-700',
+  due_soon: 'bg-warning/10 text-warning',
+  overdue: 'bg-error/10 text-error',
+  repaid: 'bg-success/10 text-success',
 }
 
 export const LoanTable = ({
@@ -39,15 +39,15 @@ export const LoanTable = ({
 
   if (loans.length === 0) {
     return (
-      <div className="neo-card p-6 text-sm text-text-muted">
+      <div className="glass-panel p-6 text-sm text-text-muted">
         No loans yet. Add a loan to start tracking repayments.
       </div>
     )
   }
 
   return (
-    <div className="neo-card overflow-hidden">
-      <div className="hidden grid-cols-[1.3fr_1fr_1fr_1fr_auto] gap-3 border-b border-surface-strong px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted md:grid">
+    <div className="glass-panel overflow-hidden">
+      <div className="hidden grid-cols-[1.3fr_1fr_1fr_1fr_auto] gap-3 border-b border-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted md:grid">
         <span>Recipient</span>
         <span>Amount</span>
         <span>Time remaining</span>
@@ -55,7 +55,7 @@ export const LoanTable = ({
         <span className="text-right">Action</span>
       </div>
 
-      <div className="divide-y divide-surface-strong">
+      <div className="divide-y divide-white/10">
         {/* render non-repaid rows always */}
         {nonRepaid.map((loan) => {
           const isMarking = markingId === loan.id
@@ -93,7 +93,7 @@ export const LoanTable = ({
                   type="button"
                   disabled={!canMarkRepaid || isMarking}
                   onClick={() => onMarkRepaid(loan.id)}
-                  className="neo-card neo-pressable px-3 py-2 text-xs font-semibold text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isMarking ? 'Saving…' : canMarkRepaid ? 'Mark repaid' : 'Completed'}
                 </button>
@@ -109,7 +109,7 @@ export const LoanTable = ({
               <button
                 type="button"
                 onClick={() => setShowRepaid((c) => !c)}
-                className="flex w-full items-center justify-between rounded-full border border-surface-strong bg-surface py-2 px-4 text-sm font-semibold text-text-primary transition-transform duration-200 hover:scale-[1.02] focus:outline-none"
+                className="glass-panel flex w-full items-center justify-between rounded-full py-2 px-4 text-sm font-semibold text-text-primary transition-transform duration-200 hover:scale-[1.01] focus:outline-none"
               >
                 <span>Repaid loans ({repaidLoans.length})</span>
                 <span
@@ -177,7 +177,7 @@ export const LoanTable = ({
                             type="button"
                             disabled={isDeleting}
                             onClick={() => onDelete(loan.id)}
-                            className="neo-card neo-pressable px-3 py-2 text-xs font-semibold text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                            className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {isDeleting ? 'Deleting…' : 'Delete'}
                           </button>

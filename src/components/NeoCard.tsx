@@ -14,7 +14,7 @@ export const NeoCard = <T extends ElementType = 'div'>({
   ...rest
 }: NeoCardProps<T>) => {
   const Tag = (as || 'div') as ElementType
-  const composed = ['neo-card', 'neo-pressable', className].filter(Boolean).join(' ')
+  const composed = ['glass-panel', className].filter(Boolean).join(' ')
   return (
     <Tag className={composed} {...rest}>
       {children}

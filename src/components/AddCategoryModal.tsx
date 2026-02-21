@@ -40,14 +40,14 @@ export const AddCategoryModal = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2a44]/25 p-4 backdrop-blur-sm">
-      <div className="neo-card w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-lg">
+      <div className="glass-panel w-full max-w-md p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-text-primary">Add category</h2>
           <button
             type="button"
             onClick={handleClose}
-            className="neo-card neo-pressable px-3 py-1 text-sm font-semibold text-text-muted"
+            className="glass-panel px-3 py-1 text-sm font-semibold text-text-muted transition-all hover:bg-white/10"
           >
             Close
           </button>
@@ -64,7 +64,7 @@ export const AddCategoryModal = ({
               value={categoryName}
               onChange={(event) => setCategoryName(event.target.value)}
               placeholder="Example: Health"
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-text-primary outline-none focus:ring-2 focus:ring-accent/40"
               autoFocus
             />
           </div>
@@ -76,10 +76,8 @@ export const AddCategoryModal = ({
               <button
                 type="button"
                 onClick={() => setCategoryType('budget')}
-                className={`neo-card px-3 py-2 text-sm font-semibold ${
-                  categoryType === 'budget'
-                    ? 'text-accent-strong shadow-neo-inset'
-                    : 'text-text-muted'
+                className={`glass-panel px-3 py-2 text-sm font-semibold transition-all ${
+                  categoryType === 'budget' ? 'bg-white/10 text-accent-strong' : 'text-text-muted hover:bg-white/5'
                 }`}
               >
                 Budget
@@ -87,10 +85,8 @@ export const AddCategoryModal = ({
               <button
                 type="button"
                 onClick={() => setCategoryType('fixed')}
-                className={`neo-card px-3 py-2 text-sm font-semibold ${
-                  categoryType === 'fixed'
-                    ? 'text-accent-strong shadow-neo-inset'
-                    : 'text-text-muted'
+                className={`glass-panel px-3 py-2 text-sm font-semibold transition-all ${
+                  categoryType === 'fixed' ? 'bg-white/10 text-accent-strong' : 'text-text-muted hover:bg-white/5'
                 }`}
               >
                 Fixed
@@ -100,7 +96,7 @@ export const AddCategoryModal = ({
 
           <button
             type="submit"
-            className="neo-card neo-pressable w-full px-4 py-3 text-sm font-semibold text-text-primary"
+            className="glass-panel w-full px-4 py-3 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
           >
             Add category
           </button>

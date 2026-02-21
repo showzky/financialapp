@@ -21,14 +21,14 @@ export const UpdateIncomeModal = ({ currentIncome, onClose, onSubmit }: UpdateIn
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2a44]/25 p-4 backdrop-blur-sm">
-      <div className="neo-card w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-lg">
+      <div className="glass-panel w-full max-w-md p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-text-primary">Update monthly income</h2>
           <button
             type="button"
             onClick={onClose}
-            className="neo-card neo-pressable px-3 py-1 text-sm font-semibold text-text-muted"
+            className="glass-panel px-3 py-1 text-sm font-semibold text-text-muted transition-all hover:bg-white/10"
           >
             Close
           </button>
@@ -46,14 +46,14 @@ export const UpdateIncomeModal = ({ currentIncome, onClose, onSubmit }: UpdateIn
               step={1}
               value={incomeValue}
               onChange={(event) => setIncomeValue(event.target.value)}
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-text-primary outline-none focus:ring-2 focus:ring-accent/40"
               autoFocus
             />
           </div>
 
           <button
             type="submit"
-            className="neo-card neo-pressable w-full px-4 py-3 text-sm font-semibold text-text-primary"
+            className="glass-panel w-full px-4 py-3 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
           >
             Save income
           </button>

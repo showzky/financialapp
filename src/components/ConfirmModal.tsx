@@ -22,14 +22,14 @@ export const ConfirmModal = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2a44]/25 p-4 backdrop-blur-sm">
-      <div className="neo-card w-full max-w-sm p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-lg">
+      <div className="glass-panel w-full max-w-sm p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-text-primary">{title}</h2>
           <button
             type="button"
             onClick={onCancel}
-            className="neo-card neo-pressable px-3 py-1 text-sm font-semibold text-text-muted"
+            className="glass-panel px-3 py-1 text-sm font-semibold text-text-muted transition-all hover:bg-white/10"
           >
             ✕
           </button>
@@ -41,14 +41,14 @@ export const ConfirmModal = ({
           <button
             type="button"
             onClick={onCancel}
-            className="neo-card neo-pressable flex-1 px-4 py-2 text-sm font-semibold text-text-primary"
+            className="glass-panel flex-1 px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
           >
             {cancelText}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="neo-card neo-pressable flex-1 bg-red-100 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-200"
+            className="glass-panel flex-1 bg-error/10 px-4 py-2 text-sm font-semibold text-error transition-all hover:bg-error/20"
           >
             {confirmText}
           </button>
