@@ -11,6 +11,7 @@ type LoanTableProps = {
   markingId: string | null
   onDelete?: (id: string) => Promise<void>
   deletingId?: string | null
+  emptyMessage?: string // ADDED THIS
 }
 
 const statusClasses: Record<Loan['status'], string> = {
@@ -27,6 +28,7 @@ export const LoanTable = ({
   markingId,
   onDelete,
   deletingId,
+  emptyMessage = 'No loans yet. Add a loan to start tracking repayments.', // CHANGED THIS
 }: LoanTableProps) => {
   // split out repaid vs non-repaid for optional collapsing
   const nonRepaid = loans.filter((l) => l.status !== 'repaid')
@@ -40,7 +42,7 @@ export const LoanTable = ({
   if (loans.length === 0) {
     return (
       <div className="glass-panel p-6 text-sm text-text-muted">
-        No loans yet. Add a loan to start tracking repayments.
+        {emptyMessage}
       </div>
     )
   }

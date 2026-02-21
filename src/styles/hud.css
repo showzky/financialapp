@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@700&display=swap');
+
+/* HUD Animations */
+@keyframes scan {
+  from {
+    top: -10%;
+  }
+  to {
+    top: 110%;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scan {
+  animation: scan 4s linear infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s infinite;
+}
+
+/* HUD Specific Utilities */
+.hud-glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-filter-legacy);
+  -webkit-backdrop-filter: var(--glass-filter-legacy);
+  border: 1px solid var(--glass-border);
+  border-top-color: rgba(255, 255, 255, 0.2);
+  @apply rounded-[1.25rem] p-6 w-[280px] relative shadow-[0_10px_40px_rgba(0,0,0,0.5)];
+}
+
+.hud-monospaced {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hud-label {
+  @apply text-[0.6rem] uppercase tracking-[0.1em] text-slate-500 mb-1 block;
+}
+
+.hud-value {
+  @apply text-[1.75rem] block;
+}
+
+.hud-glow {
+  @apply text-white;
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.5),
+    0 0 20px #60a5fa;
+}
+
+.hud-currency {
+  @apply text-[0.8rem] bg-white/10 px-1.5 py-0.5 rounded mr-2;
+}
+
+.hud-status-dot {
+  @apply w-1.5 h-1.5 bg-blue-400 rounded-full;
+}
+
+/* SVG Chart Specifics */
+.hud-chart-svg {
+  @apply w-[140px] h-[140px] -rotate-90;
+}
+
+.hud-chart-circle {
+  @apply fill-none stroke-[8] rounded-full;
+  /* fallback stroke-width for environments where Tailwind arbitrary classes aren't applied */
+  stroke-width: 8px;
+}
+
+.hud-chart-progress {
+  stroke: #60a5fa;
+  filter: drop-shadow(0 0 8px #60a5fa);
+}
+
+.hud-chart-bg {
+  @apply stroke-white/5;
+}
+
+.hud-segment {
+  @apply stroke-[12];
+  /* fallback stroke-width for segments */
+  stroke-width: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.vacation-hud-grid .hud-glass-card {
+  width: 100%;
+  max-width: none;
+}
+
+/* Dropdown / listbox improvements for dark theme contrast */
+.glass-panel [role="listbox"] {
+  /* Keep the design token but apply a subtle dark overlay to reduce perceived transparency */
+  background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--color-text-primary);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+  padding: 0.25rem 0;
+  margin: 0.25rem 0 0 0;
+  max-height: 15rem;
+  overflow: auto;
+}
+
+.glass-panel [role="listbox"] li {
+  list-style: none;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: background-color 120ms ease;
+}
+
+.glass-panel [role="listbox"] li:hover,
+.glass-panel [role="listbox"] li[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary);
+}
+
+.glass-panel [role="listbox"] li:focus {
+  outline: 2px solid rgba(255,255,255,0.06);
+  outline-offset: 2px;
+}
+
+/* Improve scroll thumb visibility inside dropdowns */
+.glass-panel [role="listbox"]::-webkit-scrollbar {
+  width: 8px;
+}
+.glass-panel [role="listbox"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+.glass-panel [role="listbox"]::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 6px;
+}
+.glass-panel [role="listbox"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.18);
+}

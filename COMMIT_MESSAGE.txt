@@ -1,0 +1,9 @@
+Suggested commit title:
+chore: snapshot commit - update workspace
+
+Suggested commit body (brief):
+- Capture current workspace snapshot: frontend components and pages updated, UI components refined.
+- Backend: applied new SQL migrations (wishlist, loans, vacation system) included in backend/migrations/.
+- Tests: minor test updates and utility tweaks.
+
+Adjust the message as needed. Run one of the provided scripts to commit and push.

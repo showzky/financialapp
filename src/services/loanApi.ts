@@ -2,12 +2,16 @@ import { backendRequest } from './backendClient'
 import type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '@/types/loan'
 
 export const loanApi = {
-  list: () => {
-    return backendRequest<Loan[]>('/loans', { method: 'GET' })
+  list: (params?: { isVacation?: boolean }) => {
+    const query = new URLSearchParams()
+    query.append('isVacation', String(params?.isVacation ?? false))
+    return backendRequest<Loan[]>(`/loans?${query.toString()}`, { method: 'GET' })
   },
 
-  getSummary: () => {
-    return backendRequest<LoanSummary>('/loans/summary', { method: 'GET' })
+  getSummary: (params?: { isVacation?: boolean }) => {
+    const query = new URLSearchParams()
+    query.append('isVacation', String(params?.isVacation ?? false))
+    return backendRequest<LoanSummary>(`/loans/summary?${query.toString()}`, { method: 'GET' })
   },
 
   create: (payload: CreateLoanPayload) => {

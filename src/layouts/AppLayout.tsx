@@ -72,6 +72,18 @@ export const AppLayout = () => {
           >
             Loans
           </NavLink>
+          <NavLink
+            to="/vacation"
+            className={({ isActive }) =>
+              `rounded-neo px-4 py-2 text-sm font-semibold transition ${
+                isActive
+                  ? 'bg-surface shadow-sm border border-rose-100 text-text-primary'
+                  : 'bg-surface shadow-sm border border-rose-100 text-text-muted'
+              }`
+            }
+          >
+            Vacation
+          </NavLink>
           <button
             type="button"
             onClick={handleLogout}

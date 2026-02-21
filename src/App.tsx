@@ -8,6 +8,7 @@ import { Home } from '@/pages/Home'
 import { Login } from '@/pages/Login'
 import { Loans } from '@/pages/Loans'
 import { Notes } from '@/pages/Notes'
+import { VacationDash } from '@/pages/VacationDash'
 import { userApi } from '@/services/userApi'
 import { Wishlist } from '@/pages/Wishlist'
 
@@ -78,6 +79,7 @@ function App() {
           <Route path="/notes" element={<Notes />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/loans" element={<Loans />} />
+          <Route path="/vacation" element={<VacationDash />} />
           <Route path="/history" element={<History />} />
           <Route path="/history/:id" element={<HistorySnapshot />} />
         </Route>

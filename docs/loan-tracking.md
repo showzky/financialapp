@@ -30,6 +30,14 @@ Key files:
 - `src/types/loan.ts` – TypeScript types for the API payloads and
   responses
 
+### Search and Filtering
+
+The Loans page includes a dedicated search bar and status filter system:
+
+- **Name-based Filtering**: Users can search for specific loans by the recipient's name via the search input. This performs a case-insensitive partial match against the `recipient` field.
+- **Status Filtering**: Quick-access filter chips allow narrowing down the list by status (Outstanding, Due Soon, Overdue, Repaid).
+- **Combined Logic**: Search and status filters work together to refine the displayed dataset in real-time.
+
 The Loans section features a custom scrollbar styled in green (success theme), updated from the previous pink color for better visual consistency.
 
 The dashboard card is pulled into `src/pages/Home.tsx` alongside the
@@ -52,6 +60,16 @@ function Home() {
   )
 }
 ```
+
+## Visual Alignment
+
+The Loans dashboard adheres to the **Glass HUD** design system to maintain a cohesive high-tech aesthetic:
+
+- **HUD Integration**: All interactive elements, including the search bar and filter chips, use the `.glass-panel` utility class for background blur and border effects.
+- **Contrast Mitigation**:
+    - **Local Scrim Layers**: The search input uses a subtle `bg-white/5` (or equivalent dark/light tint) scrim layer. This ensures that text remains legible even when the underlying background has complex visual noise.
+    - **High-Contrast Placeholders**: Placeholder text uses `text-text-muted/70` to ensure it meet contrast requirements while still appearing distinct from active input text.
+- **Consistent Accents**: The focus ring and active filter states utilize the `accent` and `primary` color tokens defined in the global theme.
 
 ## Backend API
 

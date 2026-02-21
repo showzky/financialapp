@@ -27,6 +27,7 @@ export const Loans = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('') // ADDED THIS
 
   const loadLoans = async () => {
     setIsLoading(true)
@@ -87,13 +88,20 @@ export const Loans = () => {
     }
   }
 
-  const filteredLoans = useMemo(() => {
-    if (filter === 'all') {
-      return loans
+  const filteredLoans = useMemo(() => { // CHANGED THIS
+    let result = loans
+
+    if (filter !== 'all') {
+      result = result.filter((loan) => loan.status === filter)
     }
 
-    return loans.filter((loan) => loan.status === filter)
-  }, [filter, loans])
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim()
+      result = result.filter((loan) => loan.recipient.toLowerCase().includes(q))
+    }
+
+    return result
+  }, [filter, loans, searchQuery])
 
   const outstandingTotal = useMemo(
     () =>
@@ -122,6 +130,45 @@ export const Loans = () => {
             + Add loan
           </button>
         </header>
+
+        {/* ADDED THIS: Search Input with Glass HUD bridge styling */}
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            placeholder="Search by recipient..."
+            aria-label="Search loans by recipient"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="glass-panel w-full bg-white/5 py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted/70 focus:outline-none focus:ring-2 focus:ring-accent/40"
+          />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
 
         <section className="flex flex-wrap items-center gap-2">
           {(Object.keys(filterLabels) as LoanFilter[]).map((filterKey) => (
@@ -159,6 +206,13 @@ export const Loans = () => {
             markingId={markingId}
             onDelete={requestDelete}
             deletingId={deletingId}
+            emptyMessage={ // ADDED THIS
+              searchQuery
+                ? `No loans match "${searchQuery}"`
+                : filter !== 'all'
+                  ? `No loans with status "${filterLabels[filter]}"`
+                  : undefined
+            }
           />
         )}
 

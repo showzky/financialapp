@@ -19,6 +19,43 @@ const createHeaders = (initHeaders?: HeadersInit): Headers => {
   return headers
 }
 
+const formatBackendError = (rawMessage: string, status: number): string => {
+  if (!rawMessage) {
+    return `HUD Alert: Request failed (${status}). Please try again.`
+  }
+
+  try {
+    const parsed = JSON.parse(rawMessage) as {
+      message?: string
+      issues?: {
+        fieldErrors?: Record<string, string[]>
+      }
+    }
+
+    const fieldErrors = parsed.issues?.fieldErrors ?? {}
+    const firstFieldError = Object.values(fieldErrors).flat()[0]
+    if (firstFieldError) {
+      return `HUD Alert: ${firstFieldError}`
+    }
+
+    if (parsed.message) {
+      return `HUD Alert: ${parsed.message}`
+    }
+  } catch {
+    return `HUD Alert: ${rawMessage}`
+  }
+
+  return `HUD Alert: Request failed (${status}). Please try again.`
+}
+
+export const getHudAlertMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return 'HUD Alert: Unable to complete request. Please retry.'
+}
+
 export const backendRequest = async <T>(path: string, init?: RequestInit): Promise<T> => {
   if (!hasBackendConfig()) {
     throw new Error('VITE_BACKEND_URL is not configured')
@@ -32,8 +69,8 @@ export const backendRequest = async <T>(path: string, init?: RequestInit): Promi
   })
 
   if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || `Request failed with status ${response.status}`)
+    const rawMessage = await response.text()
+    throw new Error(formatBackendError(rawMessage, response.status))
   }
 
   if (response.status === 204) {
