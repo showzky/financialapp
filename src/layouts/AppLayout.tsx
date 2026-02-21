@@ -16,7 +16,7 @@ export const AppLayout = () => {
 
   return (
     <div className="space-y-6">
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-neo bg-surface p-3 shadow-neo-md">
+      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-neo bg-surface p-3 shadow-sm border border-rose-100">
         <div className="flex items-center gap-4">
           <p className="px-2 text-sm font-semibold uppercase tracking-[0.16em] text-text-muted">
             Finance Views
@@ -29,8 +29,8 @@ export const AppLayout = () => {
             className={({ isActive }) =>
               `rounded-neo px-4 py-2 text-sm font-semibold transition ${
                 isActive
-                  ? 'bg-surface shadow-neo-inset text-text-primary'
-                  : 'bg-surface shadow-neo-sm text-text-muted'
+                  ? 'bg-surface shadow-sm border border-rose-100 text-text-primary'
+                  : 'bg-surface shadow-sm border border-rose-100 text-text-muted'
               }`
             }
           >
@@ -41,8 +41,8 @@ export const AppLayout = () => {
             className={({ isActive }) =>
               `rounded-neo px-4 py-2 text-sm font-semibold transition ${
                 isActive
-                  ? 'bg-surface shadow-neo-inset text-text-primary'
-                  : 'bg-surface shadow-neo-sm text-text-muted'
+                  ? 'bg-surface shadow-sm border border-rose-100 text-text-primary'
+                  : 'bg-surface shadow-sm border border-rose-100 text-text-muted'
               }`
             }
           >
@@ -53,8 +53,8 @@ export const AppLayout = () => {
             className={({ isActive }) =>
               `rounded-neo px-4 py-2 text-sm font-semibold transition ${
                 isActive
-                  ? 'bg-surface shadow-neo-inset text-text-primary'
-                  : 'bg-surface shadow-neo-sm text-text-muted'
+                  ? 'bg-surface shadow-sm border border-rose-100 text-text-primary'
+                  : 'bg-surface shadow-sm border border-rose-100 text-text-muted'
               }`
             }
           >
@@ -65,8 +65,8 @@ export const AppLayout = () => {
             className={({ isActive }) =>
               `rounded-neo px-4 py-2 text-sm font-semibold transition ${
                 isActive
-                  ? 'bg-surface shadow-neo-inset text-text-primary'
-                  : 'bg-surface shadow-neo-sm text-text-muted'
+                  ? 'bg-surface shadow-sm border border-rose-100 text-text-primary'
+                  : 'bg-surface shadow-sm border border-rose-100 text-text-muted'
               }`
             }
           >
@@ -75,7 +75,7 @@ export const AppLayout = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-neo px-4 py-2 text-sm font-semibold bg-surface shadow-neo-sm text-text-muted transition hover:text-text-primary"
+            className="rounded-neo px-4 py-2 text-sm font-semibold bg-surface shadow-sm border border-rose-100 text-text-muted transition hover:text-text-primary"
           >
             Logout
           </button>
