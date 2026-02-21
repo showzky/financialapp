@@ -32,6 +32,30 @@ describe('LoanTable', () => {
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-02-01T00:00:00Z',
     },
+    {
+      id: '3',
+      recipient: 'Bob Wilson',
+      amount: 200,
+      dateGiven: '2024-01-01T00:00:00Z',
+      expectedRepaymentDate: '2024-01-15T00:00:00Z',
+      repaidAt: null,
+      status: 'due_soon',
+      daysRemaining: 0,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    },
+    {
+      id: '4',
+      recipient: 'Alice Brown',
+      amount: 300,
+      dateGiven: '2024-01-01T00:00:00Z',
+      expectedRepaymentDate: '2024-01-10T00:00:00Z',
+      repaidAt: null,
+      status: 'overdue',
+      daysRemaining: -5,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    },
   ]
 
   beforeEach(() => {
@@ -118,5 +142,35 @@ describe('LoanTable', () => {
     )
 
     expect(screen.queryByText('Delete')).not.toBeInTheDocument()
+  })
+
+  it('renders status indicators with correct color classes', () => {
+    render(
+      <LoanTable
+        loans={sampleLoans}
+        currencySymbol="KR"
+        onMarkRepaid={mockOnMarkRepaid}
+        markingId={null}
+        onDelete={mockOnDelete}
+        deletingId={null}
+      />,
+    )
+
+    // Check outstanding status has correct classes
+    const outstandingStatus = screen.getByText('Outstanding')
+    expect(outstandingStatus).toHaveClass('bg-surface-strong', 'text-text-primary')
+
+    // Check due_soon status has correct classes
+    const dueSoonStatus = screen.getByText('Due soon')
+    expect(dueSoonStatus).toHaveClass('bg-amber-100', 'text-amber-700')
+
+    // Check overdue status has correct classes
+    const overdueStatus = screen.getByText('Overdue')
+    expect(overdueStatus).toHaveClass('bg-red-100', 'text-red-700')
+
+    // Check repaid status has correct classes
+    const statusSpans = screen.getAllByText('Repaid')
+    const repaidStatus = statusSpans.find(span => span.tagName === 'SPAN' && span.classList.contains('bg-emerald-100'))
+    expect(repaidStatus).toHaveClass('bg-emerald-100', 'text-emerald-700')
   })
 })

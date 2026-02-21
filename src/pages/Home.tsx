@@ -212,7 +212,7 @@ export const Home = () => {
             <button
               type="button"
               onClick={() => setIsEditing((current) => !current)}
-              className="neo-card neo-pressable px-3 py-2 text-sm font-semibold text-text-primary shadow-neo-sm"
+              className="neo-card neo-pressable px-3 py-2 text-sm font-semibold text-text-primary shadow-sm border border-rose-100"
               aria-label="Toggle settings"
             >
               ⚙ Edit Layout
@@ -220,14 +220,14 @@ export const Home = () => {
             <button
               type="button"
               onClick={() => setIsAddCategoryOpen(true)}
-              className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-text-primary shadow-neo-sm"
+              className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-text-primary shadow-sm border border-rose-100"
             >
               + Add category
             </button>
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="neo-card px-3 py-2 text-sm font-semibold text-text-muted shadow-neo-sm"
+              className="neo-card px-3 py-2 text-sm font-semibold text-text-muted shadow-sm border border-rose-100"
               aria-label="Open settings"
             >
               ⚙
