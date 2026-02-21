@@ -6,7 +6,7 @@ My personal finance tracker built with React + TypeScript.
 
 Neumorphic React + TypeScript app with Tailwind tokens, ESLint/Prettier, and Vitest + Testing Library. Includes budget state management, category and income modals, recurring automation support, and history snapshots.
 
-Includes a server-backed Loan Area for tracking loans given to others with due-date status, repayment tracking, and a compact dashboard summary card.
+Includes a server-backed Loan Area for tracking loans given to others with due-date status, repayment tracking, and a compact dashboard summary card. See [docs/loan-tracking.md](docs/loan-tracking.md) for full details.
 
 ## Stack
 
@@ -41,4 +41,5 @@ Includes a server-backed Loan Area for tracking loans given to others with due-d
 - Theme tokens: [src/styles/theme.css](src/styles/theme.css)
 - Budget state/context: [src/context/BudgetContext.tsx](src/context/BudgetContext.tsx)
 - Dashboard composition: [src/pages/Home.tsx](src/pages/Home.tsx)
+- Dashboard loan summary card: [src/components/LoanAreaCard.tsx](src/components/LoanAreaCard.tsx) showing totals and upcoming due dates
 - Loan management page: [src/pages/Loans.tsx](src/pages/Loans.tsx)

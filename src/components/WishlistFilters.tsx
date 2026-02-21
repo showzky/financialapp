@@ -163,7 +163,9 @@ export const WishlistFilters = ({
   defaultCategoryLabel,
   defaultPriorityLabel,
 }: WishlistFiltersProps) => {
-  const [isExpanded, setIsExpanded] = useState(true)
+  // default to collapsed so the filter panel doesn’t dominate the page
+  // application state will expand when the user clicks the toggle
+  const [isExpanded, setIsExpanded] = useState(false)
 
   // ADD THIS: derive removable chip data for both summary and expanded views
   const activeFilterChips = useMemo<ActiveFilterChip[]>(() => {
@@ -231,6 +233,7 @@ export const WishlistFilters = ({
 
       <div
         id="wishlist-filter-panel"
+        data-testid="filter-panel"
         className={`mt-4 overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
           isExpanded ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
         }`}

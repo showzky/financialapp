@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AddLoanModal } from '@/components/AddLoanModal'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { LoanTable } from '@/components/LoanTable'
+import { RecurringAutomationToast } from '@/components/RecurringAutomationToast'
 import { loanApi } from '@/services/loanApi'
 import type { CreateLoanPayload, Loan } from '@/types/loan'
 import { formatCurrency } from '@/utils/currency'
@@ -22,6 +24,9 @@ export const Loans = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [filter, setFilter] = useState<LoanFilter>('all')
   const [markingId, setMarkingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const loadLoans = async () => {
     setIsLoading(true)
@@ -57,6 +62,28 @@ export const Loans = () => {
       setError(markError instanceof Error ? markError.message : 'Could not mark loan as repaid')
     } finally {
       setMarkingId(null)
+    }
+  }
+
+  // `LoanTable` declares onDelete as a callback returning a Promise<void> so
+  // our handler must match that signature. The logic here is synchronous but
+  // marking the function `async` causes it to implicitly return a
+  // `Promise<void>` and keeps TypeScript happy.
+  const requestDelete = async (id: string) => {
+    setPendingDeleteId(id)
+  }
+
+  const executeDelete = async (id: string) => {
+    setDeletingId(id)
+    setPendingDeleteId(null)
+    try {
+      await loanApi.remove(id)
+      setLoans((current) => current.filter((l) => l.id !== id))
+      setSuccessMessage('Loan deleted')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete loan')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -112,6 +139,13 @@ export const Loans = () => {
 
         {error ? <div className="neo-card p-3 text-sm text-red-500">{error}</div> : null}
 
+        {successMessage && (
+          <RecurringAutomationToast
+            message={successMessage}
+            onClose={() => setSuccessMessage('')}
+          />
+        )}
+
         {isLoading ? (
           <div className="neo-card p-6 text-sm text-text-muted">Loading loans…</div>
         ) : (
@@ -120,6 +154,8 @@ export const Loans = () => {
             currencySymbol="KR"
             onMarkRepaid={handleMarkRepaid}
             markingId={markingId}
+            onDelete={requestDelete}
+            deletingId={deletingId}
           />
         )}
 
@@ -128,6 +164,18 @@ export const Loans = () => {
           onClose={() => setIsAddModalOpen(false)}
           onSubmit={handleCreateLoan}
         />
+
+        {pendingDeleteId && (
+          <ConfirmModal
+            isOpen={true}
+            title="Delete Loan?"
+            body="Are you sure you want to remove this loan? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            onConfirm={() => executeDelete(pendingDeleteId)}
+            onCancel={() => setPendingDeleteId(null)}
+          />
+        )}
       </div>
     </div>
   )

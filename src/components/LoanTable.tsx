@@ -9,6 +9,8 @@ type LoanTableProps = {
   currencySymbol: 'KR' | '$' | '€'
   onMarkRepaid: (id: string) => Promise<void>
   markingId: string | null
+  onDelete?: (id: string) => Promise<void>
+  deletingId?: string | null
 }
 
 const statusClasses: Record<Loan['status'], string> = {
@@ -18,7 +20,14 @@ const statusClasses: Record<Loan['status'], string> = {
   repaid: 'bg-emerald-100 text-emerald-700',
 }
 
-export const LoanTable = ({ loans, currencySymbol, onMarkRepaid, markingId }: LoanTableProps) => {
+export const LoanTable = ({
+  loans,
+  currencySymbol,
+  onMarkRepaid,
+  markingId,
+  onDelete,
+  deletingId,
+}: LoanTableProps) => {
   // split out repaid vs non-repaid for optional collapsing
   const nonRepaid = loans.filter((l) => l.status !== 'repaid')
   const repaidLoans = loans.filter((l) => l.status === 'repaid')
@@ -128,11 +137,10 @@ export const LoanTable = ({ loans, currencySymbol, onMarkRepaid, markingId }: Lo
               }`}
             >
               <div
-                className={`${repaidScrollable ? 'max-h-80 overflow-y-auto scrollbar-pink' : ''}`}
+                className={`${repaidScrollable ? 'max-h-80 overflow-y-auto scrollbar-success' : ''}`}
               >
                 {repaidLoans.map((loan) => {
-                  const isMarking = markingId === loan.id
-                  const canMarkRepaid = loan.status !== 'repaid'
+                  const isDeleting = deletingId === loan.id
 
                   return (
                     <div
@@ -164,14 +172,16 @@ export const LoanTable = ({ loans, currencySymbol, onMarkRepaid, markingId }: Lo
                       </span>
 
                       <div className="md:text-right">
-                        <button
-                          type="button"
-                          disabled={!canMarkRepaid || isMarking}
-                          onClick={() => onMarkRepaid(loan.id)}
-                          className="neo-card neo-pressable px-3 py-2 text-xs font-semibold text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {isMarking ? 'Saving…' : canMarkRepaid ? 'Mark repaid' : 'Completed'}
-                        </button>
+                        {onDelete && (
+                          <button
+                            type="button"
+                            disabled={isDeleting}
+                            onClick={() => onDelete(loan.id)}
+                            className="neo-card neo-pressable px-3 py-2 text-xs font-semibold text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isDeleting ? 'Deleting…' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )

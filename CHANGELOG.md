@@ -6,8 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 
-## [1.2.1] - 2026-02-21
 ### Added
+
+- Documentation updates for the Loan Tracking Area on the dashboard, including a new `docs/loan-tracking.md` guide and expanded README/backend README notes.
+
+### Changed
+
+- Loans page scrollbar now uses a green “success” theme instead of pink; added `--color-success` CSS variable and updated utility class to `scrollbar-success`.
+## [1.2.1] - 2026-02-21
+
+### Added
+
 - Added backend migration scaffolding in `backend/migrations` with a runbook for local → staging → production SQL rollout.
 - Added server-backed Loan Area feature with dashboard summary, dedicated loans page, and CRUD endpoints for loans given to others.
 - Added due-state logic (`outstanding`, `due_soon`, `overdue`, `repaid`) and server-computed days remaining for consistent highlighting across clients.
@@ -15,6 +24,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Added loan status utility tests in `src/tests/loanStatus.test.ts`.
 
 ### Changed
+
 - Enforced explicit frontend backend API configuration in development by requiring `VITE_BACKEND_URL` (no silent production fallback).
 - Expanded backend environment validation to support `staging` mode and block remote-looking database URLs in local development.
 - Updated CI to typecheck backend code in addition to frontend lint/test/build checks.
@@ -23,7 +33,9 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 ### Fixed
 
 ## [1.2.0] - 2026-02-20
+
 ### Added
+
 - End-to-end "Wishlist Item Notes" feature: added a nullable `notes` TEXT column to `wishlist_items`, backend normalization and sanitization utility, server-side validation and mapping, and frontend UI (add/edit modal textarea) with client-side character counter (2000 chars max).
 - Card-level notes preview with inline expand/collapse and a small notes section component (`src/components/WishlistItemCard.tsx`).
 - API contract and types updated to include `notes` on create/update responses and requests (`src/services/wishlistApi.ts`, `src/types/wishlist.ts`).
@@ -31,17 +43,20 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Backend and frontend typechecks/builds validated locally; added modular sanitizer utility at `backend/src/utils/wishlistNotes.ts` to centralize notes handling.
 
 ### Changed
+
 - Committed changes to `main` and pushed to remote; see commit `9c92375`.
 
-
 ## [1.1.0] - 2026-02-19
+
 ### Added
+
 - Wishlist page UI with route and top-nav entry point.
 - Add Product modal shell on the Wishlist page with title + URL fields and client-side validation (frontend only; no backend persistence yet).
 - Localhost-only frontend login bypass toggle for development via `VITE_DISABLE_LOGIN_ON_LOCALHOST`.
 - Persistent wishlist CRUD API (`/api/v1/wishlist`) with database-backed create, list, update, and delete operations.
 
 ### Changed
+
 - Restored authentication flow to the previous cookie-based session model for login/logout and protected route checks.
 - Rolled backend auth-related implementation back to a known-good baseline to stabilize login and category API behavior.
 - Hardened backend dev auth bypass rules to allow bypass only for localhost requests in non-production when explicitly enabled.
@@ -63,13 +78,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Standardized wishlist card layout rhythm so cards share equal height and action buttons align consistently across rows.
 
 ### Fixed
+
 - Restored Vercel SPA rewrite fallback so refreshing client routes (e.g. `/wishlist`) no longer returns `404 NOT_FOUND`.
 - Resolved Vercel build failures when Tailwind CSS 4 is installed by updating PostCSS configuration to use the Tailwind v4 plugin path.
 - Added `@tailwindcss/postcss` and a compatibility PostCSS loader so builds work reliably across Tailwind v3 and v4 dependency states.
 - Fixed wishlist URL preview autofill failures caused by `304 Not Modified` responses by forcing no-store/no-cache behavior for preview requests.
 
 ## [1.0.0] - 2026-02-16
+
 ### Added
+
 - Initial React + TypeScript + Vite project setup for the Financial App.
 - Neumorphic UI foundation with shared theme styles and reusable UI primitives.
 - Budget dashboard flow with category cards, summary stats, and progress visuals.
@@ -81,9 +99,11 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Test setup with initial utility tests.
 
 ### Changed
+
 - Refined project structure into focused folders for components, context, hooks, pages, layouts, styles, tests, types, and utilities.
 - Improved consistency of component naming and dashboard composition for maintainability.
 
 ### Infrastructure
+
 - Configured Tailwind CSS, PostCSS, ESLint, TypeScript project configs, Vitest, and Vite build tooling.
 - Added repository hygiene rules in `.gitignore` for dependencies, build artifacts, environment files, and editor workspace files.
