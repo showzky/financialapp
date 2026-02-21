@@ -104,7 +104,7 @@ export const Loans = () => {
   return (
     <div className="app-shell min-h-screen px-4 py-10 md:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.3em] text-text-muted">Loan area</p>
             <h1 className="text-3xl font-semibold text-text-primary">Loans given to others</h1>
@@ -116,7 +116,8 @@ export const Loans = () => {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="neo-card neo-pressable px-4 py-2 text-sm font-semibold text-text-primary"
+            aria-label="Add new loan"
+            className="inline-flex items-center justify-center rounded-xl border border-primary bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             + Add loan
           </button>

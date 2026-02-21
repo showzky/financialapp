@@ -76,7 +76,7 @@ describe('LoanTable', () => {
 
     expect(screen.getByText('John Doe')).toBeInTheDocument()
     expect(screen.getByText('Jane Smith')).toBeInTheDocument()
-    expect(screen.getByText('Mark repaid')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Mark repaid' })).toHaveLength(3)
     expect(screen.getByText('Delete')).toBeInTheDocument()
   })
 
@@ -92,8 +92,8 @@ describe('LoanTable', () => {
       />,
     )
 
-    // Should have one "Mark repaid" for outstanding loan
-    expect(screen.getByText('Mark repaid')).toBeInTheDocument()
+    // Should have one "Mark repaid" per non-repaid loan status in sample data
+    expect(screen.getAllByRole('button', { name: 'Mark repaid' })).toHaveLength(3)
     // Should have one "Delete" for repaid loan
     expect(screen.getByText('Delete')).toBeInTheDocument()
   })
@@ -170,7 +170,9 @@ describe('LoanTable', () => {
 
     // Check repaid status has correct classes
     const statusSpans = screen.getAllByText('Repaid')
-    const repaidStatus = statusSpans.find(span => span.tagName === 'SPAN' && span.classList.contains('bg-emerald-100'))
+    const repaidStatus = statusSpans.find(
+      (span) => span.tagName === 'SPAN' && span.classList.contains('bg-emerald-100'),
+    )
     expect(repaidStatus).toHaveClass('bg-emerald-100', 'text-emerald-700')
   })
 })

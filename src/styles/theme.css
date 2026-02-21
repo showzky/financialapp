@@ -4,6 +4,8 @@
   --color-surface-strong: #dde4ef;
   --color-accent: #6c7df0;
   --color-accent-strong: #4f61d8;
+  --primary-cta-bg: #4f61d8;
+  --primary-cta-foreground: #ffffff;
   --color-text-primary: #1f2a44;
   --color-text-muted: #334155;
   --color-shadow-dark: #c2c8d4;
@@ -17,6 +19,8 @@
 :root[data-theme='dark'] {
   --color-surface: #1f2533;
   --color-surface-strong: #252c3d;
+  --primary-cta-bg: #8ea0ff;
+  --primary-cta-foreground: #0f172a;
   --color-text-primary: #eaf1ff;
   --color-text-muted: #334155;
   --color-shadow-dark: #161b27;

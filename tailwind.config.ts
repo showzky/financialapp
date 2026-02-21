@@ -10,6 +10,8 @@ const config: Config = {
         'surface-strong': 'var(--color-surface-strong)',
         accent: 'var(--color-accent)',
         'accent-strong': 'var(--color-accent-strong)',
+        primary: 'var(--primary-cta-bg)',
+        'primary-foreground': 'var(--primary-cta-foreground)',
         'text-primary': 'var(--color-text-primary)',
         'text-muted': 'var(--color-text-muted)',
       },

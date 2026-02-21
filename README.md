@@ -39,6 +39,10 @@ Includes a server-backed Loan Area for tracking loans given to others with due-d
 ## Project notes
 
 - Theme tokens: [src/styles/theme.css](src/styles/theme.css)
+- Primary CTA tokens and semantic utilities:
+	- CSS variables in `src/styles/theme.css`: `--primary-cta-bg`, `--primary-cta-foreground`
+	- Tailwind semantic utilities in `tailwind.config.ts`: `bg-primary`, `text-primary-foreground`
+	- Reuse rule: use these semantic utilities for all primary call-to-action surfaces/text instead of hard-coded color classes
 - Budget state/context: [src/context/BudgetContext.tsx](src/context/BudgetContext.tsx)
 - Dashboard composition: [src/pages/Home.tsx](src/pages/Home.tsx)
 - Dashboard loan summary card: [src/components/LoanAreaCard.tsx](src/components/LoanAreaCard.tsx) showing totals and upcoming due dates
