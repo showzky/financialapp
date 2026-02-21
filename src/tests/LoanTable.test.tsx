@@ -14,8 +14,11 @@ describe('LoanTable', () => {
       amount: 1000,
       dateGiven: '2024-01-01T00:00:00Z',
       expectedRepaymentDate: '2024-02-01T00:00:00Z',
+      repaidAt: null,
       status: 'outstanding',
       daysRemaining: 10,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
     },
     {
       id: '2',
@@ -23,8 +26,11 @@ describe('LoanTable', () => {
       amount: 500,
       dateGiven: '2024-01-01T00:00:00Z',
       expectedRepaymentDate: '2024-02-01T00:00:00Z',
+      repaidAt: '2024-02-01T00:00:00Z',
       status: 'repaid',
       daysRemaining: 0,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-02-01T00:00:00Z',
     },
   ]
 
