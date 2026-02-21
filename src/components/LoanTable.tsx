@@ -127,7 +127,9 @@ export const LoanTable = ({ loans, currencySymbol, onMarkRepaid, markingId }: Lo
                   : 'max-h-0 opacity-0 -translate-y-4'
               }`}
             >
-              <div className={`${repaidScrollable ? 'max-h-80 overflow-y-auto scrollbar-pink' : ''}`}>
+              <div
+                className={`${repaidScrollable ? 'max-h-80 overflow-y-auto scrollbar-pink' : ''}`}
+              >
                 {repaidLoans.map((loan) => {
                   const isMarking = markingId === loan.id
                   const canMarkRepaid = loan.status !== 'repaid'
