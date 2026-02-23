@@ -20,6 +20,7 @@ export const VacationDash: React.FC = () => {
   // days remaining override/editor state
   const [isEditingDays, setIsEditingDays] = useState(false)
   const [customDaysRemaining, setCustomDaysRemaining] = useState<number | null>(null)
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,28 +125,29 @@ export const VacationDash: React.FC = () => {
   }, [vacationFund, expenses, customDaysRemaining])
 
   // Chart calculations & custom category extraction
-  const extractCategoryName = (description?: string) => {
+  const extractCategoryName = (description?: string | null) => {
     if (!description) return null
     const m = description.match(/^\[Custom Category:\s*(.+?)\]/)
     return m ? m[1].trim() : null
   }
 
-  // Ensure base filter: is_vacation === true before doing extraction
-  const displayExpenses = useMemo(() => {
-    return expenses
-      .filter((e) => ((e as any).is_vacation ?? true) === true)
-      .map((e) => {
-        if (e.category === 'miscellaneous') {
-          const custom = extractCategoryName(e.description)
-          if (custom) return { ...e, category: custom }
-        }
-        return e
-      })
+  // Ensure base filter: is_vacation === true
+  const vacationExpenses = useMemo(() => {
+    return expenses.filter((e) => ((e as any).is_vacation ?? true) === true)
   }, [expenses])
+
+  // Keep domain type strict while allowing custom labels for charting
+  const displayExpenses = useMemo(() => {
+    return vacationExpenses.map((e) => ({
+      ...e,
+      displayCategory:
+        e.category === 'miscellaneous' ? (extractCategoryName(e.description) ?? e.category) : e.category,
+    }))
+  }, [vacationExpenses])
 
   const chartData = useMemo(() => {
     const priority = ['flights', 'food', 'hotel']
-    const categoriesInData = Array.from(new Set(displayExpenses.map((d) => d.category)))
+    const categoriesInData = Array.from(new Set(displayExpenses.map((d) => d.displayCategory)))
 
     const categories = [
       ...priority.filter((p) => categoriesInData.includes(p)),
@@ -153,7 +155,7 @@ export const VacationDash: React.FC = () => {
     ]
 
     const totals = categories.map((cat) =>
-      displayExpenses.filter((e) => e.category === cat).reduce((a, b) => a + b.amount, 0),
+      displayExpenses.filter((e) => e.displayCategory === cat).reduce((a, b) => a + b.amount, 0),
     )
     const grandTotal = totals.reduce((a, b) => a + b, 0) || 1
 
@@ -165,9 +167,36 @@ export const VacationDash: React.FC = () => {
       const dashArray = `${percentage * circumference} ${circumference}`
       const offset = currentOffset
       currentOffset -= percentage * circumference
-      return { cat, dashArray, offset }
+      return { cat, dashArray, offset, percentage, total: totals[i] }
     })
   }, [displayExpenses])
+
+  const formatCategoryLabel = (category: string): string => {
+    return category
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  const getCategoryStrokeClass = (category: string): string => {
+    if (category === 'flights') return 'stroke-pink-400'
+    if (category === 'food') return 'stroke-yellow-400'
+    if (category === 'hotel') return 'stroke-emerald-400'
+    return 'stroke-gray-400'
+  }
+
+  const getCategoryDotClass = (category: string): string => {
+    if (category === 'flights') return 'bg-pink-400'
+    if (category === 'food') return 'bg-yellow-400'
+    if (category === 'hotel') return 'bg-emerald-400'
+    return 'bg-gray-400'
+  }
+
+  const activeTooltipSegment = useMemo(() => {
+    if (chartData.length === 0) return null
+    return chartData.find((segment) => segment.cat === hoveredCategory) ?? chartData[0]
+  }, [chartData, hoveredCategory])
 
   if (loading) {
     return (
@@ -370,18 +399,13 @@ export const VacationDash: React.FC = () => {
                     {chartData.map((seg) => (
                       <circle
                         key={seg.cat}
-                        className={`hud-chart-circle hud-segment ${
-                          seg.cat === 'flights'
-                            ? 'stroke-pink-400'
-                            : seg.cat === 'food'
-                              ? 'stroke-yellow-400'
-                              : seg.cat === 'hotel'
-                                ? 'stroke-emerald-400'
-                                : 'stroke-gray-400'
-                        }`}
+                        className={`hud-chart-circle hud-segment ${getCategoryStrokeClass(seg.cat)}`}
                         cx="50"
                         cy="50"
                         r="40"
+                        onMouseEnter={() => setHoveredCategory(seg.cat)}
+                        onMouseLeave={() => setHoveredCategory(null)}
+                        aria-label={`${formatCategoryLabel(seg.cat)}: KR ${Math.floor(seg.total / 100)} (${Math.round(seg.percentage * 100)}%)`}
                         style={{
                           strokeDasharray: seg.dashArray,
                           strokeDashoffset: seg.offset,
@@ -392,23 +416,24 @@ export const VacationDash: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
+                  {activeTooltipSegment ? (
+                    <div className="glass-panel rounded-neo px-3 py-2 text-[0.7rem] text-[var(--color-text-primary)]">
+                      {`${formatCategoryLabel(activeTooltipSegment.cat)}: ${(
+                        activeTooltipSegment.percentage * 100
+                      ).toFixed(1)}% / KR ${Math.floor(activeTooltipSegment.total / 100)}`}
+                    </div>
+                  ) : null}
                   {chartData.map((seg) => (
                     <div
                       key={seg.cat}
                       className="flex items-center gap-2 text-[0.7rem] text-[var(--color-text-muted)]"
+                      onMouseEnter={() => setHoveredCategory(seg.cat)}
+                      onMouseLeave={() => setHoveredCategory(null)}
                     >
                       <span
-                        className={`w-2 h-2 rounded-full ${
-                          seg.cat === 'flights'
-                            ? 'bg-pink-400'
-                            : seg.cat === 'food'
-                              ? 'bg-yellow-400'
-                              : seg.cat === 'hotel'
-                                ? 'bg-emerald-400'
-                                : 'bg-gray-400'
-                        }`}
+                        className={`w-2 h-2 rounded-full ${getCategoryDotClass(seg.cat)}`}
                       />
-                      {seg.cat.charAt(0).toUpperCase() + seg.cat.slice(1)}
+                      {formatCategoryLabel(seg.cat)}
                     </div>
                   ))}
                 </div>
@@ -428,7 +453,7 @@ export const VacationDash: React.FC = () => {
           {/* Expense Ledger */}
           <div className="w-full">
             <ExpenseLedger
-              expenses={displayExpenses}
+              expenses={vacationExpenses}
               vacationId={vacationFund.id}
               onExpenseDeleted={handleExpenseDeleted}
               onEditExpense={handleEditExpense}
