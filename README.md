@@ -47,3 +47,10 @@ Includes a server-backed Loan Area for tracking loans given to others with due-d
 - Dashboard composition: [src/pages/Home.tsx](src/pages/Home.tsx)
 - Dashboard loan summary card: [src/components/LoanAreaCard.tsx](src/components/LoanAreaCard.tsx) showing totals and upcoming due dates
 - Loan management page: [src/pages/Loans.tsx](src/pages/Loans.tsx)
+### Vacation Dashboard (Ferie Tank)
+- See [docs/vacation-blueprint.md](docs/vacation-blueprint.md) for schema and UI details.
+- New inline days editor lets users adjust trip duration directly in the HUD; changes update daily allowance instantly.
+- Category chart (donut) visualizes expense breakdown with hover tooltips and custom category extraction.
+- HUD improvements: glassmorphic cards, status dots, progress rings, floored numeric values, and alert messaging.
+- All state logic and orchestration in [src/pages/VacationDash.tsx](src/pages/VacationDash.tsx); API wrapper in [src/services/vacationApi.ts](src/services/vacationApi.ts).
+- Maintain: update chart color mapping and legend logic for new categories; migrate hardcoded colors to theme tokens for full customization.

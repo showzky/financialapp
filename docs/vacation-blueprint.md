@@ -50,14 +50,40 @@ The Vacation Dashboard adheres to the **Glass HUD** design system but applies a 
   ```
 
 ### Color Mapping
-- **Flights**: Blue Accent
-- **Food**: Yellow/Orange Accent
-- **Hotel**: Purple Accent
-- **Miscellaneous**: Grey/Silver Accent
 
----
 
 ## 4. Theme Mapping
+---
+
+## 5. New Features & UI Improvements (2026)
+
+### Inline Days Editor
+- The dashboard now features an inline days editor for trip duration (`duration_days`). Users can click the pencil icon next to "Days" in the Daily Allowance card to edit the value directly. The input is glass-themed, numeric-only, and strips native browser steppers for a clean HUD look.
+- Changing the days updates the projected daily allowance immediately. The override is kept in local state until backend persistence is implemented.
+- Backend API must support `durationDays` in create/update endpoints and return it in `GET /vacations`.
+
+### Category Chart (Expense Sensors)
+- A new donut chart visualizes spending breakdown by category (flights, food, hotel, miscellaneous/custom). Segments use hardcoded accent colors for clarity, with legend dots matching segment colors.
+- Hovering a segment or legend item reveals a tooltip with percentage and total spent per category.
+- Custom categories are extracted from expense descriptions and displayed in the chart.
+
+### HUD Improvements
+- Glassmorphic HUD cards use updated color tokens and backdrop blur for improved clarity and contrast.
+- Status dots and progress rings use theme accent colors and glow effects.
+- All numeric values (daily allowance, pocket money) are floored for readability.
+- HUD alert messages are shown for errors or invalid input, styled with glass panels and accent borders.
+
+### Component & State Logic
+- `VacationDash.tsx` orchestrates state for fund, expenses, days override, chart hover, and modal visibility.
+- Inline days editor is managed via `isEditingDays` and `customDaysRemaining` state.
+- Chart data is computed from filtered expenses, with custom category extraction and segment ordering.
+- API wrapper (`vacationApi`) must handle new fields and error states.
+
+### Maintainers' Notes
+- When adding new expense categories, update chart color mapping and legend logic.
+- Consider migrating hardcoded chart colors to theme tokens for full customization.
+- Inline days override is local-only; backend persistence should be implemented for multi-device support.
+- See `src/pages/VacationDash.tsx` for orchestration and UI logic; `src/types/vacation.ts` for schema.
 
 The Vacation Dashboard integrates with the global theme system, mapping dashboard elements to CSS custom properties for consistent light and dark mode support. All color tokens are defined in `src/styles/theme.css` and can be overridden by theme presets in `src/styles/themePresets.ts`.
 

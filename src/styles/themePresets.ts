@@ -4,6 +4,8 @@ export type ThemeTokenName =
   | '--color-surface-strong'
   | '--color-accent'
   | '--color-accent-strong'
+  | '--accent-rgb'
+  | '--accent-strong-rgb'
   | '--color-text-primary'
   | '--color-text-muted'
   | '--color-shadow-dark'
@@ -30,6 +32,8 @@ export const themePresets: ThemePreset[] = [
       '--color-surface-strong': '#dde6f5',
       '--color-accent': '#667cff',
       '--color-accent-strong': '#4e63dd',
+      '--accent-rgb': '102, 124, 255',
+      '--accent-strong-rgb': '78, 99, 221',
       '--color-text-primary': '#1d2b45',
       '--color-text-muted': '#66779a',
       '--color-shadow-dark': '#c4cfde',
@@ -47,6 +51,8 @@ export const themePresets: ThemePreset[] = [
       '--color-surface-strong': '#242f44',
       '--color-accent': '#24cdb4',
       '--color-accent-strong': '#16a892',
+      '--accent-rgb': '36, 205, 180',
+      '--accent-strong-rgb': '22, 168, 146',
       '--color-text-primary': '#ecf4ff',
       '--color-text-muted': '#9fb0ce',
       '--color-shadow-dark': '#121824',
@@ -64,6 +70,8 @@ export const themePresets: ThemePreset[] = [
       '--color-surface-strong': '#ffe3d8',
       '--color-accent': '#f178a7',
       '--color-accent-strong': '#d95488',
+      '--accent-rgb': '241, 120, 167',
+      '--accent-strong-rgb': '217, 84, 136',
       '--color-text-primary': '#3d2a33',
       '--color-text-muted': '#8f6d7d',
       '--color-shadow-dark': '#e7c5b8',

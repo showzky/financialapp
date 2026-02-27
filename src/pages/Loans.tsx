@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AddLoanModal } from '@/components/AddLoanModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { EditLoanModal } from '@/components/EditLoanModal'
 import { LoanTable } from '@/components/LoanTable'
 import { RecurringAutomationToast } from '@/components/RecurringAutomationToast'
 import { loanApi } from '@/services/loanApi'
-import type { CreateLoanPayload, Loan } from '@/types/loan'
+import type { CreateLoanPayload, Loan, UpdateLoanPayload } from '@/types/loan'
 import { formatCurrency } from '@/utils/currency'
 
 type LoanFilter = 'all' | 'outstanding' | 'due_soon' | 'overdue' | 'repaid'
@@ -24,14 +25,16 @@ export const Loans = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [filter, setFilter] = useState<LoanFilter>('all')
   const [markingId, setMarkingId] = useState<string | null>(null)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('') // ADDED THIS
+  const [searchQuery, setSearchQuery] = useState('')
+  const [editingLoanId, setEditingLoanId] = useState<string | null>(null)
+  const [highlightedLoanId, setHighlightedLoanId] = useState<string | null>(null)
 
   const loadLoans = async () => {
     setIsLoading(true)
-
     try {
       const rows = await loanApi.list()
       setLoans(rows)
@@ -47,15 +50,47 @@ export const Loans = () => {
     void loadLoans()
   }, [])
 
+  useEffect(() => {
+    if (!highlightedLoanId) {
+      return
+    }
+    const timer = window.setTimeout(() => setHighlightedLoanId(null), 1300)
+    return () => window.clearTimeout(timer)
+  }, [highlightedLoanId])
+
   const handleCreateLoan = async (payload: CreateLoanPayload) => {
     const created = await loanApi.create(payload)
     setLoans((current) => [created, ...current])
     setError('')
   }
 
+  const handleOpenEdit = (loan: Loan) => {
+    setEditingLoanId(loan.id)
+  }
+
+  const handleCloseEdit = () => {
+    setEditingLoanId(null)
+  }
+
+  const handleUpdateLoan = async (id: string, payload: UpdateLoanPayload) => {
+    setUpdatingId(id)
+    try {
+      const updated = await loanApi.update(id, payload)
+      setLoans((current) => current.map((loan) => (loan.id === id ? updated : loan)))
+      setHighlightedLoanId(id)
+      setSuccessMessage('Loan updated')
+      setError('')
+    } catch (updateError) {
+      const message = updateError instanceof Error ? updateError.message : 'Could not update loan'
+      setError(message)
+      throw updateError instanceof Error ? updateError : new Error(message)
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   const handleMarkRepaid = async (id: string) => {
     setMarkingId(id)
-
     try {
       const updated = await loanApi.markRepaid(id)
       setLoans((current) => current.map((loan) => (loan.id === id ? updated : loan)))
@@ -66,10 +101,6 @@ export const Loans = () => {
     }
   }
 
-  // `LoanTable` declares onDelete as a callback returning a Promise<void> so
-  // our handler must match that signature. The logic here is synchronous but
-  // marking the function `async` causes it to implicitly return a
-  // `Promise<void>` and keeps TypeScript happy.
   const requestDelete = async (id: string) => {
     setPendingDeleteId(id)
   }
@@ -79,29 +110,31 @@ export const Loans = () => {
     setPendingDeleteId(null)
     try {
       await loanApi.remove(id)
-      setLoans((current) => current.filter((l) => l.id !== id))
+      setLoans((current) => current.filter((loan) => loan.id !== id))
       setSuccessMessage('Loan deleted')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete loan')
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete loan')
     } finally {
       setDeletingId(null)
     }
   }
 
-  const filteredLoans = useMemo(() => { // CHANGED THIS
+  const filteredLoans = useMemo(() => {
     let result = loans
-
     if (filter !== 'all') {
       result = result.filter((loan) => loan.status === filter)
     }
-
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim()
-      result = result.filter((loan) => loan.recipient.toLowerCase().includes(q))
+      const query = searchQuery.toLowerCase().trim()
+      result = result.filter((loan) => loan.recipient.toLowerCase().includes(query))
     }
-
     return result
   }, [filter, loans, searchQuery])
+
+  const editingLoan = useMemo(
+    () => loans.find((loan) => loan.id === editingLoanId) ?? null,
+    [editingLoanId, loans],
+  )
 
   const outstandingTotal = useMemo(
     () =>
@@ -131,14 +164,13 @@ export const Loans = () => {
           </button>
         </header>
 
-        {/* ADDED THIS: Search Input with Glass HUD bridge styling */}
         <div className="relative max-w-md">
           <input
             type="text"
             placeholder="Search by recipient..."
             aria-label="Search loans by recipient"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
             className="glass-panel w-full bg-white/5 py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted/70 focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
@@ -178,7 +210,7 @@ export const Loans = () => {
               onClick={() => setFilter(filterKey)}
               className={`glass-panel px-3 py-2 text-xs font-semibold transition-all ${
                 filter === filterKey
-                  ? 'bg-primary/20 text-text-primary border-primary/40'
+                  ? 'border-primary/40 bg-primary/20 text-text-primary'
                   : 'text-text-muted hover:bg-white/5'
               }`}
             >
@@ -197,16 +229,19 @@ export const Loans = () => {
         )}
 
         {isLoading ? (
-          <div className="glass-panel p-6 text-sm text-text-muted">Loading loans…</div>
+          <div className="glass-panel p-6 text-sm text-text-muted">Loading loans...</div>
         ) : (
           <LoanTable
             loans={filteredLoans}
             currencySymbol="KR"
             onMarkRepaid={handleMarkRepaid}
             markingId={markingId}
+            onEdit={handleOpenEdit}
+            updatingId={updatingId}
+            highlightedLoanId={highlightedLoanId}
             onDelete={requestDelete}
             deletingId={deletingId}
-            emptyMessage={ // ADDED THIS
+            emptyMessage={
               searchQuery
                 ? `No loans match "${searchQuery}"`
                 : filter !== 'all'
@@ -220,6 +255,13 @@ export const Loans = () => {
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onSubmit={handleCreateLoan}
+        />
+
+        <EditLoanModal
+          isOpen={editingLoanId !== null}
+          loan={editingLoan}
+          onClose={handleCloseEdit}
+          onSubmit={handleUpdateLoan}
         />
 
         {pendingDeleteId && (

@@ -125,7 +125,7 @@ describe('LoanTable', () => {
     expect(mockOnDelete).toHaveBeenCalledWith('2') // repaid loan id
   })
 
-  it('shows "Deleting…" with glass-panel style when deletingId matches', () => {
+  it('shows "Deleting..." with glass-panel style when deletingId matches', () => {
     render(
       <LoanTable
         loans={sampleLoans}
@@ -137,7 +137,7 @@ describe('LoanTable', () => {
       />,
     )
 
-    const deletingBtn = screen.getByText('Deleting…')
+    const deletingBtn = screen.getByText('Deleting...')
     expect(deletingBtn).toBeInTheDocument()
     expect(deletingBtn).toHaveClass('glass-panel')
   })

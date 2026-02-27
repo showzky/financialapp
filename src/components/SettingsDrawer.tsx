@@ -132,9 +132,8 @@ export const SettingsDrawer = ({
                   const isActive = selectedPresetId === theme.id
 
                   return (
-                    <div role="listitem">
+                    <div key={theme.id} role="listitem">
                       <button
-                        key={theme.id}
                         type="button"
                         onClick={() => {
                           try {
