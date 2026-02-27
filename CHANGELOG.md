@@ -13,11 +13,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
   - New semantic CSS variables for status indicators: `--color-success`, `--color-warning`, and `--color-error` (mapped to Tailwind).
   - Accessibility improvements (WCAG 2.1 AA) ensuring high-contrast text on glass backgrounds and status badges.
 - Documentation updates for the Loan Tracking Area on the dashboard, including a new `docs/loan-tracking.md` guide and expanded README/backend README notes.
+- Subscription Ledger now uses locale-aware formatting with `Intl.NumberFormat` and `Intl.DateTimeFormat`, with centralized locale/currency defaults and currency fallback to `NOK`.
 
 ### Changed
 
 - Refactored `Loans.tsx` and `LoanTable.tsx` to transition from pure Neumorphism to a hybrid HUD-style glassmorphic interface.
 - Loans page scrollbar now uses a green “success” theme instead of pink; added `--color-success` CSS variable and updated utility class to `scrollbar-success`.
+- Subscriptions empty-state UX now distinguishes between no backend data and filtered-empty results, with accessible live-region status messaging.
 ## [1.2.1] - 2026-02-21
 
 ### Added

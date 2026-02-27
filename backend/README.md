@@ -92,6 +92,7 @@ It prints these values for `backend/.env`:
 - `PATCH /api/v1/loans/:id`
 - `PATCH /api/v1/loans/:id/repaid`
 - `DELETE /api/v1/loans/:id`
+- `GET /api/v1/subscriptions`
 
 ### Loans migration
 

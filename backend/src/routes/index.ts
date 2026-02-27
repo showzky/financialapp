@@ -6,6 +6,7 @@ import { transactionRouter } from './transactionRoutes.js'
 import { userRouter } from './userRoutes.js'
 import { wishlistRouter } from './wishlistRoutes.js'
 import { vacationRouter } from './vacationRoutes.js'
+import { subscriptionRouter } from './subscriptionRoutes.js'
 
 export const apiRouter = Router()
 
@@ -15,3 +16,4 @@ apiRouter.use('/transactions', transactionRouter)
 apiRouter.use('/users', userRouter)
 apiRouter.use('/wishlist', wishlistRouter)
 apiRouter.use('/vacations', vacationRouter)
+apiRouter.use('/subscriptions', subscriptionRouter)

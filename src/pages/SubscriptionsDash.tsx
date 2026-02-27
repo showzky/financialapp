@@ -1,64 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { SubscriptionLedger, type Subscription } from '@/components/subscriptions/SubscriptionLedger'
 import '@/styles/hud.css'
 import { SubscriptionModal } from '@/components/subscriptions/SubscriptionModal'
-
-
-
-const uid = () => crypto.randomUUID()
-const toISODate = (value: Date) => value.toISOString().slice(0, 10)
+import { subscriptionApi } from '@/services/subscriptionApi'
 
 export const SubscriptionsDash: React.FC = () => {
   const [hudAlert, setHudAlert] = useState('')
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>(() => {
-    const stored = localStorage.getItem('subscriptions')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Subscription[]
-        if (Array.isArray(parsed) && parsed.every((s) => typeof s.id === 'string')) {
-          return parsed
-        }
-      } catch (e) {
-          console.warn('Failed to parse stored subscriptions, using defaults.', e)
-        }
-    }
-    const today = new Date()
-    return [
-      
-      {
-        id: uid(),
-        name: 'CineStream',
-        provider: 'CineStream',
-        category: 'streaming',
-        status: 'active',
-        cadence: 'monthly',
-        priceCents: 12900,
-        nextRenewalDate: toISODate(new Date(today.getTime() + 9 * 24 * 60 * 60 * 1000)),
-        notes: 'Family plan',
-      },
-      {
-        id: uid(),
-        name: 'Cloud Vault',
-        provider: 'Nimbus',
-        category: 'cloud',
-        status: 'active',
-        cadence: 'yearly',
-        priceCents: 69900,
-        nextRenewalDate: toISODate(new Date(today.getTime() + 61 * 24 * 60 * 60 * 1000)),
-      },
-      {
-        id: uid(),
-        name: 'Gym Access',
-        provider: 'IronWorks',
-        category: 'fitness',
-        status: 'paused',
-        cadence: 'monthly',
-        priceCents: 34900,
-        nextRenewalDate: toISODate(new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000)),
-        notes: 'Paused while traveling',
-      },
-    ]
-  })
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null)
 
@@ -71,9 +21,22 @@ export const SubscriptionsDash: React.FC = () => {
     [subscriptions],
   )
 
+  const loadSubscriptions = useCallback(async () => {
+    setIsLoading(true)
+    setLoadError('')
+    try {
+      const rows = await subscriptionApi.list()
+      setSubscriptions(rows)
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Could not load subscriptions')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    localStorage.setItem('subscriptions', JSON.stringify(subscriptions))
-  }, [subscriptions])
+    void loadSubscriptions()
+  }, [loadSubscriptions])
 
   const handleEdit = (subscription: Subscription) => {
     setEditingSubscription(subscription)
@@ -119,7 +82,9 @@ export const SubscriptionsDash: React.FC = () => {
 
         <SubscriptionLedger
           subscriptions={subscriptions}
-          currencySymbol="KR"
+          isLoading={isLoading}
+          loadError={loadError}
+          onRetryLoad={loadSubscriptions}
           onEdit={handleEdit}
           onAdd={handleAddClick}
           onToggleStatus={handleToggleStatus}

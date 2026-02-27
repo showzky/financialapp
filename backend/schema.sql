@@ -72,6 +72,21 @@ CREATE TABLE IF NOT EXISTS loans_given (
   CHECK (expected_repayment_date >= date_given)
 );
 
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  category TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'canceled')),
+  cadence TEXT NOT NULL DEFAULT 'monthly' CHECK (cadence IN ('monthly', 'yearly')),
+  price_cents INTEGER NOT NULL CHECK (price_cents > 0),
+  next_renewal_date DATE NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE wishlist_items
 ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'Medium';
 
@@ -170,6 +185,8 @@ CREATE INDEX IF NOT EXISTS idx_wishlist_price_snapshots_item_id ON wishlist_pric
 CREATE INDEX IF NOT EXISTS idx_wishlist_price_snapshots_user_id ON wishlist_price_snapshots(user_id);
 CREATE INDEX IF NOT EXISTS idx_loans_given_user_id ON loans_given(user_id);
 CREATE INDEX IF NOT EXISTS idx_loans_given_user_repaid_expected ON loans_given(user_id, repaid_at, expected_repayment_date);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_next_renewal ON subscriptions(user_id, next_renewal_date);
 
 INSERT INTO wishlist_price_snapshots (wishlist_item_id, user_id, price, captured_at)
 SELECT

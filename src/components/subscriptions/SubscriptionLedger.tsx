@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { formatCurrency } from '@/utils/currency'
+import { getLocaleCurrencyConfig } from '@/utils/localeFormatting'
 
 export type BillingCadence = 'monthly' | 'yearly'
 export type SubscriptionStatus = 'active' | 'paused' | 'canceled'
@@ -18,7 +18,11 @@ export type Subscription = {
 
 export type SubscriptionLedgerProps = {
   subscriptions: Subscription[]
-  currencySymbol?: string
+  locale?: string
+  currency?: string
+  isLoading?: boolean
+  loadError?: string
+  onRetryLoad?: () => void
   onEdit: (subscription: Subscription) => void
   onAdd: () => void
   onToggleStatus: (subscription: Subscription) => void
@@ -30,7 +34,34 @@ const monthlyEquivalentCents = (sub: Subscription): number => {
   return Math.round(sub.priceCents / 12)
 }
 
-const formatCents = (cents: number, symbol: string) => formatCurrency(Math.round(cents / 100), symbol)
+const formatCents = (cents: number, formatter: Intl.NumberFormat) => formatter.format(cents / 100)
+
+const parseIsoDate = (value: string): Date | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(year, month - 1, day)
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null
+  }
+
+  return date
+}
+
+const formatRenewalDate = (value: string, formatter: Intl.DateTimeFormat): string => {
+  const parsed = parseIsoDate(value)
+  if (!parsed) return value
+  return formatter.format(parsed)
+}
 
 const statusLabel = (status: SubscriptionStatus): string => {
   if (status === 'active') return 'active'
@@ -40,7 +71,11 @@ const statusLabel = (status: SubscriptionStatus): string => {
 
 export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
   subscriptions,
-  currencySymbol = 'KR',
+  locale,
+  currency,
+  isLoading = false,
+  loadError = '',
+  onRetryLoad,
   onAdd,
   onEdit,
   onToggleStatus,
@@ -48,6 +83,47 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
 }) => {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'all'>('all')
+
+  const localeCurrency = useMemo(
+    () => getLocaleCurrencyConfig({ locale, currency }),
+    [locale, currency],
+  )
+
+  const currencyFormatter = useMemo(
+    () => {
+      try {
+        return new Intl.NumberFormat(localeCurrency.locale, {
+          style: 'currency',
+          currency: localeCurrency.currency,
+        })
+      } catch {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'NOK',
+        })
+      }
+    },
+    [localeCurrency],
+  )
+
+  const dateFormatter = useMemo(
+    () => {
+      try {
+        return new Intl.DateTimeFormat(localeCurrency.locale, {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit',
+        })
+      } catch {
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit',
+        })
+      }
+    },
+    [localeCurrency.locale],
+  )
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -65,6 +141,9 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
       .sort((a, b) => a.nextRenewalDate.localeCompare(b.nextRenewalDate))
   }, [search, statusFilter, subscriptions])
 
+  const skeletonRows = [1, 2, 3, 4]
+  const hasFilters = search.trim().length > 0 || statusFilter !== 'all'
+
   return (
     <div className="hud-glass-card">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -78,7 +157,6 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
-            // TODO (wire-up): connect this to open your "Add Subscription" modal in the parent page.
             onClick={onAdd}
             className="glass-panel w-full px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10 sm:w-auto"
             aria-label="Add subscription"
@@ -88,7 +166,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search name/provider/category…"
+            placeholder="Search name/provider/category..."
             className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)] placeholder-text-muted sm:w-72"
           />
           <select
@@ -116,10 +194,70 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
             </tr>
           </thead>
           <tbody className="text-[var(--color-text-primary)]">
-            {filtered.length === 0 ? (
+            {isLoading ? (
+              skeletonRows.map((row) => (
+                <tr
+                  key={`skeleton-${row}`}
+                  className="border-b border-white/5 animate-pulse"
+                  data-testid="subscription-skeleton-row"
+                >
+                  <td className="py-4 pr-4">
+                    <div className="h-4 w-28 rounded bg-white/10" />
+                    <div className="mt-2 h-3 w-36 rounded bg-white/5" />
+                  </td>
+                  <td className="py-4 pr-4">
+                    <div className="h-4 w-20 rounded bg-white/10" />
+                    <div className="mt-2 h-3 w-24 rounded bg-white/5" />
+                  </td>
+                  <td className="py-4 pr-4">
+                    <div className="h-4 w-24 rounded bg-white/10" />
+                  </td>
+                  <td className="py-4 pr-4">
+                    <div className="h-6 w-16 rounded bg-white/10" />
+                  </td>
+                  <td className="py-4">
+                    <div className="ml-auto flex w-fit gap-2">
+                      <div className="h-8 w-14 rounded bg-white/10" />
+                      <div className="h-8 w-16 rounded bg-white/10" />
+                      <div className="h-8 w-14 rounded bg-white/10" />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : loadError ? (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-[var(--color-text-muted)]">
-                  No subscriptions match this scan.
+                <td colSpan={5} className="py-6">
+                  <div
+                    className="glass-panel flex flex-col gap-3 border border-red-400/30 px-4 py-3 text-red-200 sm:flex-row sm:items-center sm:justify-between"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span>{loadError}</span>
+                    <button
+                      type="button"
+                      onClick={onRetryLoad}
+                      className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-all hover:bg-white/10"
+                      aria-label="Retry loading subscriptions"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : subscriptions.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-6">
+                  <div className="text-center text-[var(--color-text-muted)]" role="status" aria-live="polite">
+                    No subscriptions yet. Add your first subscription.
+                  </div>
+                </td>
+              </tr>
+            ) : filtered.length === 0 && hasFilters ? (
+              <tr>
+                <td colSpan={5} className="py-6">
+                  <div className="text-center text-[var(--color-text-muted)]" role="status" aria-live="polite">
+                    No subscriptions match your current search/filter.
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -128,22 +266,22 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                   <td className="py-4 pr-4">
                     <div className="hud-monospaced">{sub.name}</div>
                     <div className="text-xs text-[var(--color-text-muted)]">
-                      {sub.provider} • {sub.category}
+                      {sub.provider} - {sub.category}
                     </div>
                   </td>
                   <td className="py-4 pr-4">
                     <div className="hud-monospaced">
-                      {formatCents(sub.priceCents, currencySymbol)}
+                      {formatCents(sub.priceCents, currencyFormatter)}
                       <span className="text-[var(--color-text-muted)]">
                         {sub.cadence === 'monthly' ? ' /mo' : ' /yr'}
                       </span>
                     </div>
                     <div className="text-xs text-[var(--color-text-muted)]">
-                      Eq: {formatCents(monthlyEquivalentCents(sub), currencySymbol)} /mo
+                      Eq: {formatCents(monthlyEquivalentCents(sub), currencyFormatter)} /mo
                     </div>
                   </td>
                   <td className="py-4 pr-4">
-                    <div className="hud-monospaced">{sub.nextRenewalDate}</div>
+                    <div className="hud-monospaced">{formatRenewalDate(sub.nextRenewalDate, dateFormatter)}</div>
                   </td>
                   <td className="py-4 pr-4">
                     <span className="glass-panel inline-flex px-3 py-1 text-xs">
@@ -159,7 +297,6 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                       >
                         Edit
                       </button>
-                     
                       <button
                         type="button"
                         onClick={() => onToggleStatus(sub)}
@@ -167,9 +304,15 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                       >
                         {sub.status === 'active' ? 'Pause' : 'Activate'}
                       </button>
-                       <button type="button" onClick={() => onDelete?.(sub)} className="glass-panel px-3 py-2 text-xs font-semibold text-red-400 transition-all hover:bg-white/10">
-                        Delete
-                      </button>
+                      {onDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(sub)}
+                          className="glass-panel px-3 py-2 text-xs font-semibold text-red-400 transition-all hover:bg-white/10"
+                        >
+                          Delete
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
