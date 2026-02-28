@@ -511,7 +511,7 @@ export const WishlistItemCard = ({
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2.5">
         <div className="space-y-1">
-          <h3 className="line-clamp-2 text-base font-semibold leading-tight text-text-primary md:text-lg">
+          <h3 className="line-clamp-2 text-base font-semibold leading-tight text-slate-900 md:text-lg">
             {item.title}
           </h3>
 
