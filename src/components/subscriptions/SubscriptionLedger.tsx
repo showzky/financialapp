@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { getLocaleCurrencyConfig } from '@/utils/localeFormatting'
 
 export type BillingCadence = 'monthly' | 'yearly'
@@ -20,6 +20,7 @@ export type SubscriptionLedgerProps = {
   subscriptions: Subscription[]
   locale?: string
   currency?: string
+  pageSize?: number
   isLoading?: boolean
   loadError?: string
   onRetryLoad?: () => void
@@ -69,10 +70,21 @@ const statusLabel = (status: SubscriptionStatus): string => {
   return 'canceled'
 }
 
+type SortKey = 'name' | 'price' | 'next' | 'status'
+type SortDirection = 'asc' | 'desc'
+const statusSortOrder: Record<SubscriptionStatus, number> = {
+  active: 0,
+  paused: 1,
+  canceled: 2,
+}
+
+const compareStrings = (left: string, right: string): number => left.localeCompare(right)
+
 export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
   subscriptions,
   locale,
   currency,
+  pageSize = 10,
   isLoading = false,
   loadError = '',
   onRetryLoad,
@@ -81,8 +93,23 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
   onToggleStatus,
   onDelete,
 }) => {
-  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'all'>('all')
+  const [sortKey, setSortKey] = useState<SortKey>('next')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchInput)
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearch, statusFilter, sortKey, sortDirection])
 
   const localeCurrency = useMemo(
     () => getLocaleCurrencyConfig({ locale, currency }),
@@ -126,7 +153,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
   )
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = debouncedSearch.trim().toLowerCase()
     return subscriptions
       .filter((s) => (statusFilter === 'all' ? true : s.status === statusFilter))
       .filter((s) => {
@@ -137,12 +164,65 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
           s.category.toLowerCase().includes(q)
         )
       })
-      .slice()
-      .sort((a, b) => a.nextRenewalDate.localeCompare(b.nextRenewalDate))
-  }, [search, statusFilter, subscriptions])
+  }, [debouncedSearch, statusFilter, subscriptions])
+
+  const sorted = useMemo(() => {
+    const next = filtered.slice().sort((left, right) => {
+      let result = 0
+
+      if (sortKey === 'name') {
+        result = compareStrings(left.name, right.name)
+        if (result === 0) result = compareStrings(left.id, right.id)
+      } else if (sortKey === 'price') {
+        result = left.priceCents - right.priceCents
+        if (result === 0) result = compareStrings(left.nextRenewalDate, right.nextRenewalDate)
+        if (result === 0) result = compareStrings(left.id, right.id)
+      } else if (sortKey === 'status') {
+        result = statusSortOrder[left.status] - statusSortOrder[right.status]
+        if (result === 0) result = compareStrings(left.nextRenewalDate, right.nextRenewalDate)
+        if (result === 0) result = compareStrings(left.id, right.id)
+      } else {
+        result = compareStrings(left.nextRenewalDate, right.nextRenewalDate)
+        if (result === 0) result = compareStrings(left.id, right.id)
+      }
+
+      return sortDirection === 'asc' ? result : -result
+    })
+
+    return next
+  }, [filtered, sortDirection, sortKey])
+
+  const totalItems = sorted.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const pageStart = (safeCurrentPage - 1) * pageSize
+  const pageEnd = pageStart + pageSize
+  const paginatedRows = sorted.slice(pageStart, pageEnd)
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setSortKey(key)
+    setSortDirection('asc')
+  }
+
+  const getAriaSort = (key: SortKey): 'none' | 'ascending' | 'descending' => {
+    if (sortKey !== key) return 'none'
+    return sortDirection === 'asc' ? 'ascending' : 'descending'
+  }
 
   const skeletonRows = [1, 2, 3, 4]
-  const hasFilters = search.trim().length > 0 || statusFilter !== 'all'
+  const hasFilters = searchInput.trim().length > 0 || statusFilter !== 'all'
+  const shouldShowPagination =
+    !isLoading && !loadError && subscriptions.length > 0 && filtered.length > 0 && totalPages > 1
 
   return (
     <div className="hud-glass-card">
@@ -164,8 +244,8 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
             Add Subscription
           </button>
           <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Search name/provider/category..."
             className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)] placeholder-text-muted sm:w-72"
           />
@@ -179,6 +259,21 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
             <option value="paused">Paused</option>
             <option value="canceled">Canceled</option>
           </select>
+          {hasFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput('')
+                setDebouncedSearch('')
+                setStatusFilter('all')
+                setCurrentPage(1)
+              }}
+              className="glass-panel w-full px-3 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition-all hover:bg-white/10 sm:w-auto"
+              aria-label="Clear search and status filters"
+            >
+              Clear filters
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -186,10 +281,46 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
         <table className="w-full text-left text-sm">
           <thead className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">
             <tr className="border-b border-white/10">
-              <th className="py-3 pr-4">Node</th>
-              <th className="py-3 pr-4">Price</th>
-              <th className="py-3 pr-4">Next</th>
-              <th className="py-3 pr-4">Status</th>
+              <th className="py-3 pr-4" aria-sort={getAriaSort('name')}>
+                <button
+                  type="button"
+                  onClick={() => handleSort('name')}
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  aria-label="Sort by name"
+                >
+                  Node
+                </button>
+              </th>
+              <th className="py-3 pr-4" aria-sort={getAriaSort('price')}>
+                <button
+                  type="button"
+                  onClick={() => handleSort('price')}
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  aria-label="Sort by price"
+                >
+                  Price
+                </button>
+              </th>
+              <th className="py-3 pr-4" aria-sort={getAriaSort('next')}>
+                <button
+                  type="button"
+                  onClick={() => handleSort('next')}
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  aria-label="Sort by next renewal date"
+                >
+                  Next
+                </button>
+              </th>
+              <th className="py-3 pr-4" aria-sort={getAriaSort('status')}>
+                <button
+                  type="button"
+                  onClick={() => handleSort('status')}
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  aria-label="Sort by status"
+                >
+                  Status
+                </button>
+              </th>
               <th className="py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -261,7 +392,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                 </td>
               </tr>
             ) : (
-              filtered.map((sub) => (
+              paginatedRows.map((sub) => (
                 <tr key={sub.id} className="border-b border-white/5">
                   <td className="py-4 pr-4">
                     <div className="hud-monospaced">{sub.name}</div>
@@ -321,6 +452,37 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
           </tbody>
         </table>
       </div>
+
+      {shouldShowPagination ? (
+        <div className="mt-4 flex items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]">
+          <div>
+            Showing {pageStart + 1}-{Math.min(pageEnd, totalItems)} of {totalItems}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="glass-panel px-3 py-2 font-semibold text-text-primary transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Go to previous page"
+            >
+              Prev
+            </button>
+            <span className="hud-monospaced" aria-live="polite">
+              Page {safeCurrentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safeCurrentPage === totalPages}
+              className="glass-panel px-3 py-2 font-semibold text-text-primary transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Go to next page"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

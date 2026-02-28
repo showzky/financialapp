@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning principles.
 
-## [Unreleased]
+## [1.3.0] - 2026-02-28
 
 ### Added
 
@@ -20,6 +20,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Refactored `Loans.tsx` and `LoanTable.tsx` to transition from pure Neumorphism to a hybrid HUD-style glassmorphic interface.
 - Loans page scrollbar now uses a green “success” theme instead of pink; added `--color-success` CSS variable and updated utility class to `scrollbar-success`.
 - Subscriptions empty-state UX now distinguishes between no backend data and filtered-empty results, with accessible live-region status messaging.
+
+## [Unreleased]
 ## [1.2.1] - 2026-02-21
 
 ### Added

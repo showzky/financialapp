@@ -86,5 +86,26 @@ describe('SubscriptionsDash loading and error flow', () => {
       expect(screen.getByText('CineStream')).toBeInTheDocument()
     })
   })
-})
 
+  it('shows pagination controls when a successful load has many subscriptions', async () => {
+    const manyRows: Subscription[] = Array.from({ length: 12 }, (_, index) => ({
+      id: `sub-${index + 1}`,
+      name: `Sub ${String(index + 1).padStart(2, '0')}`,
+      provider: 'Provider',
+      category: 'streaming',
+      status: 'active',
+      cadence: 'monthly',
+      priceCents: 10000 + index,
+      nextRenewalDate: `2026-03-${String((index % 28) + 1).padStart(2, '0')}`,
+    }))
+
+    mockedList.mockResolvedValueOnce(manyRows)
+
+    render(<SubscriptionsDash />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Page 1 / 2')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Go to next page' })).toBeInTheDocument()
+  })
+})
