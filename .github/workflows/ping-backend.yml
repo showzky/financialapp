@@ -1,0 +1,17 @@
+name: keep backend awake
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: curl health check
+        run: |
+          curl --fail --silent --show-error \
+               https://finance.tonningdrive.no/health \
+               -o /dev/null
