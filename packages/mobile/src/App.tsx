@@ -1,122 +1,85 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react'
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
-import { wishlistApi, type WishlistItem } from '@financial-app/shared'
+import React from 'react'
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+import { Ionicons } from '@expo/vector-icons'
 
-export default function App() {
-  const [items, setItems] = useState<WishlistItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+import { HomeScreen } from './screens/HomeScreen'
+import { LoansScreen } from './screens/LoansScreen'
+import { WishlistScreen } from './screens/WishlistScreen'
+import { IndicatorsScreen } from './screens/IndicatorsScreen'
+import { SettingsScreen } from './screens/SettingsScreen'
 
-  useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await wishlistApi.list()
-        setItems(data)
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load wishlist'
-        setError(message)
-        console.error('Error loading wishlist:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+const Stack = createNativeStackNavigator()
+const Tab = createBottomTabNavigator()
 
-    void loadWishlist()
-  }, [])
-
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.text}>Loading wishlist...</Text>
-      </View>
-    )
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-      </View>
-    )
-  }
-
+function HomeTabs() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Your Wishlist ({items.length})</Text>
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemPrice}>
-              {item.price ? `NOK ${item.price}` : 'No price'}
-            </Text>
-            <Text style={styles.itemMeta}>{item.category || 'Uncategorized'}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.centerContainer}>
-            <Text style={styles.text}>No items in your wishlist yet</Text>
-          </View>
-        }
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: true,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap = 'home'
+
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline'
+          } else if (route.name === 'Loans') {
+            iconName = focused ? 'document-text' : 'document-text-outline'
+          } else if (route.name === 'Wishlist') {
+            iconName = focused ? 'heart' : 'heart-outline'
+          } else if (route.name === 'Indicators') {
+            iconName = focused ? 'stats-chart' : 'stats-chart-outline'
+          } else if (route.name === 'Settings') {
+            iconName = focused ? 'settings' : 'settings-outline'
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />
+        },
+        tabBarActiveTintColor: '#3b82f6',
+        tabBarInactiveTintColor: '#9ca3af',
+        tabBarLabelStyle: { fontSize: 12 },
+      })}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ title: 'Dashboard' }}
       />
-    </View>
+      <Tab.Screen
+        name="Loans"
+        component={LoansScreen}
+        options={{ title: 'Loans' }}
+      />
+      <Tab.Screen
+        name="Wishlist"
+        component={WishlistScreen}
+        options={{ title: 'Wishlist' }}
+      />
+      <Tab.Screen
+        name="Indicators"
+        component={IndicatorsScreen}
+        options={{ title: 'Overview' }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: 'Settings' }}
+      />
+    </Tab.Navigator>
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: 40,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    color: '#333',
-  },
-  card: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#6c7df0',
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  itemPrice: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  itemMeta: {
-    fontSize: 12,
-    color: '#999',
-  },
-  text: {
-    fontSize: 16,
-    color: '#666',
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#d32f2f',
-  },
-})
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="MainTabs" component={HomeTabs} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  )
+}
