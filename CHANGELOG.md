@@ -22,6 +22,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Subscriptions empty-state UX now distinguishes between no backend data and filtered-empty results, with accessible live-region status messaging.
 
 ## [Unreleased]
+
+### Added
+
+- Subscriptions dashboard delete flow now requires explicit confirmation before removing an item.
+- Added reusable `AppToast` behavior (success/error/info variants, auto-dismiss, manual dismiss) with compatibility alias for existing recurring automation callsites.
+- Added subscription CRUD and status-toggle backend endpoints (`POST/PATCH/DELETE /api/v1/subscriptions`, `PATCH /api/v1/subscriptions/:id/toggle-status`).
+- Added backend subscription request validation schema and expanded frontend `subscriptionApi` methods/types for create, update, delete, and status toggle flows.
+- Added subscription telemetry instrumentation for load/create/update/delete/toggle success and failure outcomes.
+- Added subscription-focused automated tests across backend and frontend, including migration/route contract checks and mutation failure-path coverage.
+
+### Changed
+
+- Replaced Subscriptions dashboard HUD alert banner success feedback with transient toast messages for add, edit, delete, and pause/activate actions.
+- Improved confirmation modal close button accessibility via explicit close label and standardized close glyph.
+- Removed horizontal scanning sweep animation from the Subscriptions dashboard UI (still present on Vacation page).
+
 ## [1.2.1] - 2026-02-21
 
 ### Added

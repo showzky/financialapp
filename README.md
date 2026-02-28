@@ -9,6 +9,7 @@ A hybrid-aesthetic React + TypeScript app featuring soft Neumorphic surfaces for
 Includes a server-backed Loan Area for tracking loans given to others with due-date status, repayment tracking, and a compact dashboard summary card. See [docs/loan-tracking.md](docs/loan-tracking.md) and [docs/glass-hud-spec.md](docs/glass-hud-spec.md) for architecture details.
 
 Subscriptions dashboard now uses locale-aware currency/date formatting (browser locale by default, currency fallback `NOK`) and explicit empty states for no-data vs filter-no-match cases.
+> Note: the horizontal HUD-style scanning sweep at the top of this page has been removed to reduce visual noise (it still appears on HUD-heavy pages such as Vacation).
 
 ## Stack
 

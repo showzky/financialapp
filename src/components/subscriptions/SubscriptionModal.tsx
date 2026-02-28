@@ -1,6 +1,11 @@
 import React, { useEffect, useState, type FormEvent } from 'react'
 import { X } from 'lucide-react'
-import type { BillingCadence, Subscription, SubscriptionStatus } from '@/components/subscriptions/SubscriptionLedger'
+import type {
+  BillingCadence,
+  Subscription,
+  SubscriptionStatus,
+} from '@/types/subscription'
+import type { CreateSubscriptionPayload } from '@/services/subscriptionApi'
 
 type SubscriptionFormState = {
   name: string
@@ -12,8 +17,6 @@ type SubscriptionFormState = {
   nextRenewalDate: string
   notes: string
 }
-
-const uid = () => crypto.randomUUID()
 
 const centsFromInput = (value: string): number => {
   const normalized = value.trim()
@@ -38,7 +41,7 @@ export type SubscriptionModalProps = {
   isOpen: boolean
   subscription: Subscription | null
   onClose: () => void
-  onSave: (subscription: Subscription) => void
+  onSave: (payload: CreateSubscriptionPayload) => Promise<void>
 }
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
@@ -49,6 +52,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 }) => {
   const [formState, setFormState] = useState<SubscriptionFormState>(emptyFormState)
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   useEffect(() => {
     if (!isOpen) {
@@ -58,6 +63,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     if (!subscription) {
       setFormState(emptyFormState)
       setHasTriedSubmit(false)
+      setSaveError('')
       return
     }
 
@@ -72,6 +78,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       notes: subscription.notes ?? '',
     })
     setHasTriedSubmit(false)
+    setSaveError('')
   }, [isOpen, subscription])
 
   const priceCents = centsFromInput(formState.price)
@@ -81,13 +88,12 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const isProviderValid = formState.provider.trim().length > 0
   const isFormValid = isNameValid && isProviderValid && isPriceValid && isDateValid
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setHasTriedSubmit(true)
     if (!isFormValid) return
 
-    const next: Subscription = {
-      id: subscription?.id ?? uid(),
+    const next: CreateSubscriptionPayload = {
       name: formState.name.trim(),
       provider: formState.provider.trim(),
       category: formState.category.trim() || 'other',
@@ -98,8 +104,16 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       notes: formState.notes.trim() || undefined,
     }
 
-    onSave(next)
-    onClose()
+    setSaveError('')
+    setIsSaving(true)
+
+    try {
+      await onSave(next)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save subscription')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (!isOpen) {
@@ -311,17 +325,24 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
+                disabled={isSaving}
                 className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
               >
                 Cancel
               </button>
               <button
                 type="submit"
+                disabled={isSaving}
                 className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
               >
-                {subscription ? 'Save changes' : 'Add subscription'}
+                {isSaving ? 'Saving...' : subscription ? 'Save changes' : 'Add subscription'}
               </button>
             </div>
+            {saveError ? (
+              <p className="text-right text-xs text-error" role="alert">
+                {saveError}
+              </p>
+            ) : null}
           </form>
         </div>
       </div>

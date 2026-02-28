@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/app.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node tools/run-tests.mjs",
     "auth:generate": "tsx src/tools/generateLocalAuthCredentials.ts"
   },
   "dependencies": {

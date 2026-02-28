@@ -99,10 +99,26 @@ describe('ConfirmModal', () => {
       />,
     )
 
-    const closeButton = screen.getByText('✕')
+    const closeButton = screen.getByRole('button', { name: 'Close confirmation modal' })
     fireEvent.click(closeButton)
 
     expect(mockOnCancel).toHaveBeenCalled()
     expect(mockOnConfirm).not.toHaveBeenCalled()
+  })
+
+  it('exposes an accessible close button label', () => {
+    render(
+      <ConfirmModal
+        isOpen={true}
+        title="Delete Item?"
+        body="Are you sure you want to delete this item?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Close confirmation modal' })).toBeInTheDocument()
   })
 })

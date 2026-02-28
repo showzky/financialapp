@@ -26,6 +26,9 @@
 }
 
 .animate-scan {
+  /* sweep used only on pages that aim for an explicit HUD look
+     (VacationDash currently). subscriptions page no longer shows this
+     animation, though the class lives here for reuse elsewhere. */
   animation: scan 4s linear infinite;
 }
 

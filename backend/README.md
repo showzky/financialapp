@@ -68,6 +68,12 @@ It prints these values for `backend/.env`:
 - Supabase JWT verification using remote JWKS (`jose`)
 - structured logs with sensitive-field redaction
 
+## Testing
+
+- Run backend tests: `pnpm test`
+- Run backend typecheck: `pnpm typecheck`
+- Backend tests are discovered from `src/**/*.test.ts` by `tools/run-tests.mjs`.
+
 ## API base
 
 - `GET /health`
@@ -93,6 +99,10 @@ It prints these values for `backend/.env`:
 - `PATCH /api/v1/loans/:id/repaid`
 - `DELETE /api/v1/loans/:id`
 - `GET /api/v1/subscriptions`
+- `POST /api/v1/subscriptions`
+- `PATCH /api/v1/subscriptions/:id`
+- `DELETE /api/v1/subscriptions/:id`
+- `PATCH /api/v1/subscriptions/:id/toggle-status`
 
 ### Loans migration
 

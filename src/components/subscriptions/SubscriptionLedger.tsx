@@ -1,20 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { getLocaleCurrencyConfig } from '@/utils/localeFormatting'
+import type { Subscription, SubscriptionStatus } from '@/types/subscription'
 
-export type BillingCadence = 'monthly' | 'yearly'
-export type SubscriptionStatus = 'active' | 'paused' | 'canceled'
-
-export type Subscription = {
-  id: string
-  name: string
-  provider: string
-  category: string
-  status: SubscriptionStatus
-  cadence: BillingCadence
-  priceCents: number
-  nextRenewalDate: string // YYYY-MM-DD
-  notes?: string
-}
+export type { BillingCadence, Subscription, SubscriptionStatus } from '@/types/subscription'
 
 export type SubscriptionLedgerProps = {
   subscriptions: Subscription[]
@@ -28,6 +16,7 @@ export type SubscriptionLedgerProps = {
   onAdd: () => void
   onToggleStatus: (subscription: Subscription) => void
   onDelete?: (subscription: Subscription) => void
+  pendingToggleId?: string | null
 }
 
 const monthlyEquivalentCents = (sub: Subscription): number => {
@@ -58,10 +47,27 @@ const parseIsoDate = (value: string): Date | null => {
   return date
 }
 
-const formatRenewalDate = (value: string, formatter: Intl.DateTimeFormat): string => {
-  const parsed = parseIsoDate(value)
+const getNextBillingRaw = (subscription: Subscription): string =>
+  (subscription as unknown as { nextBillingDate?: string }).nextBillingDate ?? subscription.nextRenewalDate
+
+const parseNextBillingDate = (value: string): Date | null => {
+  const isoOnly = parseIsoDate(value)
+  if (isoOnly) return isoOnly
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed
+}
+
+const formatNextBillingDate = (value: string): string => {
+  const parsed = parseNextBillingDate(value)
   if (!parsed) return value
-  return formatter.format(parsed)
+
+  try {
+    return parsed.toLocaleString('nb-NO')
+  } catch {
+    return parsed.toISOString()
+  }
 }
 
 const statusLabel = (status: SubscriptionStatus): string => {
@@ -80,6 +86,22 @@ const statusSortOrder: Record<SubscriptionStatus, number> = {
 
 const compareStrings = (left: string, right: string): number => left.localeCompare(right)
 
+const compareNextBillingDates = (left: Subscription, right: Subscription): number => {
+  const leftRaw = getNextBillingRaw(left)
+  const rightRaw = getNextBillingRaw(right)
+  const leftParsed = parseNextBillingDate(leftRaw)
+  const rightParsed = parseNextBillingDate(rightRaw)
+
+  if (leftParsed && rightParsed) {
+    return leftParsed.getTime() - rightParsed.getTime()
+  }
+
+  if (leftParsed && !rightParsed) return -1
+  if (!leftParsed && rightParsed) return 1
+
+  return compareStrings(leftRaw, rightRaw)
+}
+
 export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
   subscriptions,
   locale,
@@ -92,6 +114,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
   onEdit,
   onToggleStatus,
   onDelete,
+  pendingToggleId = null,
 }) => {
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -133,25 +156,6 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
     [localeCurrency],
   )
 
-  const dateFormatter = useMemo(
-    () => {
-      try {
-        return new Intl.DateTimeFormat(localeCurrency.locale, {
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit',
-        })
-      } catch {
-        return new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit',
-        })
-      }
-    },
-    [localeCurrency.locale],
-  )
-
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase()
     return subscriptions
@@ -175,14 +179,14 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
         if (result === 0) result = compareStrings(left.id, right.id)
       } else if (sortKey === 'price') {
         result = left.priceCents - right.priceCents
-        if (result === 0) result = compareStrings(left.nextRenewalDate, right.nextRenewalDate)
+        if (result === 0) result = compareNextBillingDates(left, right)
         if (result === 0) result = compareStrings(left.id, right.id)
       } else if (sortKey === 'status') {
         result = statusSortOrder[left.status] - statusSortOrder[right.status]
-        if (result === 0) result = compareStrings(left.nextRenewalDate, right.nextRenewalDate)
+        if (result === 0) result = compareNextBillingDates(left, right)
         if (result === 0) result = compareStrings(left.id, right.id)
       } else {
-        result = compareStrings(left.nextRenewalDate, right.nextRenewalDate)
+        result = compareNextBillingDates(left, right)
         if (result === 0) result = compareStrings(left.id, right.id)
       }
 
@@ -247,11 +251,13 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Search name/provider/category..."
+            aria-label="Search subscriptions"
             className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)] placeholder-text-muted sm:w-72"
           />
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as SubscriptionStatus | 'all')}
+            aria-label="Filter subscriptions by status"
             className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)] sm:w-44"
           >
             <option value="all">All</option>
@@ -412,7 +418,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                     </div>
                   </td>
                   <td className="py-4 pr-4">
-                    <div className="hud-monospaced">{formatRenewalDate(sub.nextRenewalDate, dateFormatter)}</div>
+                    <div className="hud-monospaced">{formatNextBillingDate(getNextBillingRaw(sub))}</div>
                   </td>
                   <td className="py-4 pr-4">
                     <span className="glass-panel inline-flex px-3 py-1 text-xs">
@@ -431,9 +437,14 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                       <button
                         type="button"
                         onClick={() => onToggleStatus(sub)}
+                        disabled={pendingToggleId === sub.id}
                         className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-all hover:bg-white/10"
                       >
-                        {sub.status === 'active' ? 'Pause' : 'Activate'}
+                        {pendingToggleId === sub.id
+                          ? 'Saving...'
+                          : sub.status === 'active'
+                            ? 'Pause'
+                            : 'Activate'}
                       </button>
                       {onDelete ? (
                         <button

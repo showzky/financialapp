@@ -69,6 +69,10 @@ The Vacation Dashboard adheres to the **Glass HUD** design system but applies a 
 
 ### HUD Improvements
 - Glassmorphic HUD cards use updated color tokens and backdrop blur for improved clarity and contrast.
+- A horizontal “scanline” animation (`.animate-scan`) is part of the HUD toolkit but
+  is intentionally limited to pages that lean fully into the HUD motif (Vacation,
+  Loans); it has been removed from less‑HUD‑centric screens such as the
+  Subscriptions dashboard.
 - Status dots and progress rings use theme accent colors and glow effects.
 - All numeric values (daily allowance, pocket money) are floored for readability.
 - HUD alert messages are shown for errors or invalid input, styled with glass panels and accent borders.
