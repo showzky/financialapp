@@ -1,0 +1,25 @@
+{
+  "name": "financial-app-mobile",
+  "version": "1.0.0",
+  "description": "Mobile app for Financial App using React Native & Expo",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@financial-app/shared": "workspace:*",
+    "react": "^18.2.0",
+    "react-native": "0.73.0",
+    "expo": "~49.0.0",
+    "expo-status-bar": "~1.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.0.0"
+  }
+}
