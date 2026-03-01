@@ -1,0 +1,243 @@
+// @ts-nocheck
+import React from 'react'
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+} from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { getBarColor, getStatusLabel } from '../utils/budgetColors'
+import type { CategoryWithSpent } from '../services/dashboardApi'
+
+type Props = {
+  visible: boolean
+  category: CategoryWithSpent | null
+  onClose: () => void
+}
+
+export function CategoryDetailModal({ visible, category, onClose }: Props) {
+  if (!category) return null
+
+  const safeSpent = Math.max(0, category.monthSpent)
+  const rawPct = category.allocated > 0 ? (safeSpent / category.allocated) * 100 : 0
+  const clampedPct = Math.min(rawPct, 100)
+  const barColor = getBarColor(rawPct)
+  const remaining = Math.max(0, category.allocated - safeSpent)
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.overlay} />
+      </TouchableWithoutFeedback>
+
+      <View style={styles.sheet}>
+        {/* Handle */}
+        <View style={styles.handle} />
+
+        {/* Title row */}
+        <View style={styles.titleRow}>
+          <View style={[styles.iconWrap, { backgroundColor: rawPct > 100 ? '#fef2f2' : '#f5f3ff' }]}>
+            <Ionicons
+              name="pie-chart"
+              size={20}
+              color={rawPct > 100 ? '#ef4444' : '#8b5cf6'}
+            />
+          </View>
+          <Text style={styles.title}>{category.name}</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={22} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>Spent</Text>
+            <Text style={[styles.statValue, { color: barColor }]}>
+              NOK {safeSpent.toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>Budget</Text>
+            <Text style={styles.statValue}>NOK {category.allocated.toLocaleString()}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>Remaining</Text>
+            <Text style={[styles.statValue, { color: '#10b981' }]}>
+              NOK {remaining.toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        {/* Progress bar */}
+        <View style={styles.barSection}>
+          <View style={styles.barTrack}>
+            <View
+              style={[
+                styles.barFill,
+                { width: `${clampedPct}%`, backgroundColor: barColor },
+              ]}
+            />
+          </View>
+          <View style={styles.barLabels}>
+            <Text style={[styles.statusLabel, { color: barColor }]}>
+              {getStatusLabel(rawPct)}
+            </Text>
+            <Text style={styles.pctLabel}>{Math.round(Math.max(0, rawPct))}% used</Text>
+          </View>
+        </View>
+
+        {/* Type badge */}
+        <View style={styles.typeBadge}>
+          <Ionicons
+            name={category.type === 'fixed' ? 'repeat' : 'cash'}
+            size={14}
+            color="#6b7280"
+          />
+          <Text style={styles.typeText}>
+            {category.type === 'fixed' ? 'Fixed expense' : 'Budget category'}
+          </Text>
+        </View>
+
+        {/* Placeholder for future transaction list */}
+        <View style={styles.placeholder}>
+          <Ionicons name="receipt-outline" size={28} color="#d1d5db" />
+          <Text style={styles.placeholderText}>
+            Transaction history coming in a future phase
+          </Text>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.45)',
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 36,
+    paddingTop: 12,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 10,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+  },
+  statBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  divider: {
+    width: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 4,
+  },
+  barSection: {
+    marginBottom: 16,
+  },
+  barTrack: {
+    height: 10,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  barLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statusLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pctLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 20,
+  },
+  typeText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  placeholder: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  placeholderText: {
+    fontSize: 13,
+    color: '#9ca3af',
+    textAlign: 'center',
+  },
+})

@@ -9,9 +9,11 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { dashboardApi, type DashboardData } from '../services/dashboardApi'
+import { dashboardApi, type DashboardData, type CategoryWithSpent } from '../services/dashboardApi'
 import { usePeriod } from '../context/PeriodContext'
 import { MonthPickerModal } from '../components/MonthPickerModal'
+import { CategoryCard } from '../components/CategoryCard'
+import { CategoryDetailModal } from '../components/CategoryDetailModal'
 
 export function HomeScreen() {
   const { selectedMonth, setSelectedMonth } = usePeriod()
@@ -19,6 +21,7 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isMonthPickerVisible, setMonthPickerVisible] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<CategoryWithSpent | null>(null)
 
   const selectedMonthLabel = selectedMonth.toLocaleDateString('en-US', {
     month: 'long',
@@ -205,6 +208,24 @@ export function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── Phase 3: Categories Grid ── */}
+      <View style={styles.categoriesSection}>
+        <Text style={styles.sectionTitle}>Categories</Text>
+        {dashboard.categories.length === 0 ? (
+          <Text style={styles.emptyCategories}>No categories yet</Text>
+        ) : (
+          <View style={styles.categoriesGrid}>
+            {dashboard.categories.map((item) => (
+              <CategoryCard
+                key={item.id}
+                category={item}
+                onPress={() => setSelectedCategory(item)}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+
       {/* Quick Actions */}
       <View style={styles.actionsSection}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -232,6 +253,13 @@ export function HomeScreen() {
         selectedMonth={selectedMonth}
         onClose={() => setMonthPickerVisible(false)}
         onSelectMonth={handleSelectMonth}
+      />
+
+      {/* ── Phase 3: Category detail modal ── */}
+      <CategoryDetailModal
+        visible={selectedCategory !== null}
+        category={selectedCategory}
+        onClose={() => setSelectedCategory(null)}
       />
     </ScrollView>
   )
@@ -454,6 +482,22 @@ const styles = StyleSheet.create({
   actionsSection: {
     paddingHorizontal: 16,
     marginBottom: 24,
+  },
+  // ── Phase 3: Categories grid styles ──
+  categoriesSection: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+  },
+  emptyCategories: {
+    fontSize: 13,
+    color: '#9ca3af',
+    textAlign: 'center',
+    paddingVertical: 16,
   },
   sectionTitle: {
     fontSize: 18,

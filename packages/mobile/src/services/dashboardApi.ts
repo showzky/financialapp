@@ -1,14 +1,23 @@
 import { backendClient } from './backendClient'
 
+export type CategoryWithSpent = {
+  id: string
+  name: string
+  type: 'budget' | 'fixed'
+  allocated: number
+  monthSpent: number
+}
+
 export type DashboardData = {
   totalIncome: number
   totalSpent: number
   remaining: number
-  totalAllocated: number // ADDED THIS — sum of all category budgets
-  freeToAssign: number   // ADDED THIS — totalIncome minus totalAllocated
+  totalAllocated: number
+  freeToAssign: number
   categoryCount: number
   loanBalance: number
   activeLoans: number
+  categories: CategoryWithSpent[]
 }
 
 type CurrentUserDto = {
@@ -86,20 +95,36 @@ export const dashboardApi = {
     const totalIncome = Number.isFinite(user.monthlyIncome) ? user.monthlyIncome : 0
     const totalSpent = sum(monthTransactions.map((t) => (Number.isFinite(t.amount) ? t.amount : 0)))
     const remaining = totalIncome - totalSpent
-    const totalAllocated = sum(categories.map((c) => (Number.isFinite(c.allocated) ? c.allocated : 0))) // ADDED THIS
-    const freeToAssign = totalIncome - totalAllocated // ADDED THIS
+    const totalAllocated = sum(categories.map((c) => (Number.isFinite(c.allocated) ? c.allocated : 0)))
+    const freeToAssign = totalIncome - totalAllocated
+
+    // Build a per-category spending map for the selected month
+    const spendByCategory = new Map<string, number>()
+    for (const t of monthTransactions) {
+      const prev = spendByCategory.get(t.categoryId) ?? 0
+      spendByCategory.set(t.categoryId, prev + (Number.isFinite(t.amount) ? t.amount : 0))
+    }
+
+    const enrichedCategories: CategoryWithSpent[] = categories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      allocated: Number.isFinite(c.allocated) ? c.allocated : 0,
+      monthSpent: spendByCategory.get(c.id) ?? 0,
+    }))
 
     return {
       totalIncome,
       totalSpent,
       remaining,
-      totalAllocated, // ADDED THIS
-      freeToAssign,   // ADDED THIS
+      totalAllocated,
+      freeToAssign,
       categoryCount: monthCategoryCount,
       loanBalance: Number.isFinite(loanSummary.totalOutstandingAmount)
         ? loanSummary.totalOutstandingAmount
         : 0,
       activeLoans: Number.isFinite(loanSummary.activeCount) ? loanSummary.activeCount : 0,
+      categories: enrichedCategories,
     }
   },
 }
