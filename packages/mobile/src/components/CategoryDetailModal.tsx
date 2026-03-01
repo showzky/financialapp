@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Modal,
   View,
@@ -7,19 +7,71 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  Alert,
+  ActivityIndicator,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { getBarColor, getStatusLabel } from '../utils/budgetColors'
+import { transactionApi } from '../services/transactionApi'
+import { EditCategoryModal } from './EditCategoryModal'
 import type { CategoryWithSpent } from '../services/dashboardApi'
 
 type Props = {
   visible: boolean
   category: CategoryWithSpent | null
   onClose: () => void
+  onCategoryUpdated?: () => void
+  onCategoryDeleted?: () => void
 }
 
-export function CategoryDetailModal({ visible, category, onClose }: Props) {
+export function CategoryDetailModal({ visible, category, onClose, onCategoryUpdated, onCategoryDeleted }: Props) {
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   if (!category) return null
+
+  const handleEdit = () => {
+    setEditModalVisible(true)
+  }
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Category',
+      `Are you sure you want to delete "${category.name}"?`,
+      [
+        {
+          text: 'Cancel',
+          onPress: () => {},
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            setDeleting(true)
+            try {
+              await transactionApi.deleteCategory(category.id)
+              onClose()
+              onCategoryDeleted?.()
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete category')
+            } finally {
+              setDeleting(false)
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    )
+  }
+
+  const handleEditClose = () => {
+    setEditModalVisible(false)
+  }
+
+  const handleCategoryUpdated = () => {
+    setEditModalVisible(false)
+    onCategoryUpdated?.()
+  }
 
   const safeSpent = Math.max(0, category.monthSpent)
   const rawPct = category.allocated > 0 ? (safeSpent / category.allocated) * 100 : 0
@@ -29,34 +81,54 @@ export function CategoryDetailModal({ visible, category, onClose }: Props) {
   const isBudget = category.type === 'budget'
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={onClose}
+      >
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.overlay} />
+        </TouchableWithoutFeedback>
 
-      <View style={styles.sheet}>
-        {/* Handle */}
-        <View style={styles.handle} />
+        <View style={styles.sheet}>
+          {/* Handle */}
+          <View style={styles.handle} />
 
-        {/* Title row */}
-        <View style={styles.titleRow}>
-          <View style={[styles.iconWrap, { backgroundColor: isBudget ? (rawPct > 100 ? '#fef2f2' : '#f5f3ff') : '#fef3c7' }]}>
-            <Ionicons
-              name={isBudget ? 'pie-chart' : 'repeat'}
-              size={20}
-              color={isBudget ? (rawPct > 100 ? '#ef4444' : '#8b5cf6') : '#ca8a04'}
-            />
+          {/* Title row with Edit and Delete buttons */}
+          <View style={styles.titleRow}>
+            <View style={[styles.iconWrap, { backgroundColor: category.type === 'budget' ? (category.monthSpent / category.allocated * 100 > 100 ? '#fef2f2' : '#f5f3ff') : '#fef3c7' }]}>
+              <Ionicons
+                name={category.type === 'budget' ? 'pie-chart' : 'repeat'}
+                size={20}
+                color={category.type === 'budget' ? (category.monthSpent / category.allocated * 100 > 100 ? '#ef4444' : '#8b5cf6') : '#ca8a04'}
+              />
+            </View>
+            <Text style={styles.title}>{category.name}</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                onPress={handleEdit}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="pencil" size={20} color="#6b7280" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDelete}
+                disabled={deleting}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#ef4444" />
+                ) : (
+                  <Ionicons name="trash" size={20} color="#ef4444" />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.title}>{category.name}</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={22} color="#6b7280" />
-          </TouchableOpacity>
-        </View>
 
         {/* Budget Category: Stats + Progress */}
         {isBudget ? (
@@ -105,7 +177,7 @@ export function CategoryDetailModal({ visible, category, onClose }: Props) {
           /* Fixed Category: Simple display */
           <View style={styles.fixedSection}>
             <View style={styles.fixedCard}>
-              <Text style={styles.fixedCardLabel}>Monthly Cost</Text>
+              <Text style={styles.fixedCardLabel}>Fixed Cost</Text>
               <Text style={styles.fixedCardAmount}>NOK {category.allocated.toLocaleString()}</Text>
             </View>
             {safeSpent > 0 && (
@@ -138,6 +210,14 @@ export function CategoryDetailModal({ visible, category, onClose }: Props) {
         </View>
       </View>
     </Modal>
+
+      <EditCategoryModal
+        isOpen={editModalVisible}
+        onClose={handleEditClose}
+        category={category}
+        onCategoryUpdated={handleCategoryUpdated}
+      />
+    </>
   )
 }
 
@@ -180,6 +260,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   statsRow: {
     flexDirection: 'row',

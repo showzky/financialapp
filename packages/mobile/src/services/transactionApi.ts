@@ -31,4 +31,15 @@ export const transactionApi = {
   async createCategory(payload: CreateCategoryPayload): Promise<CategoryResponse> {
     return backendClient.post('/categories', payload)
   },
+
+  async updateCategory(
+    id: string,
+    payload: Partial<CreateCategoryPayload>
+  ): Promise<CategoryResponse> {
+    return backendClient.patch(`/categories/${id}`, payload)
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    return backendClient.delete(`/categories/${id}`)
+  },
 }

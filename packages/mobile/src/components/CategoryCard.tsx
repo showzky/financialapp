@@ -64,7 +64,7 @@ export function CategoryCard({ category, onPress }: Props) {
         ) : (
           /* Fixed Category: Just show monthly amount */
           <View style={styles.fixedAmountRow}>
-            <Text style={styles.fixedLabel}>Monthly cost</Text>
+            <Text style={styles.fixedLabel}>Fixed cost</Text>
             <Text style={styles.fixedAmount}>{category.allocated.toLocaleString()}</Text>
           </View>
         )}

@@ -265,6 +265,14 @@ export function HomeScreen() {
         visible={selectedCategory !== null}
         category={selectedCategory}
         onClose={() => setSelectedCategory(null)}
+        onCategoryUpdated={() => {
+          setSelectedCategory(null)
+          void loadDashboard()
+        }}
+        onCategoryDeleted={() => {
+          setSelectedCategory(null)
+          void loadDashboard()
+        }}
       />
 
       {/* ── Add Expense Modal ── */}
