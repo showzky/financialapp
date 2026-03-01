@@ -1,3 +1,5 @@
+import { backendClient } from './backendClient'
+
 export type WishlistItem = {
   id: string
   title: string
@@ -16,9 +18,6 @@ type WishlistItemDto = {
   status?: 'active' | 'purchased'
 }
 
-const BACKEND_URL =
-  process.env.EXPO_PUBLIC_BACKEND_URL?.trim() || 'http://10.0.2.2:4000/api/v1'
-
 const mapItem = (item: WishlistItemDto): WishlistItem => ({
   id: item.id,
   title: item.title,
@@ -30,16 +29,7 @@ const mapItem = (item: WishlistItemDto): WishlistItem => ({
 
 export const wishlistApi = {
   async list(): Promise<WishlistItem[]> {
-    const response = await fetch(`${BACKEND_URL}/wishlist`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Wishlist request failed (${response.status})`)
-    }
-
-    const rows = (await response.json()) as WishlistItemDto[]
+    const rows = await backendClient.get<WishlistItemDto[]>('/wishlist')
     return rows.map(mapItem)
   },
 }

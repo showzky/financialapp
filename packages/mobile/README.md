@@ -58,7 +58,9 @@ Any updates to services, types, or utils in the main app are automatically avail
 Create `.env` file (optional, not in repo):
 
 ```
-BACKEND_URL=http://10.0.2.2:4000/api/v1
+EXPO_PUBLIC_BACKEND_URL=http://10.0.2.2:4000/api/v1
+# Optional (recommended if backend auth is enabled):
+EXPO_PUBLIC_BACKEND_AUTH_TOKEN=eyJhbGciOi...
 ```
 
 (Note: Android emulator uses `10.0.2.2` for localhost)

@@ -33,6 +33,7 @@ const sendSuccessfulLogin = async (res: Response, input: { userId: string; email
 
   res.status(200).json({
     tokenType: 'Bearer',
+    accessToken,
     expiresIn: env.LOCAL_AUTH_JWT_EXPIRES_IN,
     user: {
       id: input.userId,

@@ -211,6 +211,12 @@ importers:
       expo-constants:
         specifier: ~14.4.2
         version: 14.4.2(expo@49.0.23(@babel/core@7.29.0))
+      expo-file-system:
+        specifier: ~15.4.5
+        version: 15.4.5(expo@49.0.23(@babel/core@7.29.0))
+      expo-font:
+        specifier: ~11.4.0
+        version: 11.4.0(expo@49.0.23(@babel/core@7.29.0))
       expo-modules-autolinking:
         specifier: ~1.5.1
         version: 1.5.1

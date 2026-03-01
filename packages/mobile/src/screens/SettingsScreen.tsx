@@ -1,25 +1,11 @@
 // @ts-nocheck
 import React, { useState } from 'react'
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Alert,
-} from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-
-interface SettingsOption {
-  id: string
-  label: string
-  value?: string | boolean
-  icon: string
-  onPress?: () => void
-}
+import { useAuth } from '../auth/AuthContext'
 
 export function SettingsScreen() {
+  const { signOut } = useAuth()
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [budgetAlerts, setBudgetAlerts] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
@@ -30,7 +16,7 @@ export function SettingsScreen() {
       {
         text: 'Logout',
         onPress: () => {
-          console.log('Logged out')
+          void signOut()
         },
         style: 'destructive',
       },
@@ -211,10 +197,7 @@ export function SettingsScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, styles.dangerTitle]}>Danger Zone</Text>
         <View style={styles.sectionContent}>
-          <TouchableOpacity
-            style={[styles.settingItem, styles.lastItem]}
-            onPress={handleLogout}
-          >
+          <TouchableOpacity style={[styles.settingItem, styles.lastItem]} onPress={handleLogout}>
             <View style={styles.settingLeft}>
               <Ionicons name="log-out" size={20} color="#ef4444" />
               <View style={styles.settingTextContainer}>

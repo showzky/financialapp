@@ -25,4 +25,13 @@ export default defineConfig([
       'prettier/prettier': ['error'], // ADD THIS
     },
   },
+  {
+    // React Native (Expo) codebase currently relies on file-level ts directives,
+    // and does not use Vite's React refresh.
+    files: ['packages/mobile/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

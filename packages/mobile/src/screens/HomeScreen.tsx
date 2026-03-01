@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { dashboardApi, type DashboardData } from '../services/dashboardApi'
 
 type RootStackParamList = {
   Home: undefined
@@ -17,31 +18,30 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>
 
-interface DashboardData {
-  totalIncome: number
-  totalSpent: number
-  remaining: number
-  categoryCount: number
-  loanBalance: number
-}
-
 export function HomeScreen({ navigation }: Props) {
+  void navigation
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await dashboardApi.get()
+      setDashboard(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load dashboard'
+      setError(message)
+      setDashboard(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    // Mock dashboard data - in production, fetch from your API
-    setTimeout(() => {
-      setDashboard({
-        totalIncome: 50000,
-        totalSpent: 18500,
-        remaining: 31500,
-        categoryCount: 12,
-        loanBalance: 85000,
-      })
-      setLoading(false)
-    }, 500)
-  }, [])
+    void loadDashboard()
+  }, [loadDashboard])
 
   if (loading) {
     return (
@@ -51,10 +51,14 @@ export function HomeScreen({ navigation }: Props) {
     )
   }
 
-  if (!dashboard) {
+  if (error || !dashboard) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Failed to load dashboard</Text>
+        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <Text style={styles.errorText}>{error ?? 'Failed to load dashboard'}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadDashboard}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     )
   }
@@ -106,7 +110,7 @@ export function HomeScreen({ navigation }: Props) {
         </View>
         <View style={styles.statBox}>
           <Ionicons name="document-text" size={24} color="#f59e0b" />
-          <Text style={styles.statLabel}>1</Text>
+          <Text style={styles.statLabel}>{dashboard.activeLoans}</Text>
           <Text style={styles.statDesc}>Active Loans</Text>
         </View>
       </View>
@@ -122,7 +126,9 @@ export function HomeScreen({ navigation }: Props) {
         <View style={styles.loanCard}>
           <Text style={styles.loanLabel}>Total Loan Balance</Text>
           <Text style={styles.loanAmount}>NOK {dashboard.loanBalance.toLocaleString()}</Text>
-          <Text style={styles.loanDesc}>1 active loan</Text>
+          <Text style={styles.loanDesc}>
+            {dashboard.activeLoans} active {dashboard.activeLoans === 1 ? 'loan' : 'loans'}
+          </Text>
         </View>
       </View>
 
@@ -307,5 +313,19 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: '#ef4444',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+  },
+  retryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 })
