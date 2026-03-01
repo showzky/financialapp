@@ -26,6 +26,7 @@ export function CategoryDetailModal({ visible, category, onClose }: Props) {
   const clampedPct = Math.min(rawPct, 100)
   const barColor = getBarColor(rawPct)
   const remaining = Math.max(0, category.allocated - safeSpent)
+  const isBudget = category.type === 'budget'
 
   return (
     <Modal
@@ -44,11 +45,11 @@ export function CategoryDetailModal({ visible, category, onClose }: Props) {
 
         {/* Title row */}
         <View style={styles.titleRow}>
-          <View style={[styles.iconWrap, { backgroundColor: rawPct > 100 ? '#fef2f2' : '#f5f3ff' }]}>
+          <View style={[styles.iconWrap, { backgroundColor: isBudget ? (rawPct > 100 ? '#fef2f2' : '#f5f3ff') : '#fef3c7' }]}>
             <Ionicons
-              name="pie-chart"
+              name={isBudget ? 'pie-chart' : 'repeat'}
               size={20}
-              color={rawPct > 100 ? '#ef4444' : '#8b5cf6'}
+              color={isBudget ? (rawPct > 100 ? '#ef4444' : '#8b5cf6') : '#ca8a04'}
             />
           </View>
           <Text style={styles.title}>{category.name}</Text>
@@ -57,45 +58,64 @@ export function CategoryDetailModal({ visible, category, onClose }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Stats row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBlock}>
-            <Text style={styles.statLabel}>Spent</Text>
-            <Text style={[styles.statValue, { color: barColor }]}>
-              NOK {safeSpent.toLocaleString()}
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.statBlock}>
-            <Text style={styles.statLabel}>Budget</Text>
-            <Text style={styles.statValue}>NOK {category.allocated.toLocaleString()}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.statBlock}>
-            <Text style={styles.statLabel}>Remaining</Text>
-            <Text style={[styles.statValue, { color: '#10b981' }]}>
-              NOK {remaining.toLocaleString()}
-            </Text>
-          </View>
-        </View>
+        {/* Budget Category: Stats + Progress */}
+        {isBudget ? (
+          <>
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statBlock}>
+                <Text style={styles.statLabel}>Spent</Text>
+                <Text style={[styles.statValue, { color: barColor }]}>
+                  NOK {safeSpent.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.statBlock}>
+                <Text style={styles.statLabel}>Budget</Text>
+                <Text style={styles.statValue}>NOK {category.allocated.toLocaleString()}</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.statBlock}>
+                <Text style={styles.statLabel}>Remaining</Text>
+                <Text style={[styles.statValue, { color: '#10b981' }]}>
+                  NOK {remaining.toLocaleString()}
+                </Text>
+              </View>
+            </View>
 
-        {/* Progress bar */}
-        <View style={styles.barSection}>
-          <View style={styles.barTrack}>
-            <View
-              style={[
-                styles.barFill,
-                { width: `${clampedPct}%`, backgroundColor: barColor },
-              ]}
-            />
+            {/* Progress bar */}
+            <View style={styles.barSection}>
+              <View style={styles.barTrack}>
+                <View
+                  style={[
+                    styles.barFill,
+                    { width: `${clampedPct}%`, backgroundColor: barColor },
+                  ]}
+                />
+              </View>
+              <View style={styles.barLabels}>
+                <Text style={[styles.statusLabel, { color: barColor }]}>
+                  {getStatusLabel(rawPct)}
+                </Text>
+                <Text style={styles.pctLabel}>{Math.round(Math.max(0, rawPct))}% used</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          /* Fixed Category: Simple display */
+          <View style={styles.fixedSection}>
+            <View style={styles.fixedCard}>
+              <Text style={styles.fixedCardLabel}>Monthly Cost</Text>
+              <Text style={styles.fixedCardAmount}>NOK {category.allocated.toLocaleString()}</Text>
+            </View>
+            {safeSpent > 0 && (
+              <View style={styles.fixedTransactions}>
+                <Text style={styles.fixedTransLabel}>Recorded this month</Text>
+                <Text style={styles.fixedTransAmount}>NOK {safeSpent.toLocaleString()}</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.barLabels}>
-            <Text style={[styles.statusLabel, { color: barColor }]}>
-              {getStatusLabel(rawPct)}
-            </Text>
-            <Text style={styles.pctLabel}>{Math.round(Math.max(0, rawPct))}% used</Text>
-          </View>
-        </View>
+        )}
 
         {/* Type badge */}
         <View style={styles.typeBadge}>
@@ -213,6 +233,44 @@ const styles = StyleSheet.create({
   pctLabel: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  fixedSection: {
+    marginBottom: 16,
+  },
+  fixedCard: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 10,
+  },
+  fixedCardLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#78350f',
+    marginBottom: 4,
+  },
+  fixedCardAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ca8a04',
+  },
+  fixedTransactions: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  fixedTransLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  fixedTransAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
   },
   typeBadge: {
     flexDirection: 'row',
