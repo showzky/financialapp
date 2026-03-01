@@ -36,7 +36,6 @@ export function AddExpenseModal({
   const [mode, setMode] = useState<Mode>('existing')
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(categories[0]?.id ?? '')
   const [amount, setAmount] = useState('')
-  const [transactionDate, setTransactionDate] = useState('')
   const [note, setNote] = useState('')
 
   // New category fields
@@ -52,7 +51,6 @@ export function AddExpenseModal({
     setMode('existing')
     setSelectedCategoryId(categories[0]?.id ?? '')
     setAmount('')
-    setTransactionDate('')
     setNote('')
     setNewCategoryName('')
     setNewCategoryType('budget')
@@ -67,34 +65,23 @@ export function AddExpenseModal({
     onClose()
   }
 
-  const isValidDate = (val: string) =>
-    /^\d{4}-\d{2}-\d{2}$/.test(val) && !isNaN(Date.parse(val))
-
   const existingErrors = {
     amount:
       !amount || isNaN(Number(amount)) || Number(amount) <= 0
         ? 'Enter a valid amount'
         : '',
-    transactionDate: !isValidDate(transactionDate)
-      ? 'Use format YYYY-MM-DD'
-      : '',
   }
 
   const newCategoryErrors = {
     name: !newCategoryName.trim() ? 'Category name is required' : '',
     allocated:
-      !newCategoryAllocated || isNaN(Number(newCategoryAllocated)) || Number(newCategoryAllocated) < 0
-        ? newCategoryType === 'budget'
-          ? 'Enter a valid budget amount'
-          : 'Enter 0 or positive'
+      newCategoryType === 'budget' && (!newCategoryAllocated || isNaN(Number(newCategoryAllocated)) || Number(newCategoryAllocated) < 0)
+        ? 'Enter a valid budget amount'
         : '',
     amount:
       !amount || isNaN(Number(amount)) || Number(amount) <= 0
         ? 'Enter a valid expense amount'
         : '',
-    transactionDate: !isValidDate(transactionDate)
-      ? 'Use format YYYY-MM-DD'
-      : '',
   }
 
   const errors = mode === 'existing' ? existingErrors : newCategoryErrors
@@ -115,16 +102,19 @@ export function AddExpenseModal({
         const newCategory = await transactionApi.createCategory({
           name: newCategoryName.trim(),
           type: newCategoryType,
-          allocated: Number(newCategoryAllocated),
+          allocated: newCategoryType === 'budget' ? Number(newCategoryAllocated) : 0,
         })
         categoryIdToUse = newCategory.id
       }
+
+      // Use today's date
+      const today = new Date().toISOString().split('T')[0]
 
       // Then create the transaction
       await transactionApi.createTransaction({
         categoryId: categoryIdToUse,
         amount: Number(amount),
-        transactionDate,
+        transactionDate: today,
         note: note.trim() || undefined,
       })
 
@@ -136,11 +126,6 @@ export function AddExpenseModal({
       setSubmitting(false)
     }
   }
-
-  const selectedCategory = categories.find((c) => c.id === selectedCategoryId)
-  const defaultDate = transactionDate
-    ? transactionDate
-    : selectedMonth.toISOString().split('T')[0]
 
   return (
     <Modal visible={isOpen} transparent animationType="slide" onRequestClose={handleClose}>
@@ -296,26 +281,26 @@ export function AddExpenseModal({
                   </View>
                 </View>
 
-                <View style={styles.section}>
-                  <Text style={styles.label}>
-                    {newCategoryType === 'budget' ? 'Budget Amount' : 'Monthly Cost'}
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      hasTriedSubmit && newCategoryErrors.allocated && styles.inputError,
-                    ]}
-                    placeholder="0"
-                    placeholderTextColor="#d1d5db"
-                    keyboardType="decimal-pad"
-                    value={newCategoryAllocated}
-                    onChangeText={setNewCategoryAllocated}
-                    editable={!submitting}
-                  />
-                  {hasTriedSubmit && newCategoryErrors.allocated && (
-                    <Text style={styles.errorText}>{newCategoryErrors.allocated}</Text>
-                  )}
-                </View>
+                {newCategoryType === 'budget' && (
+                  <View style={styles.section}>
+                    <Text style={styles.label}>Budget Amount</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        hasTriedSubmit && newCategoryErrors.allocated && styles.inputError,
+                      ]}
+                      placeholder="0"
+                      placeholderTextColor="#d1d5db"
+                      keyboardType="decimal-pad"
+                      value={newCategoryAllocated}
+                      onChangeText={setNewCategoryAllocated}
+                      editable={!submitting}
+                    />
+                    {hasTriedSubmit && newCategoryErrors.allocated && (
+                      <Text style={styles.errorText}>{newCategoryErrors.allocated}</Text>
+                    )}
+                  </View>
+                )}
               </>
             )}
 
@@ -336,24 +321,6 @@ export function AddExpenseModal({
               />
               {hasTriedSubmit && errors.amount && (
                 <Text style={styles.errorText}>{errors.amount}</Text>
-              )}
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  hasTriedSubmit && errors.transactionDate && styles.inputError,
-                ]}
-                placeholder={defaultDate}
-                placeholderTextColor="#d1d5db"
-                value={transactionDate}
-                onChangeText={setTransactionDate}
-                editable={!submitting}
-              />
-              {hasTriedSubmit && errors.transactionDate && (
-                <Text style={styles.errorText}>{errors.transactionDate}</Text>
               )}
             </View>
 
