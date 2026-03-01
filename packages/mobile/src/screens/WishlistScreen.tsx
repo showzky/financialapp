@@ -10,8 +10,7 @@ import {
   FlatList,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import type { WishlistItem } from '@financial-app/shared'
-import { wishlistApi } from '@financial-app/shared'
+import { wishlistApi, type WishlistItem } from '../services/wishlistApi'
 
 export function WishlistScreen() {
   const [items, setItems] = useState<WishlistItem[]>([])
