@@ -4,6 +4,8 @@ export type DashboardData = {
   totalIncome: number
   totalSpent: number
   remaining: number
+  totalAllocated: number // ADDED THIS — sum of all category budgets
+  freeToAssign: number   // ADDED THIS — totalIncome minus totalAllocated
   categoryCount: number
   loanBalance: number
   activeLoans: number
@@ -84,11 +86,15 @@ export const dashboardApi = {
     const totalIncome = Number.isFinite(user.monthlyIncome) ? user.monthlyIncome : 0
     const totalSpent = sum(monthTransactions.map((t) => (Number.isFinite(t.amount) ? t.amount : 0)))
     const remaining = totalIncome - totalSpent
+    const totalAllocated = sum(categories.map((c) => (Number.isFinite(c.allocated) ? c.allocated : 0))) // ADDED THIS
+    const freeToAssign = totalIncome - totalAllocated // ADDED THIS
 
     return {
       totalIncome,
       totalSpent,
       remaining,
+      totalAllocated, // ADDED THIS
+      freeToAssign,   // ADDED THIS
       categoryCount: monthCategoryCount,
       loanBalance: Number.isFinite(loanSummary.totalOutstandingAmount)
         ? loanSummary.totalOutstandingAmount

@@ -87,6 +87,62 @@ export function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── Phase 2: 3-Stat Row ── ADDED THIS */}
+      <View style={styles.statRow}>
+        <View style={[styles.statRowItem, styles.statRowIncome]}>
+          <Ionicons name="arrow-down-circle" size={18} color="#10b981" />
+          <Text style={styles.statRowValue}>
+            {dashboard.totalIncome.toLocaleString()}
+          </Text>
+          <Text style={styles.statRowLabel}>Income</Text>
+        </View>
+        <View style={[styles.statRowItem, styles.statRowAllocated]}>
+          <Ionicons name="layers" size={18} color="#8b5cf6" />
+          <Text style={styles.statRowValue}>
+            {dashboard.totalAllocated.toLocaleString()}
+          </Text>
+          <Text style={styles.statRowLabel}>Allocated</Text>
+        </View>
+        <View style={[styles.statRowItem, styles.statRowFree]}>
+          <Ionicons name="wallet-outline" size={18} color="#3b82f6" />
+          <Text style={styles.statRowValue}>
+            {dashboard.freeToAssign.toLocaleString()}
+          </Text>
+          <Text style={styles.statRowLabel}>Free to assign</Text>
+        </View>
+      </View>
+
+      {/* ── Phase 2: Cash Flow Progress Bar ── ADDED THIS */}
+      <View style={styles.cashFlowSection}>
+        <View style={styles.cashFlowBarTrack}>
+          <View
+            style={[
+              styles.cashFlowBarFill,
+              {
+                width: `${Math.max(0, Math.min(
+                  dashboard.totalAllocated > 0
+                    ? (dashboard.totalSpent / dashboard.totalAllocated) * 100
+                    : 0,
+                  100,
+                ))}%`,
+              },
+            ]}
+          />
+        </View>
+        <View style={styles.cashFlowLabels}>
+          <Text style={styles.cashFlowLeft}>
+            KR {(dashboard.totalAllocated - dashboard.totalSpent > 0
+              ? dashboard.totalAllocated - dashboard.totalSpent
+              : 0
+            ).toLocaleString()}{' '}
+            left to allocate
+          </Text>
+          <Text style={styles.cashFlowRight}>
+            {dashboard.totalSpent.toLocaleString()} / {dashboard.totalAllocated.toLocaleString()}
+          </Text>
+        </View>
+      </View>
+
       {/* Summary Cards */}
       <View style={styles.summarySection}>
         {/* Income Card */}
@@ -131,21 +187,22 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {/* Loan Balance */}
+      {/* ── Phase 2: Compact Loan Summary ── CHANGED THIS */}
       <View style={styles.loanSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Active Loans</Text>
-          <TouchableOpacity>
-            <Ionicons name="chevron-forward" size={20} color="#3b82f6" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.loanCard}>
-          <Text style={styles.loanLabel}>Total Loan Balance</Text>
-          <Text style={styles.loanAmount}>NOK {dashboard.loanBalance.toLocaleString()}</Text>
-          <Text style={styles.loanDesc}>
-            {dashboard.activeLoans} active {dashboard.activeLoans === 1 ? 'loan' : 'loans'}
-          </Text>
-        </View>
+        <TouchableOpacity style={styles.compactLoanCard} activeOpacity={0.7}>
+          <View style={styles.compactLoanLeft}>
+            <Ionicons name="document-text" size={20} color="#f59e0b" />
+            <Text style={styles.compactLoanBalance}>
+              NOK {dashboard.loanBalance.toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.compactLoanRight}>
+            <Text style={styles.compactLoanCount}>
+              {dashboard.activeLoans} active {dashboard.activeLoans === 1 ? 'loan' : 'loans'}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color="#3b82f6" />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Quick Actions */}
@@ -292,42 +349,116 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 24,
   },
-  sectionHeader: {
+  // ── REMOVED old sectionHeader / loanCard / loanLabel / loanAmount / loanDesc ──
+  // ── Phase 2: Compact loan styles ── ADDED THIS
+  compactLoanCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  compactLoanLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compactLoanBalance: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  compactLoanRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  compactLoanCount: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  // ── Phase 2: Stats row styles ── ADDED THIS
+  statRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 16,
+  },
+  statRowItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statRowIncome: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  statRowAllocated: {
+    backgroundColor: '#f5f3ff',
+    borderColor: '#ddd6fe',
+  },
+  statRowFree: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  statRowValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 4,
+  },
+  statRowLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  // ── Phase 2: Cash flow bar styles ── ADDED THIS
+  cashFlowSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  cashFlowBarTrack: {
+    height: 10,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  cashFlowBarFill: {
+    height: '100%',
+    backgroundColor: '#ef4444',
+    borderRadius: 6,
+  },
+  cashFlowLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginTop: 6,
+  },
+  cashFlowLeft: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  cashFlowRight: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  actionsSection: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-  },
-  loanCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  loanLabel: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  loanAmount: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#111827',
-    marginVertical: 8,
-  },
-  loanDesc: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  actionsSection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
   },
   actionButtons: {
     flexDirection: 'row',
