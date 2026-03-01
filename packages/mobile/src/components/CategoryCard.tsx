@@ -16,36 +16,58 @@ export function CategoryCard({ category, onPress }: Props) {
   const clampedPct = Math.min(rawPct, 100)
   const barColor = getBarColor(rawPct)
   const isOver = rawPct > 100
+  const isBudget = category.type === 'budget'
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.cardInner}>
         {/* Header row */}
         <View style={styles.headerRow}>
-          <View style={[styles.iconWrap, { backgroundColor: isOver ? '#fef2f2' : '#f5f3ff' }]}>
+          <View style={[styles.iconWrap, { backgroundColor: isBudget ? (isOver ? '#fef2f2' : '#f5f3ff') : '#fef3c7' }]}>
             <Ionicons
-              name="pie-chart"
+              name={isBudget ? 'pie-chart' : 'repeat'}
               size={16}
-              color={isOver ? '#ef4444' : '#8b5cf6'}
+              color={isBudget ? (isOver ? '#ef4444' : '#8b5cf6') : '#ca8a04'}
             />
           </View>
           <Text style={styles.name} numberOfLines={1}>
             {category.name}
           </Text>
+          {/* Type Badge */}
+          <View
+            style={[
+              styles.typeBadge,
+              category.type === 'fixed'
+                ? styles.typeBadgeFixed
+                : styles.typeBadgeBudget,
+            ]}
+          >
+            <Text style={styles.typeBadgeText}>
+              {category.type === 'fixed' ? '🔧' : '💰'}
+            </Text>
+          </View>
         </View>
 
-        {/* Progress bar */}
-        <View style={styles.barTrack}>
-          <View style={[styles.barFill, { width: `${clampedPct}%`, backgroundColor: barColor }]} />
-        </View>
-
-        {/* Amounts row */}
-        <View style={styles.amountRow}>
-          <Text style={[styles.spent, { color: barColor }]}>
-            {safeSpent.toLocaleString()}
-          </Text>
-          <Text style={styles.allocated}>/ {category.allocated.toLocaleString()}</Text>
-        </View>
+        {/* Budget Category: Progress bar + spent/allocated */}
+        {isBudget ? (
+          <>
+            <View style={styles.barTrack}>
+              <View style={[styles.barFill, { width: `${clampedPct}%`, backgroundColor: barColor }]} />
+            </View>
+            <View style={styles.amountRow}>
+              <Text style={[styles.spent, { color: barColor }]}>
+                {safeSpent.toLocaleString()}
+              </Text>
+              <Text style={styles.allocated}>/ {category.allocated.toLocaleString()}</Text>
+            </View>
+          </>
+        ) : (
+          /* Fixed Category: Just show monthly amount */
+          <View style={styles.fixedAmountRow}>
+            <Text style={styles.fixedLabel}>Monthly cost</Text>
+            <Text style={styles.fixedAmount}>{category.allocated.toLocaleString()}</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   )
@@ -83,6 +105,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
+  typeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  typeBadgeBudget: {
+    backgroundColor: '#ecfdf5',
+  },
+  typeBadgeFixed: {
+    backgroundColor: '#fef3c7',
+  },
+  typeBadgeText: {
+    fontSize: 11,
+  },
   barTrack: {
     height: 6,
     backgroundColor: '#e5e7eb',
@@ -106,5 +142,20 @@ const styles = StyleSheet.create({
   allocated: {
     fontSize: 11,
     color: '#9ca3af',
+  },
+  fixedAmountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fixedLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  fixedAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ca8a04',
   },
 })

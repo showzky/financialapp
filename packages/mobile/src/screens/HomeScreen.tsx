@@ -14,6 +14,7 @@ import { usePeriod } from '../context/PeriodContext'
 import { MonthPickerModal } from '../components/MonthPickerModal'
 import { CategoryCard } from '../components/CategoryCard'
 import { CategoryDetailModal } from '../components/CategoryDetailModal'
+import { AddExpenseModal } from '../components/AddExpenseModal'
 
 export function HomeScreen() {
   const { selectedMonth, setSelectedMonth } = usePeriod()
@@ -22,6 +23,7 @@ export function HomeScreen() {
   const [error, setError] = useState<string | null>(null)
   const [isMonthPickerVisible, setMonthPickerVisible] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<CategoryWithSpent | null>(null)
+  const [isAddExpenseModalOpen, setAddExpenseModalOpen] = useState(false)
 
   const selectedMonthLabel = selectedMonth.toLocaleDateString('en-US', {
     month: 'long',
@@ -230,7 +232,10 @@ export function HomeScreen() {
       <View style={styles.actionsSection}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setAddExpenseModalOpen(true)}
+          >
             <Ionicons name="add-circle" size={28} color="#3b82f6" />
             <Text style={styles.actionLabel}>Add Expense</Text>
           </TouchableOpacity>
@@ -261,6 +266,20 @@ export function HomeScreen() {
         category={selectedCategory}
         onClose={() => setSelectedCategory(null)}
       />
+
+      {/* ── Add Expense Modal ── */}
+      {dashboard && (
+        <AddExpenseModal
+          isOpen={isAddExpenseModalOpen}
+          onClose={() => setAddExpenseModalOpen(false)}
+          categories={dashboard.categories}
+          selectedMonth={selectedMonth}
+          onTransactionCreated={() => {
+            setAddExpenseModalOpen(false)
+            void loadDashboard()
+          }}
+        />
+      )}
     </ScrollView>
   )
 }
