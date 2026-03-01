@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import { PeriodProvider } from './context/PeriodContext'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoansScreen } from './screens/LoansScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
@@ -82,9 +83,11 @@ function RootNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
+      <PeriodProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </PeriodProvider>
     </AuthProvider>
   )
 }

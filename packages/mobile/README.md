@@ -76,3 +76,11 @@ eas build -p ios --non-interactive
 ```
 
 Requires [Expo Account](https://expo.dev) and `eas-cli` installed.
+
+## Dashboard Month Picker
+
+- The Home dashboard header uses a month button (replacing the previous settings icon).
+- Tapping it opens a slide-up picker with the last 12 months.
+- The selected month is saved locally and restored on next app launch.
+- Dashboard metrics update for the selected month.
+- Loan summary remains based on current overall loan status (not month-filtered).

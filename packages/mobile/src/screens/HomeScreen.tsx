@@ -9,35 +9,44 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { dashboardApi, type DashboardData } from '../services/dashboardApi'
+import { usePeriod } from '../context/PeriodContext'
+import { MonthPickerModal } from '../components/MonthPickerModal'
 
-type RootStackParamList = {
-  Home: undefined
-}
-
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>
-
-export function HomeScreen({ navigation }: Props) {
-  void navigation
+export function HomeScreen() {
+  const { selectedMonth, setSelectedMonth } = usePeriod()
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isMonthPickerVisible, setMonthPickerVisible] = useState(false)
+
+  const selectedMonthLabel = selectedMonth.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  })
 
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const data = await dashboardApi.get()
+      const data = await dashboardApi.get(selectedMonth)
       setDashboard(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load dashboard'
-      setError(message)
+      void err
+      setError('Failed to load dashboard')
       setDashboard(null)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [selectedMonth])
+
+  const handleSelectMonth = useCallback(
+    async (month: Date) => {
+      await setSelectedMonth(month)
+      setMonthPickerVisible(false)
+    },
+    [setSelectedMonth],
+  )
 
   useEffect(() => {
     void loadDashboard()
@@ -68,7 +77,14 @@ export function HomeScreen({ navigation }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Financial Overview</Text>
-        <Ionicons name="settings" size={24} color="#333" />
+        <TouchableOpacity
+          style={styles.monthButton}
+          onPress={() => setMonthPickerVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.monthButtonText}>{selectedMonthLabel}</Text>
+          <Ionicons name="chevron-down" size={16} color="#1d4ed8" />
+        </TouchableOpacity>
       </View>
 
       {/* Summary Cards */}
@@ -153,6 +169,13 @@ export function HomeScreen({ navigation }: Props) {
 
       {/* Spacing */}
       <View style={{ height: 32 }} />
+
+      <MonthPickerModal
+        visible={isMonthPickerVisible}
+        selectedMonth={selectedMonth}
+        onClose={() => setMonthPickerVisible(false)}
+        onSelectMonth={handleSelectMonth}
+      />
     </ScrollView>
   )
 }
@@ -180,6 +203,22 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#111827',
+  },
+  monthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#eff6ff',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  monthButtonText: {
+    color: '#1d4ed8',
+    fontSize: 14,
+    fontWeight: '700',
   },
   summarySection: {
     paddingHorizontal: 16,

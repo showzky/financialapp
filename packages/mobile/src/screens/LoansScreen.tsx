@@ -184,13 +184,13 @@ export function LoansScreen() {
         {/* ADDED THIS — header action buttons */}
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerAddButton} onPress={() => setIsAddModalOpen(true)}>
-            <Ionicons name="add" size={22} color="#fff" />
+            <Ionicons name="add-circle" size={24} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={onRefresh} disabled={refetching}>
             {refetching ? (
               <ActivityIndicator color="#3b82f6" />
             ) : (
-             <Ionicons name="add-circle" size={24} color="#fff" />
+              <Ionicons name="refresh" size={24} color="#6b7280" />
             )}
           </TouchableOpacity>
         </View>
