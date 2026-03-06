@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -7,15 +7,23 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { dashboardApi, type DashboardData, type CategoryWithSpent } from '../services/dashboardApi'
 import { usePeriod } from '../context/PeriodContext'
 import { MonthPickerModal } from '../components/MonthPickerModal'
 import { CategoryCard } from '../components/CategoryCard'
+import { CategoryAccordionSection } from '../components/CategoryAccordionSection'
 import { CategoryDetailModal } from '../components/CategoryDetailModal'
 import { AddExpenseModal } from '../components/AddExpenseModal'
 import { SetIncomeModal } from '../components/SetIncomeModal' // ADDED THIS
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true)
+}
 
 export function HomeScreen() {
   const { selectedMonth, setSelectedMonth } = usePeriod()
@@ -26,6 +34,8 @@ export function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryWithSpent | null>(null)
   const [isAddExpenseModalOpen, setAddExpenseModalOpen] = useState(false)
   const [isSetIncomeModalOpen, setSetIncomeModalOpen] = useState(false) // ADDED THIS
+  const [expandedCategoryGroup, setExpandedCategoryGroup] = useState<'fixed' | 'budget' | null>('fixed')
+  const hasInitializedCategoryAccordion = useRef(false)
 
   const selectedMonthLabel = selectedMonth.toLocaleDateString('en-US', {
     month: 'long',
@@ -58,6 +68,75 @@ export function HomeScreen() {
   useEffect(() => {
     void loadDashboard()
   }, [loadDashboard])
+
+  const groupedCategories = useMemo(() => {
+    if (!dashboard) return []
+
+    const groupConfigs = {
+      fixed: {
+        title: 'Fixed Costs',
+        description: 'recurring essentials',
+        accentColor: '#d97706',
+      },
+      budget: {
+        title: 'Budget',
+        description: 'flexible spending',
+        accentColor: '#8b5cf6',
+      },
+    }
+
+    return (['fixed', 'budget'] as const)
+      .map((groupKey) => {
+        const items = dashboard.categories.filter((category) => category.type === groupKey)
+        const totalAllocated = items.reduce((sum, item) => sum + item.allocated, 0)
+        const previewNames = items.slice(0, 2).map((item) => item.name)
+        if (items.length > 2) {
+          previewNames.push(`+${items.length - 2} more`)
+        }
+
+        return {
+          key: groupKey,
+          items,
+          itemCount: items.length,
+          totalAllocated,
+          previewNames,
+          ...groupConfigs[groupKey],
+        }
+      })
+      .filter((group) => group.itemCount > 0)
+  }, [dashboard])
+
+  useEffect(() => {
+    if (groupedCategories.length === 0) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+      setExpandedCategoryGroup(null)
+      hasInitializedCategoryAccordion.current = false
+      return
+    }
+
+    if (!hasInitializedCategoryAccordion.current) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+      setExpandedCategoryGroup(groupedCategories[0].key)
+      hasInitializedCategoryAccordion.current = true
+      return
+    }
+
+    if (expandedCategoryGroup === null) {
+      return
+    }
+
+    if (groupedCategories.some((group) => group.key === expandedCategoryGroup)) {
+      return
+    }
+
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setExpandedCategoryGroup(groupedCategories[0].key)
+  }, [expandedCategoryGroup, groupedCategories])
+
+  const toggleCategoryGroup = useCallback((groupKey: 'fixed' | 'budget') => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setExpandedCategoryGroup((current) => (current === groupKey ? null : groupKey))
+  }, [])
 
   if (loading) {
     return (
@@ -267,18 +346,31 @@ export function HomeScreen() {
       {/* ── Phase 3: Categories Grid ── */}
       <View style={styles.categoriesSection}>
         <Text style={styles.sectionTitle}>Categories</Text>
-        {dashboard.categories.length === 0 ? (
+        {groupedCategories.length === 0 ? (
           <Text style={styles.emptyCategories}>No categories yet</Text>
         ) : (
-          <View style={styles.categoriesGrid}>
-            {dashboard.categories.map((item) => (
-              <CategoryCard
-                key={item.id}
-                category={item}
-                onPress={() => setSelectedCategory(item)}
-              />
-            ))}
-          </View>
+          groupedCategories.map((group) => (
+            <CategoryAccordionSection
+              key={group.key}
+              title={group.title}
+              subtitle={`${group.itemCount} ${group.itemCount === 1 ? 'item' : 'items'} • ${group.description}`}
+              totalLabel={`NOK ${group.totalAllocated.toLocaleString()}`}
+              accentColor={group.accentColor}
+              previewLabels={group.previewNames}
+              isOpen={expandedCategoryGroup === group.key}
+              onToggle={() => toggleCategoryGroup(group.key)}
+            >
+              <View style={styles.categoriesGrid}>
+                {group.items.map((item) => (
+                  <CategoryCard
+                    key={item.id}
+                    category={item}
+                    onPress={() => setSelectedCategory(item)}
+                  />
+                ))}
+              </View>
+            </CategoryAccordionSection>
+          ))
         )}
       </View>
 
@@ -692,7 +784,8 @@ const styles = StyleSheet.create({
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 12,
+    marginTop: 8,
+    marginHorizontal: -4,
   },
   emptyCategories: {
     fontSize: 13,
