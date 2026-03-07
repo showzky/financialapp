@@ -27,6 +27,8 @@ import { EditLoanModal } from '../components/EditLoanModal'
 import { EditBorrowedLoanModal } from '../components/EditBorrowedLoanModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { useNotifications } from '../context/NotificationContext'
+import { notificationApi } from '../services/notificationApi'
+import { loanReminderScheduler } from '../services/loanReminderScheduler'
 import {
   resolveConfirmAction,
   resolveLoansScreenFetchState,
@@ -292,6 +294,24 @@ function LentLoanCard({
 function getBorrowedDaysRemaining(loan: BorrowedLoan) {
   if (loan.status === 'paid_off' || loan.daysRemaining === null) return '--'
   return Math.max(0, loan.daysRemaining)
+}
+
+function buildLoanRepaidNotificationPayload(loan: Loan) {
+  return {
+    id: loan.id,
+    topic: 'loans' as const,
+    kind: 'loan_repaid' as const,
+    title: 'Loan repaid',
+    body: `${loan.recipient} has repaid ${formatNOK(loan.amount)}.`,
+    route: 'Loans' as const,
+    entityId: loan.id,
+    sentAt: new Date().toISOString(),
+    data: {
+      recipient: loan.recipient,
+      amount: loan.amount,
+      status: 'repaid',
+    },
+  }
 }
 
 function BorrowedLoanCard({
@@ -721,6 +741,19 @@ export function LoansScreen() {
     fetchLoans()
   }, [])
 
+  useEffect(() => {
+    if (loading) {
+      return
+    }
+
+    if (!preferences.enabled || !preferences.topics.loans) {
+      void loanReminderScheduler.clearAllAsync()
+      return
+    }
+
+    void loanReminderScheduler.syncLoanDueSoonReminders(loans)
+  }, [loading, loans, preferences.enabled, preferences.topics.loans])
+
   const onRefresh = async () => {
     setRefetching(true)
     await fetchLoans()
@@ -816,7 +849,12 @@ export function LoansScreen() {
       const action = resolveConfirmAction(confirmModal)
 
       if (action.type === 'repaid') {
-        await loanApi.markRepaid(action.id)
+        const repaidLoan = await loanApi.markRepaid(action.id)
+        if (preferences.enabled && preferences.topics.loans) {
+          await notificationApi.scheduleNotificationAsync(
+            buildLoanRepaidNotificationPayload(repaidLoan),
+          )
+        }
       } else if (action.type === 'paid-off') {
         await borrowedLoanApi.markPaidOff(action.id)
       } else {

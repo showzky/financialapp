@@ -132,6 +132,33 @@ export const notificationApi = {
     return token.data ?? null
   },
 
+  async scheduleNotificationAsync(
+    payload: AppNotificationPayload,
+    trigger: Notifications.NotificationTriggerInput = null,
+  ): Promise<string> {
+    this.configureForegroundNotifications()
+    await this.ensureAndroidChannelAsync()
+
+    return Notifications.scheduleNotificationAsync({
+      content: {
+        title: payload.title,
+        body: payload.body,
+        data: payload,
+        sound: true,
+        ...(Platform.OS === 'android' ? { channelId: DEFAULT_ANDROID_CHANNEL_ID } : {}),
+      },
+      trigger,
+    })
+  },
+
+  async cancelScheduledNotificationAsync(identifier: string): Promise<void> {
+    await Notifications.cancelScheduledNotificationAsync(identifier)
+  },
+
+  async cancelAllScheduledNotificationsAsync(): Promise<void> {
+    await Notifications.cancelAllScheduledNotificationsAsync()
+  },
+
   extractPayloadFromNotification(notification: Notifications.Notification): AppNotificationPayload {
     return normalizePayload({
       id: notification.request.identifier,
