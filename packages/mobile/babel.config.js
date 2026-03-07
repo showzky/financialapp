@@ -8,9 +8,9 @@ module.exports = function (api) {
         'module-resolver',
         {
           alias: {
-            '@': '../../src',
-            '@shared': '../../shared',
+            '@': './src',
           },
+          extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
         },
       ],
     ],

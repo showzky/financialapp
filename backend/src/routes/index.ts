@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { borrowedLoanRouter } from './borrowedLoanRoutes.js'
 import { categoryRouter } from './categoryRoutes.js'
 import { loanRouter } from './loanRoutes.js'
+import { notificationRouter } from './notificationRoutes.js'
 import { transactionRouter } from './transactionRoutes.js'
 import { userRouter } from './userRoutes.js'
 import { wishlistRouter } from './wishlistRoutes.js'
@@ -14,6 +15,7 @@ export const apiRouter = Router()
 apiRouter.use('/borrowed-loans', borrowedLoanRouter)
 apiRouter.use('/categories', categoryRouter)
 apiRouter.use('/loans', loanRouter)
+apiRouter.use('/notifications', notificationRouter)
 apiRouter.use('/transactions', transactionRouter)
 apiRouter.use('/users', userRouter)
 apiRouter.use('/wishlist', wishlistRouter)

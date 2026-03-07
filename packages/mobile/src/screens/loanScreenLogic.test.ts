@@ -24,6 +24,7 @@ const sampleBorrowedLoan = {
   lender: 'DNB',
   originalAmount: 300000,
   currentBalance: 220000,
+  interestRate: 5.2,
   payoffDate: '2035-01-01T00:00:00.000Z',
   notes: null,
   paidOffAt: null,

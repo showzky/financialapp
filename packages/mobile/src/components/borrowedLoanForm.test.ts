@@ -12,6 +12,7 @@ const sampleBorrowedLoan = {
   lender: 'Storebrand',
   originalAmount: 300000,
   currentBalance: 220000,
+  interestRate: 5.2,
   payoffDate: '2035-01-01T00:00:00Z',
   notes: 'Fixed rate',
   paidOffAt: null,
@@ -31,6 +32,7 @@ test('getBorrowedLoanFormErrors validates lender, balance range, and payoff date
     lender: ' ',
     originalAmount: '1000',
     currentBalance: '1200',
+    interestRate: '5.2',
     payoffDate: '2035-02-31',
     notes: '',
   })
@@ -45,6 +47,7 @@ test('buildCreateBorrowedLoanPayload trims lender and notes', () => {
     lender: '  DNB  ',
     originalAmount: '1000',
     currentBalance: '800',
+    interestRate: '5.2',
     payoffDate: '2035-01-01',
     notes: '  fixed rate  ',
   })
@@ -53,6 +56,7 @@ test('buildCreateBorrowedLoanPayload trims lender and notes', () => {
     lender: 'DNB',
     originalAmount: 1000,
     currentBalance: 800,
+    interestRate: 5.2,
     payoffDate: '2035-01-01',
     notes: 'fixed rate',
   })
@@ -63,6 +67,7 @@ test('buildUpdateBorrowedLoanPayload only includes changed fields', () => {
     lender: '  DNB  ',
     originalAmount: '300000',
     currentBalance: '200000',
+    interestRate: '5.2',
     payoffDate: '2035-01-01',
     notes: '  updated note  ',
   })

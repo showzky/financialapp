@@ -3,12 +3,55 @@ import React, { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../auth/AuthContext'
+import { useNotifications } from '../context/NotificationContext'
 
 export function SettingsScreen() {
   const { signOut } = useAuth()
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
-  const [budgetAlerts, setBudgetAlerts] = useState(true)
+  const {
+    disablePushNotifications,
+    enablePushNotifications,
+    expoPushToken,
+    isReady,
+    permissionState,
+    preferences,
+    setTopicEnabled,
+  } = useNotifications()
   const [darkMode, setDarkMode] = useState(false)
+
+  // ADDED THIS
+  const handleNotificationsToggle = (nextValue: boolean) => {
+    if (!nextValue) {
+      void disablePushNotifications()
+      return
+    }
+
+    void enablePushNotifications().then((enabled) => {
+      if (!enabled) {
+        Alert.alert(
+          'Notifications not enabled',
+          'Permission was not granted. You can try again later from Settings.',
+        )
+      }
+    })
+  }
+
+  // ADDED THIS
+  const handleTopicToggle = (topic: 'loans' | 'wishlist' | 'vacations') => (nextValue: boolean) => {
+    if (!preferences.enabled && nextValue) {
+      Alert.alert('Enable push notifications first', 'Turn on push notifications before enabling topics.')
+      return
+    }
+
+    void setTopicEnabled(topic, nextValue)
+  }
+
+  const pushNotificationDescription = !isReady
+    ? 'Loading notification settings...'
+    : preferences.enabled && expoPushToken
+      ? 'Ready for reusable app notifications'
+      : permissionState === 'denied'
+        ? 'Permission denied. You can try again later.'
+        : 'Receive app notifications'
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -91,30 +134,66 @@ export function SettingsScreen() {
               <Ionicons name="notifications" size={20} color="#3b82f6" />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingLabel}>Push Notifications</Text>
-                <Text style={styles.settingDesc}>Receive app notifications</Text>
+                <Text style={styles.settingDesc}>{pushNotificationDescription}</Text>
               </View>
             </View>
             <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
+              value={preferences.enabled}
+              onValueChange={handleNotificationsToggle}
               trackColor={{ false: '#e5e7eb', true: '#86efac' }}
-              thumbColor={notificationsEnabled ? '#22c55e' : '#d1d5db'}
+              thumbColor={preferences.enabled ? '#22c55e' : '#d1d5db'}
+              disabled={!isReady}
+            />
+          </View>
+
+          <View style={styles.toggleItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="alert-circle" size={20} color="#3b82f6" />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingLabel}>Loan Notifications</Text>
+                <Text style={styles.settingDesc}>Due soon, overdue, and repaid updates</Text>
+              </View>
+            </View>
+            <Switch
+              value={preferences.topics.loans}
+              onValueChange={handleTopicToggle('loans')}
+              trackColor={{ false: '#e5e7eb', true: '#86efac' }}
+              thumbColor={preferences.topics.loans ? '#22c55e' : '#d1d5db'}
+              disabled={!preferences.enabled}
+            />
+          </View>
+
+          <View style={styles.toggleItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="heart" size={20} color="#3b82f6" />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingLabel}>Wishlist Notifications</Text>
+                <Text style={styles.settingDesc}>Future wishlist reminders and alerts</Text>
+              </View>
+            </View>
+            <Switch
+              value={preferences.topics.wishlist}
+              onValueChange={handleTopicToggle('wishlist')}
+              trackColor={{ false: '#e5e7eb', true: '#86efac' }}
+              thumbColor={preferences.topics.wishlist ? '#22c55e' : '#d1d5db'}
+              disabled={!preferences.enabled}
             />
           </View>
 
           <View style={[styles.toggleItem, styles.lastItem]}>
             <View style={styles.settingLeft}>
-              <Ionicons name="alert-circle" size={20} color="#3b82f6" />
+              <Ionicons name="airplane" size={20} color="#3b82f6" />
               <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Budget Alerts</Text>
-                <Text style={styles.settingDesc}>Notify when budget exceeded</Text>
+                <Text style={styles.settingLabel}>Vacation Reminders</Text>
+                <Text style={styles.settingDesc}>Future travel countdown reminders</Text>
               </View>
             </View>
             <Switch
-              value={budgetAlerts}
-              onValueChange={setBudgetAlerts}
+              value={preferences.topics.vacations}
+              onValueChange={handleTopicToggle('vacations')}
               trackColor={{ false: '#e5e7eb', true: '#86efac' }}
-              thumbColor={budgetAlerts ? '#22c55e' : '#d1d5db'}
+              thumbColor={preferences.topics.vacations ? '#22c55e' : '#d1d5db'}
+              disabled={!preferences.enabled}
             />
           </View>
         </View>

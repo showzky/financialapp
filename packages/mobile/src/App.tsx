@@ -1,11 +1,14 @@
 // @ts-nocheck
 import React from 'react'
+import { ActivityIndicator, View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
+import { useFonts } from 'expo-font'
 
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 import { PeriodProvider } from './context/PeriodContext'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoansScreen } from './screens/LoansScreen'
@@ -81,13 +84,33 @@ function RootNavigator() {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts(Ionicons.font)
+
+  if (!fontsLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f8fafc',
+        }}
+      >
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    )
+  }
+
   return (
     <AuthProvider>
-      <PeriodProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </PeriodProvider>
+      {/* ADDED THIS */}
+      <NotificationProvider>
+        <PeriodProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </PeriodProvider>
+      </NotificationProvider>
     </AuthProvider>
   )
 }

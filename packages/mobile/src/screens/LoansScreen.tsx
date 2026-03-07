@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   LayoutAnimation,
   Platform,
   RefreshControl,
@@ -25,6 +26,7 @@ import { AddBorrowedLoanModal } from '../components/AddBorrowedLoanModal'
 import { EditLoanModal } from '../components/EditLoanModal'
 import { EditBorrowedLoanModal } from '../components/EditBorrowedLoanModal'
 import { ConfirmModal } from '../components/ConfirmModal'
+import { useNotifications } from '../context/NotificationContext'
 import {
   resolveConfirmAction,
   resolveLoansScreenFetchState,
@@ -658,6 +660,7 @@ function EmptyMineLoansState() {
 }
 
 export function LoansScreen() {
+  const { enablePushNotifications, permissionState, preferences } = useNotifications()
   const [tab, setTab] = useState<TabKey>('lent')
   const [loans, setLoans] = useState<Loan[]>([])
   const [borrowedLoans, setBorrowedLoans] = useState<BorrowedLoan[]>([])
@@ -723,10 +726,47 @@ export function LoansScreen() {
     await fetchLoans()
   }
 
+  // ADDED THIS
+  const maybePromptForLoanNotifications = () => {
+    if (preferences.enabled) {
+      return
+    }
+
+    Alert.alert(
+      'Enable loan reminders?',
+      'Turn on notifications to get future due soon and overdue loan alerts.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: permissionState === 'denied' ? 'Try again later' : 'Enable',
+          onPress: () => {
+            if (permissionState === 'denied') {
+              return
+            }
+
+            void enablePushNotifications().then((enabled) => {
+              if (!enabled) {
+                Alert.alert(
+                  'Notifications not enabled',
+                  'You can always turn them on later from the Settings tab.',
+                )
+              }
+            })
+          },
+        },
+      ],
+    )
+  }
+
   const handleAddLoan = async (payload) => {
+    const shouldPromptForNotifications = loans.length + borrowedLoans.length === 0 && !preferences.enabled
     await loanApi.create(payload)
     setIsAddModalOpen(false)
     await fetchLoans()
+
+    if (shouldPromptForNotifications) {
+      maybePromptForLoanNotifications()
+    }
   }
 
   const handleEditLoan = async (id, payload) => {
@@ -736,9 +776,14 @@ export function LoansScreen() {
   }
 
   const handleAddBorrowedLoan = async (payload) => {
+    const shouldPromptForNotifications = loans.length + borrowedLoans.length === 0 && !preferences.enabled
     await borrowedLoanApi.create(payload)
     setIsAddBorrowedModalOpen(false)
     await fetchLoans()
+
+    if (shouldPromptForNotifications) {
+      maybePromptForLoanNotifications()
+    }
   }
 
   const handleEditBorrowedLoan = async (id, payload) => {

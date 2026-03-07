@@ -52,6 +52,7 @@ test('borrowedLoanModel.create writes nullable notes and borrowed-loan fields', 
         lender: 'Storebrand',
         originalAmount: 100000,
         currentBalance: 95000,
+        interestRate: 4.2,
         payoffDate: '2030-01-01',
         notes: null,
         paidOffAt: null,
@@ -68,6 +69,7 @@ test('borrowedLoanModel.create writes nullable notes and borrowed-loan fields', 
     lender: 'Storebrand',
     originalAmount: 100000,
     currentBalance: 95000,
+    interestRate: 4.2,
     payoffDate: '2030-01-01',
     notes: null,
   })
@@ -76,7 +78,7 @@ test('borrowedLoanModel.create writes nullable notes and borrowed-loan fields', 
   assert.match(capturedSql, /paid_off_at/i)
   assert.match(capturedSql, /\$3::numeric\(12, 2\)/i)
   assert.match(capturedSql, /\$4::numeric\(12, 2\) <= 0::numeric/i)
-  assert.deepEqual(capturedParams, ['user-1', 'Storebrand', 100000, 95000, '2030-01-01', null])
+  assert.deepEqual(capturedParams, ['user-1', 'Storebrand', 100000, 95000, 4.2, '2030-01-01', null])
 })
 
 test('borrowedLoanModel.getById scopes the lookup to the signed-in user', async () => {
@@ -116,9 +118,10 @@ test('borrowedLoanModel.update preserves patch semantics for nullable notes and 
   assert.match(capturedSql, /current_balance = CASE WHEN \$6 THEN \$7::numeric\(12, 2\) ELSE current_balance END/i)
   assert.match(capturedSql, /WHEN \$6 AND \$7::numeric\(12, 2\) <= 0::numeric THEN COALESCE\(paid_off_at, NOW\(\)\)/i)
   assert.match(capturedSql, /paid_off_at = CASE/i)
-  assert.match(capturedSql, /payoff_date = COALESCE\(\$8::date, payoff_date\)/i)
-  assert.match(capturedSql, /notes = CASE WHEN \$9 THEN \$10 ELSE notes END/i)
-  assert.deepEqual(capturedParams, ['loan-1', 'user-1', null, true, 100000, true, 50000, null, true, null])
+  assert.match(capturedSql, /interest_rate = CASE WHEN \$8 THEN \$9::numeric\(5, 2\) ELSE interest_rate END/i)
+  assert.match(capturedSql, /payoff_date = COALESCE\(\$10::date, payoff_date\)/i)
+  assert.match(capturedSql, /notes = CASE WHEN \$11 THEN \$12 ELSE notes END/i)
+  assert.deepEqual(capturedParams, ['loan-1', 'user-1', null, true, 100000, true, 50000, false, null, null, true, null])
 })
 
 test('borrowedLoanModel.markPaidOff zeros current balance and stamps paid_off_at', async () => {

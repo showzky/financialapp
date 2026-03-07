@@ -8,6 +8,7 @@ test('createBorrowedLoanSchema accepts valid payload and normalizes blank notes 
     lender: 'Storebrand',
     originalAmount: 250000,
     currentBalance: 190000,
+    interestRate: 5.4,
     payoffDate: '2035-05-01',
     notes: '   ',
   })
@@ -23,6 +24,7 @@ test('createBorrowedLoanSchema rejects invalid payoff dates', () => {
         lender: 'Storebrand',
         originalAmount: 250000,
         currentBalance: 190000,
+        interestRate: 5.4,
         payoffDate: '2035-02-31',
       }),
     (error: unknown) => {
@@ -39,6 +41,7 @@ test('createBorrowedLoanSchema rejects current balance above original amount', (
         lender: 'Storebrand',
         originalAmount: 100000,
         currentBalance: 125000,
+        interestRate: 5.4,
         payoffDate: '2035-05-01',
       }),
     (error: unknown) => {

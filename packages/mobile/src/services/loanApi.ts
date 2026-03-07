@@ -1,7 +1,7 @@
 import { backendClient } from './backendClient'
-import type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '@shared'
+import type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '../shared'
 
-export type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '@shared'
+export type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '../shared'
 
 export const loanApi = {
   list: async () => {

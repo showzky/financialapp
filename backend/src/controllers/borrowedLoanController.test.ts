@@ -22,6 +22,7 @@ const sampleBorrowedLoan: BorrowedLoan = {
   lender: 'Storebrand',
   originalAmount: 250000,
   currentBalance: 190000,
+  interestRate: 5.4,
   payoffDate: '2035-05-01',
   notes: 'Fixed rate through 2030',
   paidOffAt: null,
@@ -171,6 +172,7 @@ test('createBorrowedLoan passes normalized payload to the model', async () => {
       lender: 'DNB',
       originalAmount: 320000,
       currentBalance: 215000,
+      interestRate: 4.9,
       payoffDate: '2036-04-15',
       notes: '   ',
     },
@@ -190,6 +192,7 @@ test('createBorrowedLoan passes normalized payload to the model', async () => {
     lender: 'DNB',
     originalAmount: 320000,
     currentBalance: 215000,
+    interestRate: 4.9,
     payoffDate: '2036-04-15',
     notes: null,
   })
