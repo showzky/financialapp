@@ -1,0 +1,2 @@
+ALTER TABLE loans_given
+ADD COLUMN IF NOT EXISTS notes TEXT;

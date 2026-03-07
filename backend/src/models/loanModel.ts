@@ -9,6 +9,7 @@ export type Loan = {
   amount: number
   dateGiven: string
   expectedRepaymentDate: string
+  notes: string | null
   repaidAt: string | null
   status: LoanStatus
   daysRemaining: number | null
@@ -22,6 +23,7 @@ export type CreateLoanInput = {
   amount: number
   dateGiven: string
   expectedRepaymentDate: string
+  notes?: string | null
 }
 
 export type UpdateLoanInput = {
@@ -29,6 +31,7 @@ export type UpdateLoanInput = {
   amount?: number | undefined
   dateGiven?: string | undefined
   expectedRepaymentDate?: string | undefined
+  notes?: string | null | undefined
 }
 
 export type LoanSummary = {
@@ -46,6 +49,7 @@ const loanSelect = `
   amount::float8 AS amount,
   date_given AS "dateGiven",
   expected_repayment_date AS "expectedRepaymentDate",
+  notes,
   repaid_at AS "repaidAt",
   CASE
     WHEN repaid_at IS NOT NULL THEN 'repaid'
@@ -101,12 +105,20 @@ export const loanModel = {
         recipient,
         amount,
         date_given,
-        expected_repayment_date
+        expected_repayment_date,
+        notes
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING ${loanSelect}
       `,
-      [input.userId, input.recipient, input.amount, input.dateGiven, input.expectedRepaymentDate],
+      [
+        input.userId,
+        input.recipient,
+        input.amount,
+        input.dateGiven,
+        input.expectedRepaymentDate,
+        input.notes ?? null,
+      ],
     )
 
     const row = result.rows[0]
@@ -119,6 +131,7 @@ export const loanModel = {
 
   async update(id: string, userId: string, input: UpdateLoanInput): Promise<Loan | null> {
     const hasAmountUpdate = input.amount !== undefined
+    const hasNotesUpdate = input.notes !== undefined
 
     const result = await db.query<Loan>(
       `
@@ -128,6 +141,7 @@ export const loanModel = {
         amount = CASE WHEN $7 THEN $4 ELSE amount END,
         date_given = COALESCE($5, date_given),
         expected_repayment_date = COALESCE($6, expected_repayment_date),
+        notes = CASE WHEN $9 THEN $8 ELSE notes END,
         updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING ${loanSelect}
@@ -140,6 +154,8 @@ export const loanModel = {
         input.dateGiven ?? null,
         input.expectedRepaymentDate ?? null,
         hasAmountUpdate,
+        input.notes ?? null,
+        hasNotesUpdate,
       ],
     )
 

@@ -6,6 +6,7 @@ export type Loan = {
   amount: number
   dateGiven: string
   expectedRepaymentDate: string
+  notes: string | null
   repaidAt: string | null
   status: 'outstanding' | 'due_soon' | 'overdue' | 'repaid'
   daysRemaining: number | null
@@ -26,6 +27,7 @@ export type CreateLoanPayload = {
   amount: number
   dateGiven: string
   expectedRepaymentDate: string
+  notes?: string
 }
 
 export type UpdateLoanPayload = {
@@ -33,6 +35,7 @@ export type UpdateLoanPayload = {
   amount?: number
   dateGiven?: string
   expectedRepaymentDate?: string
+  notes?: string | null
 }
 
 export const loanApi = {

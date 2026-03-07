@@ -90,6 +90,10 @@ function getDaysRemaining(loan: Loan) {
   return Math.max(0, loan.daysRemaining)
 }
 
+function getLoanNotes(loan: Loan) {
+  return loan.notes?.trim() || ''
+}
+
 function LentLoanCard({
   loan,
   onEdit,
@@ -161,6 +165,15 @@ function LentLoanCard({
           </Text>
         </View>
       </View>
+
+      {getLoanNotes(loan) ? (
+        <View style={styles.notesBanner}>
+          <Ionicons name="chatbubble-ellipses-outline" size={14} color="#a78bfa" />
+          <Text style={styles.notesText} numberOfLines={2}>
+            {getLoanNotes(loan)}
+          </Text>
+        </View>
+      ) : null}
 
       {expanded ? (
         <View style={styles.loanExpandedSection}>
@@ -771,6 +784,22 @@ const styles = StyleSheet.create({
   },
   metricValueWarning: {
     color: '#d97706',
+  },
+  notesBanner: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  notesText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
   },
   loanExpandedSection: {
     marginTop: 14,

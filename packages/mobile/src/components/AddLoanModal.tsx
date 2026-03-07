@@ -28,6 +28,7 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
   const [amount, setAmount] = useState('')
   const [dateGiven, setDateGiven] = useState('')
   const [expectedRepaymentDate, setExpectedRepaymentDate] = useState('')
+  const [notes, setNotes] = useState('')
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -37,6 +38,7 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
     setAmount('')
     setDateGiven('')
     setExpectedRepaymentDate('')
+    setNotes('')
     setHasTriedSubmit(false)
     setSubmitting(false)
     setSubmitError('')
@@ -62,6 +64,7 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
       : dateGiven && isValidDate(dateGiven) && expectedRepaymentDate <= dateGiven
       ? 'Must be after date given'
       : '',
+    notes: notes.length > 400 ? 'Max 400 characters' : '',
   }
 
   const hasErrors = Object.values(errors).some(Boolean)
@@ -78,6 +81,7 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
         amount: Number(amount),
         dateGiven,
         expectedRepaymentDate,
+        notes: notes.trim() || undefined,
       })
       resetForm()
     } catch (e) {
@@ -197,6 +201,32 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
                 ) : null}
               </View>
 
+              <View style={styles.field}>
+                <Text style={styles.label}>Notes</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.notesInput,
+                    hasTriedSubmit && errors.notes ? styles.inputError : null,
+                  ]}
+                  placeholder="Til husleie"
+                  placeholderTextColor="#9ca3af"
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                  textAlignVertical="top"
+                  maxLength={400}
+                />
+                <View style={styles.fieldFooter}>
+                  {hasTriedSubmit && errors.notes ? (
+                    <Text style={styles.errorText}>{errors.notes}</Text>
+                  ) : (
+                    <View />
+                  )}
+                  <Text style={styles.counterText}>{notes.length}/400</Text>
+                </View>
+              </View>
+
               {/* API-level error */}
               {submitError ? (
                 <View style={styles.submitErrorBanner}>
@@ -278,14 +308,27 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#f9fafb',
   },
+  notesInput: {
+    minHeight: 92,
+    paddingTop: 12,
+  },
   inputError: {
     borderColor: '#ef4444',
     backgroundColor: '#fef2f2',
   },
+  fieldFooter: {
+    marginTop: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   errorText: {
     fontSize: 12,
     color: '#ef4444',
-    marginTop: 4,
+  },
+  counterText: {
+    fontSize: 12,
+    color: '#9ca3af',
   },
   submitErrorBanner: {
     flexDirection: 'row',

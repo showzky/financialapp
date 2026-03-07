@@ -8,12 +8,19 @@ import { AppError } from '../utils/appError.js'
 const dateFromString = (v: unknown) =>
   typeof v === 'string' && v.trim() ? new Date(v as string) : v
 
+const normalizeLoanNotes = (value: string | undefined) => {
+  if (value === undefined) return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
 const createLoanSchema = z
   .object({
     recipient: z.string().trim().min(1).max(150),
     amount: z.number().finite().positive(),
     dateGiven: z.preprocess(dateFromString, z.date()), // ADD THIS
     expectedRepaymentDate: z.preprocess(dateFromString, z.date()), // ADD THIS
+    notes: z.string().max(400).optional(),
   })
   .refine((value) => value.expectedRepaymentDate >= value.dateGiven, {
     message: 'Expected repayment date must be on or after date given',
@@ -26,13 +33,15 @@ const updateLoanSchema = z
     amount: z.number().finite().positive().optional(),
     dateGiven: z.preprocess(dateFromString, z.date()).optional(), // ADD THIS
     expectedRepaymentDate: z.preprocess(dateFromString, z.date()).optional(), // ADD THIS
+    notes: z.string().max(400).optional(),
   })
   .refine(
     (value) =>
       value.recipient !== undefined ||
       value.amount !== undefined ||
       value.dateGiven !== undefined ||
-      value.expectedRepaymentDate !== undefined,
+      value.expectedRepaymentDate !== undefined ||
+      value.notes !== undefined,
     {
       message: 'At least one field must be provided',
     },
@@ -64,6 +73,7 @@ export const createLoan = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const payload = createLoanSchema.parse(req.body)
+  const normalizedNotes = normalizeLoanNotes(payload.notes)
 
   const created = await loanModel.create({
     userId: req.auth.userId,
@@ -71,6 +81,7 @@ export const createLoan = asyncHandler(async (req: Request, res: Response) => {
     amount: payload.amount,
     dateGiven: payload.dateGiven.toISOString(), // ADD THIS
     expectedRepaymentDate: payload.expectedRepaymentDate.toISOString(), // ADD THIS
+    notes: normalizedNotes,
   })
 
   res.status(201).json(created)
@@ -83,6 +94,7 @@ export const updateLoan = asyncHandler(async (req: Request, res: Response) => {
 
   const { id } = loanIdSchema.parse(req.params)
   const payload = updateLoanSchema.parse(req.body)
+  const normalizedNotes = normalizeLoanNotes(payload.notes)
 
   const existing = await loanModel.getById(id, req.auth.userId)
   if (!existing) {
@@ -104,6 +116,7 @@ export const updateLoan = asyncHandler(async (req: Request, res: Response) => {
     ...payload,
     dateGiven: payload.dateGiven?.toISOString(),
     expectedRepaymentDate: payload.expectedRepaymentDate?.toISOString(),
+    notes: normalizedNotes,
   }
 
   const updated = await loanModel.update(id, req.auth.userId, updateData)

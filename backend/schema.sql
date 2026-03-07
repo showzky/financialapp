@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS loans_given (
   amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
   date_given DATE NOT NULL,
   expected_repayment_date DATE NOT NULL,
+  notes TEXT,
   repaid_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
