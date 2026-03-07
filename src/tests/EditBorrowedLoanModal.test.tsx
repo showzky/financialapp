@@ -7,6 +7,7 @@ const sampleLoan = {
   lender: 'Storebrand',
   originalAmount: 300000,
   currentBalance: 220000,
+  interestRate: 4.5,
   payoffDate: '2035-01-01T00:00:00Z',
   notes: 'Fixed rate',
   paidOffAt: null,
@@ -58,6 +59,7 @@ describe('EditBorrowedLoanModal', () => {
         lender: 'DNB',
         originalAmount: 300000,
         currentBalance: 220000,
+        interestRate: 4.5,
         payoffDate: '2035-01-01',
         notes: 'updated note',
       })
