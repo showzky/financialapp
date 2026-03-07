@@ -1,49 +1,238 @@
 // @ts-nocheck
-import React, { useEffect, useState, useFocusEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
   ActivityIndicator,
-  TouchableOpacity,
-  FlatList,
   LayoutAnimation,
-  UIManager,
   Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { loanApi, type Loan, type LoanSummary } from '../services/loanApi'
+import { AddLoanModal } from '../components/AddLoanModal'
+import { EditLoanModal } from '../components/EditLoanModal'
+import { ConfirmModal } from '../components/ConfirmModal'
 
-// ADDED THIS — LayoutAnimation needs to be explicitly enabled on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
 }
-import { Ionicons } from '@expo/vector-icons'
-import { loanApi, type Loan, type LoanSummary } from '../services/loanApi'
-import { AddLoanModal } from '../components/AddLoanModal' // ADDED THIS
-import { EditLoanModal } from '../components/EditLoanModal' // ADDED THIS
-import { ConfirmModal } from '../components/ConfirmModal' // ADDED THIS
+
+type TabKey = 'mine' | 'lent'
+
+const STATUS_CONFIG = {
+  due_soon: {
+    label: 'Forfaller snart',
+    color: '#b45309',
+    bg: '#fef3c7',
+    dot: '#f59e0b',
+  },
+  outstanding: {
+    label: 'Utestaende',
+    color: '#475569',
+    bg: '#e2e8f0',
+    dot: '#94a3b8',
+  },
+  overdue: {
+    label: 'Forfalt',
+    color: '#b91c1c',
+    bg: '#fee2e2',
+    dot: '#ef4444',
+  },
+  repaid: {
+    label: 'Tilbakebetalt',
+    color: '#047857',
+    bg: '#d1fae5',
+    dot: '#10b981',
+  },
+} as const
+
+function formatNOK(n: number) {
+  return `NOK ${n.toLocaleString('nb-NO')}`
+}
+
+function formatDate(dateString: string | null | undefined) {
+  if (!dateString) return 'Ikke satt'
+  try {
+    return new Date(dateString).toLocaleDateString('nb-NO', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  } catch {
+    return dateString
+  }
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function avatarColor(name: string) {
+  const colors = ['#6366f1', '#ec4899', '#f97316', '#14b8a6', '#8b5cf6', '#0ea5e9']
+  let hash = 0
+  for (const char of name) hash = (hash + char.charCodeAt(0)) % colors.length
+  return colors[hash]
+}
+
+function getDaysRemaining(loan: Loan) {
+  if (loan.status === 'repaid' || loan.daysRemaining === null) return '--'
+  return Math.max(0, loan.daysRemaining)
+}
+
+function LentLoanCard({
+  loan,
+  onEdit,
+  onMarkRepaid,
+}: {
+  loan: Loan
+  onEdit: (loan: Loan) => void
+  onMarkRepaid: (loan: Loan) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const status = STATUS_CONFIG[loan.status] ?? STATUS_CONFIG.outstanding
+  const avatar = avatarColor(loan.recipient)
+
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setExpanded((prev) => !prev)
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={toggleExpanded}
+      style={[
+        styles.loanCard,
+        expanded ? styles.loanCardExpanded : null,
+        loan.status === 'repaid' ? styles.loanCardRepaid : null,
+      ]}
+    >
+      <View style={styles.loanTopRow}>
+        <View style={styles.loanIdentity}>
+          <View style={[styles.avatar, { backgroundColor: avatar }]}>
+            <Text style={styles.avatarText}>{getInitials(loan.recipient)}</Text>
+          </View>
+          <View style={styles.loanIdentityText}>
+            <Text style={styles.loanName}>{loan.recipient}</Text>
+            <Text style={styles.loanSubtext}>Gitt {formatDate(loan.dateGiven)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.loanRightBlock}>
+          <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: status.dot }]} />
+            <Text style={[styles.statusPillText, { color: status.color }]}>{status.label}</Text>
+          </View>
+          <Text style={styles.remainingAmount}>{formatNOK(loan.amount)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.metricRow}>
+        <View style={styles.metricBlock}>
+          <Text style={styles.metricLabel}>Belop</Text>
+          <Text style={styles.metricValue}>{formatNOK(loan.amount)}</Text>
+        </View>
+        <View style={styles.metricBlock}>
+          <Text style={styles.metricLabel}>Forfall</Text>
+          <Text style={styles.metricValue}>{formatDate(loan.expectedRepaymentDate)}</Text>
+        </View>
+        <View style={styles.metricBlock}>
+          <Text style={styles.metricLabel}>Dager igjen</Text>
+          <Text
+            style={[
+              styles.metricValue,
+              loan.status !== 'repaid' && typeof loan.daysRemaining === 'number' && loan.daysRemaining <= 7
+                ? styles.metricValueWarning
+                : null,
+            ]}
+          >
+            {getDaysRemaining(loan)}
+          </Text>
+        </View>
+      </View>
+
+      {expanded ? (
+        <View style={styles.loanExpandedSection}>
+          <View style={styles.loanExpandedGrid}>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailLabel}>Opprettet</Text>
+              <Text style={styles.detailValue}>{formatDate(loan.createdAt)}</Text>
+            </View>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailLabel}>Oppdatert</Text>
+              <Text style={styles.detailValue}>{formatDate(loan.updatedAt)}</Text>
+            </View>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailLabel}>Tilbakebetalt</Text>
+              <Text style={styles.detailValue}>{formatDate(loan.repaidAt)}</Text>
+            </View>
+          </View>
+
+          {loan.status !== 'repaid' ? (
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={() => onEdit(loan)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="pencil" size={15} color="#475569" />
+                <Text style={styles.secondaryActionText}>Rediger</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.primaryAction}
+                onPress={() => onMarkRepaid(loan)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="checkmark-circle" size={16} color="#059669" />
+                <Text style={styles.primaryActionText}>Marker tilbakebetalt</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </TouchableOpacity>
+  )
+}
+
+function MineLoansPlaceholder() {
+  return (
+    <View style={styles.placeholderCard}>
+      <View style={styles.placeholderIcon}>
+        <Ionicons name="business-outline" size={22} color="#1d4ed8" />
+      </View>
+      <Text style={styles.placeholderTitle}>Mine lan er ikke koblet til backend ennå</Text>
+      <Text style={styles.placeholderText}>
+        Prototypen hadde en egen seksjon for personlige banklan. Denne appen har forelopig bare
+        ekte data og handlinger for utlante lan, sa jeg lot designet bli, men uten hardkodet
+        demo-innhold.
+      </Text>
+    </View>
+  )
+}
 
 export function LoansScreen() {
+  const [tab, setTab] = useState<TabKey>('lent')
   const [loans, setLoans] = useState<Loan[]>([])
   const [summary, setSummary] = useState<LoanSummary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string>('')
+  const [error, setError] = useState('')
   const [refetching, setRefetching] = useState(false)
-
-  // ADDED THIS — modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null)
-  // confirmModal holds the type + subject loan for the ConfirmModal
   const [confirmModal, setConfirmModal] = useState<{ type: 'repaid'; loan: Loan } | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
-
-  // ADDED THIS — repaid section is collapsed by default
   const [repaidExpanded, setRepaidExpanded] = useState(false)
-
-  const toggleRepaid = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-    setRepaidExpanded((prev) => !prev)
-  }
 
   const fetchLoans = async () => {
     try {
@@ -70,28 +259,23 @@ export function LoansScreen() {
     await fetchLoans()
   }
 
-  // ADDED THIS — create a new loan, then refresh
   const handleAddLoan = async (payload) => {
     await loanApi.create(payload)
     setIsAddModalOpen(false)
     await fetchLoans()
   }
 
-  // ADDED THIS — update an existing loan, then refresh
   const handleEditLoan = async (id, payload) => {
     await loanApi.update(id, payload)
     setEditingLoan(null)
     await fetchLoans()
   }
 
-  // ADDED THIS — mark loan as repaid after confirmation, then refresh
   const handleConfirmAction = async () => {
     if (!confirmModal) return
     setIsConfirming(true)
     try {
-      if (confirmModal.type === 'repaid') {
-        await loanApi.markRepaid(confirmModal.loan.id)
-      }
+      await loanApi.markRepaid(confirmModal.loan.id)
       setConfirmModal(null)
       await fetchLoans()
     } catch (e) {
@@ -101,288 +285,184 @@ export function LoansScreen() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'outstanding':
-        return { bg: '#f3f4f6', text: '#374151', badge: '#e5e7eb' }
-      case 'due_soon':
-        return { bg: '#fef3c7', text: '#92400e', badge: '#fcd34d' }
-      case 'overdue':
-        return { bg: '#fee2e2', text: '#991b1b', badge: '#fca5a5' }
-      case 'repaid':
-        return { bg: '#ecfdf5', text: '#065f46', badge: '#a7f3d0' }
-      default:
-        return { bg: '#f3f4f6', text: '#374151', badge: '#e5e7eb' }
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'outstanding':
-        return 'Outstanding'
-      case 'due_soon':
-        return 'Due Soon'
-      case 'overdue':
-        return 'Overdue'
-      case 'repaid':
-        return 'Repaid'
-      default:
-        return status
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('nb-NO', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    } catch {
-      return dateString
-    }
-  }
-
-  const getDaysRemaining = (loan: Loan) => {
-    if (loan.status === 'repaid' || loan.daysRemaining === null) {
-      return '--'
-    }
-    return Math.max(0, loan.daysRemaining)
+  const toggleRepaid = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setRepaidExpanded((prev) => !prev)
   }
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color="#1d4ed8" />
       </View>
     )
   }
 
-  const activeLoans = loans.filter((l) => l.status !== 'repaid')
-  const repaidLoans = loans.filter((l) => l.status === 'repaid')
+  const activeLoans = loans.filter((loan) => loan.status !== 'repaid')
+  const repaidLoans = loans.filter((loan) => loan.status === 'repaid')
+  const totalLent = summary?.totalOutstandingAmount ?? activeLoans.reduce((sum, loan) => sum + loan.amount, 0)
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <TouchableOpacity
-          onPress={onRefresh}
-          disabled={refetching}
-          style={styles.refreshButton}
-        >
-          {refetching ? (
-            <ActivityIndicator color="#3b82f6" />
-          ) : (
-            <Ionicons name="refresh" size={20} color="#3b82f6" />
-          )}
-        </TouchableOpacity>
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Loans</Text>
-        {/* ADDED THIS — header action buttons */}
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerAddButton} onPress={() => setIsAddModalOpen(true)}>
-            <Ionicons name="add-circle" size={24} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onRefresh} disabled={refetching}>
-            {refetching ? (
-              <ActivityIndicator color="#3b82f6" />
-            ) : (
-              <Ionicons name="refresh" size={24} color="#6b7280" />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Error Banner */}
-      {error ? (
-        <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle" size={16} color="#dc2626" />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      {/* Summary Stats */}
-      {summary ? (
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryTop}>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refetching} onRefresh={onRefresh} tintColor="#1d4ed8" />
+        }
+      >
+        <View style={styles.hero}>
+          <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.summaryLabel}>Total Outstanding</Text>
-              <Text style={styles.summaryAmount}>
-                NOK {summary.totalOutstandingAmount.toLocaleString()}
-              </Text>
+              <Text style={styles.heroEyebrow}>Oversikt</Text>
+              <Text style={styles.heroTitle}>Lan</Text>
             </View>
-            <TouchableOpacity style={styles.addLoanButton} onPress={() => setIsAddModalOpen(true)}>{/* CHANGED THIS */}
-              <Ionicons name="add-circle" size={24} color="#3b82f6" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.summaryStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{summary.activeCount}</Text>
-              <Text style={styles.statLabel}>Active</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: '#f59e0b' }]}>
-                {summary.dueSoonCount}
-              </Text>
-              <Text style={styles.statLabel}>Due Soon</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: '#dc2626' }]}>
-                {summary.overdueCount}
-              </Text>
-              <Text style={styles.statLabel}>Overdue</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: '#10b981' }]}>
-                {summary.repaidCount}
-              </Text>
-              <Text style={styles.statLabel}>Repaid</Text>
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {/* Active Loans Section */}
-      {activeLoans.length > 0 ? (
-        <View style={styles.loansSection}>
-          <Text style={styles.sectionTitle}>Active Loans</Text>
-          {activeLoans.map((loan) => {
-            const colors = getStatusColor(loan.status)
-            return (
-              <TouchableOpacity key={loan.id} style={[styles.loanCard, { borderLeftColor: colors.badge }]}>
-                <View style={styles.loanHeader}>
-                  <View style={styles.loanTitleWrapper}>
-                    <Text style={styles.loanRecipient}>{loan.recipient}</Text>
-                    <Text style={styles.loanDate}>
-                      Given {formatDate(loan.dateGiven)}
-                    </Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: colors.badge }]}>
-                    <Text style={[styles.statusText, { color: colors.text }]}>
-                      {getStatusLabel(loan.status)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.loanMetrics}>
-                  <View style={styles.metricItem}>
-                    <Text style={styles.metricLabel}>Amount</Text>
-                    <Text style={styles.metricValue}>
-                      NOK {loan.amount.toLocaleString()}
-                    </Text>
-                  </View>
-                  <View style={styles.metricDivider} />
-                  <View style={styles.metricItem}>
-                    <Text style={styles.metricLabel}>Due Date</Text>
-                    <Text style={styles.metricValue}>
-                      {formatDate(loan.expectedRepaymentDate)}
-                    </Text>
-                  </View>
-                  <View style={styles.metricDivider} />
-                  <View style={styles.metricItem}>
-                    <Text style={styles.metricLabel}>Days Left</Text>
-                    <Text style={styles.metricValue}>{getDaysRemaining(loan)}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.actionRow}>
-                  <TouchableOpacity style={styles.actionButton} onPress={() => setEditingLoan(loan)}>{/* CHANGED THIS */}
-                    <Ionicons name="pencil" size={16} color="#3b82f6" />
-                    <Text style={styles.actionButtonText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionButton, styles.markRepaidButton]} onPress={() => setConfirmModal({ type: 'repaid', loan })}>{/* CHANGED THIS */}
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={[styles.actionButtonText, { color: '#10b981' }]}>Mark Repaid</Text>
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.heroActions}>
+              <TouchableOpacity
+                style={styles.heroIconButton}
+                onPress={onRefresh}
+                disabled={refetching}
+                activeOpacity={0.8}
+              >
+                {refetching ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="refresh" size={18} color="#fff" />
+                )}
               </TouchableOpacity>
-            )
-          })}
-        </View>
-      ) : null}
-
-      {/* CHANGED THIS — Repaid Loans Section: collapsible, collapsed by default */}
-      {repaidLoans.length > 0 ? (
-        <View style={styles.loansSection}>
-          {/* Toggle header */}
-          <TouchableOpacity style={styles.collapsibleHeader} onPress={toggleRepaid} activeOpacity={0.7}>
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
-              Repaid Loans ({repaidLoans.length})
-            </Text>
-            <Ionicons
-              name={repaidExpanded ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color="#6b7280"
-            />
-          </TouchableOpacity>
-
-          {/* Content — rendered only when expanded so LayoutAnimation can animate its appearance */}
-          {repaidExpanded ? (
-            <View>
-              {repaidLoans.map((loan) => {
-                const colors = getStatusColor(loan.status)
-                return (
-                  <TouchableOpacity
-                    key={loan.id}
-                    style={[styles.loanCard, { opacity: 0.7 }, { borderLeftColor: colors.badge }]}
-                  >
-                    <View style={styles.loanHeader}>
-                      <View style={styles.loanTitleWrapper}>
-                        <Text style={[styles.loanRecipient, { color: '#9ca3af' }]}>
-                          {loan.recipient}
-                        </Text>
-                        <Text style={styles.loanDate}>
-                          Repaid {loan.repaidAt ? formatDate(loan.repaidAt) : 'N/A'}
-                        </Text>
-                      </View>
-                      <View style={[styles.statusBadge, { backgroundColor: colors.badge }]}>
-                        <Text style={[styles.statusText, { color: colors.text }]}>
-                          {getStatusLabel(loan.status)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.loanMetrics}>
-                      <View style={styles.metricItem}>
-                        <Text style={styles.metricLabel}>Amount</Text>
-                        <Text style={styles.metricValue}>
-                          NOK {loan.amount.toLocaleString()}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                )
-              })}
+              <TouchableOpacity
+                style={[styles.heroIconButton, styles.heroAddButton]}
+                onPress={() => setIsAddModalOpen(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={20} color="#0f172a" />
+              </TouchableOpacity>
             </View>
-          ) : null}
+          </View>
+
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryTile}>
+              <Text style={styles.summaryTileLabel}>Mine lan</Text>
+              <Text style={styles.summaryTileValue}>Ikke koblet</Text>
+              <Text style={styles.summaryTileMeta}>Venter pa ekte datakilde</Text>
+            </View>
+            <View style={styles.summaryTile}>
+              <Text style={styles.summaryTileLabel}>Utlaant</Text>
+              <Text style={styles.summaryTileValue}>{formatNOK(totalLent)}</Text>
+              <Text style={styles.summaryTileMeta}>{activeLoans.length} aktive</Text>
+            </View>
+          </View>
         </View>
-      ) : null}
 
-      {/* Empty State */}
-      {loans.length === 0 && !error ? (
-        <View style={styles.emptyStateContainer}>
-          <Ionicons name="document-outline" size={48} color="#d1d5db" />
-          <Text style={styles.emptyStateTitle}>No Loans Yet</Text>
-          <Text style={styles.emptyStateText}>
-            Start tracking loans by adding your first loan
-          </Text>
-          <TouchableOpacity style={styles.emptyStateButton} onPress={() => setIsAddModalOpen(true)}>{/* CHANGED THIS */}
-            <Ionicons name="add-circle" size={20} color="#fff" />
-            <Text style={styles.emptyStateButtonText}>Add Loan</Text>
-          </TouchableOpacity>
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={16} color="#991b1b" />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.tabWrap}>
+          {[
+            { key: 'mine' as const, label: 'Mine lan', icon: 'business-outline' as const },
+            { key: 'lent' as const, label: 'Utlaant', icon: 'swap-horizontal-outline' as const },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              style={[styles.tabButton, tab === item.key ? styles.tabButtonActive : null]}
+              onPress={() => setTab(item.key)}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name={item.icon}
+                size={16}
+                color={tab === item.key ? '#0f172a' : '#64748b'}
+              />
+              <Text style={[styles.tabLabel, tab === item.key ? styles.tabLabelActive : null]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      ) : null}
 
-      <View style={{ height: 32 }} />
+        {tab === 'mine' ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionHint}>Prototype-layout beholdt uten demo-data</Text>
+            <MineLoansPlaceholder />
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionHint}>{activeLoans.length} aktive utlån</Text>
+                <Text style={styles.sectionTitle}>Utlaante lan</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.inlineAddButton}
+                onPress={() => setIsAddModalOpen(true)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add" size={15} color="#fff" />
+                <Text style={styles.inlineAddButtonText}>Nytt lan</Text>
+              </TouchableOpacity>
+            </View>
 
-      {/* ADDED THIS — modals rendered inside ScrollView; Modal is a portal so position doesn't matter */}
+            {activeLoans.length > 0 ? (
+              activeLoans.map((loan) => (
+                <LentLoanCard
+                  key={loan.id}
+                  loan={loan}
+                  onEdit={setEditingLoan}
+                  onMarkRepaid={(selectedLoan) =>
+                    setConfirmModal({ type: 'repaid', loan: selectedLoan })
+                  }
+                />
+              ))
+            ) : !error ? (
+              <View style={styles.placeholderCard}>
+                <Ionicons name="document-text-outline" size={36} color="#cbd5e1" />
+                <Text style={styles.placeholderTitle}>Ingen aktive utlån</Text>
+                <Text style={styles.placeholderText}>
+                  Legg til ditt forste utlån for a begynne a spore forfall og tilbakebetalinger.
+                </Text>
+              </View>
+            ) : null}
+
+            {repaidLoans.length > 0 ? (
+              <View style={styles.repaidSection}>
+                <TouchableOpacity
+                  style={styles.repaidHeader}
+                  onPress={toggleRepaid}
+                  activeOpacity={0.8}
+                >
+                  <View>
+                    <Text style={styles.sectionHint}>Historikk</Text>
+                    <Text style={styles.sectionTitle}>Tilbakebetalte lan ({repaidLoans.length})</Text>
+                  </View>
+                  <Ionicons
+                    name={repaidExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#64748b"
+                  />
+                </TouchableOpacity>
+
+                {repaidExpanded
+                  ? repaidLoans.map((loan) => (
+                      <LentLoanCard
+                        key={loan.id}
+                        loan={loan}
+                        onEdit={setEditingLoan}
+                        onMarkRepaid={(selectedLoan) =>
+                          setConfirmModal({ type: 'repaid', loan: selectedLoan })
+                        }
+                      />
+                    ))
+                  : null}
+              </View>
+            ) : null}
+          </View>
+        )}
+      </ScrollView>
+
       <AddLoanModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -398,275 +478,400 @@ export function LoansScreen() {
 
       <ConfirmModal
         isOpen={confirmModal !== null}
-        title="Mark as Repaid?"
-        body={`Are you sure you want to mark the loan to ${confirmModal?.loan.recipient ?? ''} as repaid?`}
-        confirmText="Mark Repaid"
-        cancelText="Cancel"
+        title="Marker som tilbakebetalt?"
+        body={`Er du sikker pa at lanet til ${confirmModal?.loan.recipient ?? ''} er tilbakebetalt?`}
+        confirmText="Marker tilbakebetalt"
+        cancelText="Avbryt"
         onConfirm={handleConfirmAction}
         onCancel={() => setConfirmModal(null)}
         isConfirming={isConfirming}
       />
-    </ScrollView>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8fafc',
+  },
+  contentContainer: {
+    paddingBottom: 28,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8fafc',
   },
-  refreshButton: {
-    padding: 8,
+  hero: {
+    paddingTop: 28,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    backgroundColor: '#0f172a',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
-  header: {
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    backgroundColor: '#fff',
-    marginBottom: 12,
+    marginBottom: 24,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
+  heroEyebrow: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    color: '#94a3b8',
+    marginBottom: 6,
   },
-  // ADDED THIS
-  headerActions: {
+  heroTitle: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#f8fafc',
+  },
+  heroActions: {
     flexDirection: 'row',
+    gap: 10,
+  },
+  heroIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  heroAddButton: {
+    backgroundColor: '#e2e8f0',
+    borderColor: '#e2e8f0',
+  },
+  summaryGrid: {
+    flexDirection: 'row',
     gap: 12,
   },
-  headerAddButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-    width: 34,
-    height: 34,
-    justifyContent: 'center',
-    alignItems: 'center',
+  summaryTile: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  summaryTileLabel: {
+    fontSize: 12,
+    color: '#cbd5e1',
+    marginBottom: 8,
+  },
+  summaryTileValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  summaryTileMeta: {
+    marginTop: 6,
+    fontSize: 11,
+    color: '#94a3b8',
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginHorizontal: 18,
+    marginTop: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    borderRadius: 12,
     backgroundColor: '#fee2e2',
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#dc2626',
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#991b1b',
-    fontWeight: '500',
-    marginLeft: 8,
-    flex: 1,
-  },
-  summaryCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  summaryTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  summaryLabel: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  summaryAmount: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 4,
-  },
-  addLoanButton: {
-    padding: 8,
-  },
-  summaryStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#9ca3af',
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#e5e7eb',
-  },
-  loansSection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  // ADDED THIS
-  collapsibleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 2,
-  },
-  loanCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderLeftWidth: 4,
-  },
-  loanHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  loanTitleWrapper: {
-    flex: 1,
-    marginRight: 8,
-  },
-  loanRecipient: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  loanDate: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  loanMetrics: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: 12,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  metricItem: {
-    flex: 1,
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: '#9ca3af',
-    fontWeight: '600',
-  },
-  metricValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 2,
-  },
-  metricDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: '#e5e7eb',
-  },
-  actionRow: {
-    flexDirection: 'row',
     gap: 8,
   },
-  actionButton: {
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#991b1b',
+    fontWeight: '600',
+  },
+  tabWrap: {
+    flexDirection: 'row',
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 18,
+    marginTop: 18,
+    borderRadius: 14,
+    padding: 4,
+    gap: 4,
+  },
+  tabButton: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0f2fe',
-    gap: 4,
+    gap: 8,
+    paddingVertical: 11,
+    borderRadius: 12,
   },
-  markRepaidButton: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#d1fae5',
+  tabButtonActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#3b82f6',
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 16,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 16,
-  },
-  emptyStateText: {
+  tabLabel: {
     fontSize: 13,
-    color: '#6b7280',
-    marginTop: 8,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#64748b',
   },
-  emptyStateButton: {
+  tabLabelActive: {
+    color: '#0f172a',
+  },
+  section: {
+    paddingHorizontal: 18,
+    paddingTop: 18,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 12,
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  inlineAddButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 16,
+    backgroundColor: '#1e3a5f',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
     gap: 6,
   },
-  emptyStateButtonText: {
-    fontSize: 14,
+  inlineAddButtonText: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#fff',
   },
+  loanCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  loanCardExpanded: {
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  loanCardRepaid: {
+    opacity: 0.82,
+  },
+  loanTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  loanIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  loanIdentityText: {
+    flex: 1,
+  },
+  loanName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  loanSubtext: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  loanRightBlock: {
+    alignItems: 'flex-end',
+    gap: 10,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  remainingAmount: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 16,
+  },
+  metricBlock: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 10,
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  metricValueWarning: {
+    color: '#d97706',
+  },
+  loanExpandedSection: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#eef2f7',
+  },
+  loanExpandedGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  detailCard: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 10,
+  },
+  detailLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  secondaryAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+  },
+  secondaryActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  primaryAction: {
+    flex: 1.4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    paddingVertical: 10,
+    backgroundColor: '#ecfdf5',
+  },
+  primaryActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  placeholderCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 20,
+    alignItems: 'center',
+  },
+  placeholderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  placeholderTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  placeholderText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  repaidSection: {
+    marginTop: 10,
+  },
+  repaidHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
 })
-
