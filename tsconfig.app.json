@@ -18,7 +18,9 @@
     "baseUrl": ".", // ADD THIS
     "paths": {
       // ADD THIS
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@shared": ["shared/index.ts"],
+      "@shared/*": ["shared/*"]
     },
 
     /* Linting */
@@ -29,5 +31,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src", "shared"]
 }

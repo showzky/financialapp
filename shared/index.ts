@@ -9,4 +9,4 @@ export type {
   LoanSummary,
   UpdateBorrowedLoanPayload,
   UpdateLoanPayload,
-} from '@shared'
+} from './contracts/loans'

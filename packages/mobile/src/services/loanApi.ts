@@ -1,42 +1,7 @@
 import { backendClient } from './backendClient'
+import type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '@shared'
 
-export type Loan = {
-  id: string
-  recipient: string
-  amount: number
-  dateGiven: string
-  expectedRepaymentDate: string
-  notes: string | null
-  repaidAt: string | null
-  status: 'outstanding' | 'due_soon' | 'overdue' | 'repaid'
-  daysRemaining: number | null
-  createdAt: string
-  updatedAt: string
-}
-
-export type LoanSummary = {
-  totalOutstandingAmount: number
-  activeCount: number
-  overdueCount: number
-  dueSoonCount: number
-  repaidCount: number
-}
-
-export type CreateLoanPayload = {
-  recipient: string
-  amount: number
-  dateGiven: string
-  expectedRepaymentDate: string
-  notes?: string
-}
-
-export type UpdateLoanPayload = {
-  recipient?: string
-  amount?: number
-  dateGiven?: string
-  expectedRepaymentDate?: string
-  notes?: string | null
-}
+export type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '@shared'
 
 export const loanApi = {
   list: async () => {

@@ -73,6 +73,20 @@ CREATE TABLE IF NOT EXISTS loans_given (
   CHECK (expected_repayment_date >= date_given)
 );
 
+CREATE TABLE IF NOT EXISTS borrowed_loans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  lender TEXT NOT NULL,
+  original_amount NUMERIC(12, 2) NOT NULL CHECK (original_amount > 0),
+  current_balance NUMERIC(12, 2) NOT NULL CHECK (current_balance >= 0),
+  payoff_date DATE NOT NULL,
+  notes TEXT,
+  paid_off_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (current_balance <= original_amount)
+);
+
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -177,6 +191,8 @@ SET normalized_url = url
 WHERE normalized_url IS NULL OR normalized_url = '';
 
 CREATE INDEX IF NOT EXISTS idx_budget_categories_user_id ON budget_categories(user_id);
+CREATE INDEX IF NOT EXISTS idx_borrowed_loans_user_id ON borrowed_loans(user_id);
+CREATE INDEX IF NOT EXISTS idx_borrowed_loans_user_paid_off_payoff ON borrowed_loans(user_id, paid_off_at, payoff_date);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON wishlist_items(user_id);

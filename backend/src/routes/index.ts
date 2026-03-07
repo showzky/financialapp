@@ -1,5 +1,6 @@
 // ADD THIS: centralized API route mounting
 import { Router } from 'express'
+import { borrowedLoanRouter } from './borrowedLoanRoutes.js'
 import { categoryRouter } from './categoryRoutes.js'
 import { loanRouter } from './loanRoutes.js'
 import { transactionRouter } from './transactionRoutes.js'
@@ -10,6 +11,7 @@ import { subscriptionRouter } from './subscriptionRoutes.js'
 
 export const apiRouter = Router()
 
+apiRouter.use('/borrowed-loans', borrowedLoanRouter)
 apiRouter.use('/categories', categoryRouter)
 apiRouter.use('/loans', loanRouter)
 apiRouter.use('/transactions', transactionRouter)

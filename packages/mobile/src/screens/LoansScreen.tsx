@@ -14,9 +14,21 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { loanApi, type Loan, type LoanSummary } from '../services/loanApi'
+import {
+  borrowedLoanApi,
+  type BorrowedLoan,
+  type BorrowedLoanSummary,
+} from '../services/borrowedLoanApi'
 import { AddLoanModal } from '../components/AddLoanModal'
+import { AddBorrowedLoanModal } from '../components/AddBorrowedLoanModal'
 import { EditLoanModal } from '../components/EditLoanModal'
+import { EditBorrowedLoanModal } from '../components/EditBorrowedLoanModal'
 import { ConfirmModal } from '../components/ConfirmModal'
+import {
+  resolveConfirmAction,
+  resolveLoansScreenFetchState,
+  type LoansScreenConfirmModal,
+} from './loanScreenLogic'
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
@@ -26,25 +38,52 @@ type TabKey = 'mine' | 'lent'
 
 const STATUS_CONFIG = {
   due_soon: {
-    label: 'Forfaller snart',
+    label: 'Due soon',
     color: '#b45309',
     bg: '#fef3c7',
     dot: '#f59e0b',
   },
   outstanding: {
-    label: 'Utestaende',
+    label: 'Outstanding',
     color: '#475569',
     bg: '#e2e8f0',
     dot: '#94a3b8',
   },
   overdue: {
-    label: 'Forfalt',
+    label: 'Overdue',
     color: '#b91c1c',
     bg: '#fee2e2',
     dot: '#ef4444',
   },
   repaid: {
-    label: 'Tilbakebetalt',
+    label: 'Repaid',
+    color: '#047857',
+    bg: '#d1fae5',
+    dot: '#10b981',
+  },
+} as const
+
+const BORROWED_STATUS_CONFIG = {
+  due_soon: {
+    label: 'Due soon',
+    color: '#b45309',
+    bg: '#fef3c7',
+    dot: '#f59e0b',
+  },
+  active: {
+    label: 'Active',
+    color: '#047857',
+    bg: '#d1fae5',
+    dot: '#10b981',
+  },
+  overdue: {
+    label: 'Overdue',
+    color: '#b91c1c',
+    bg: '#fee2e2',
+    dot: '#ef4444',
+  },
+  paid_off: {
+    label: 'Paid off',
     color: '#047857',
     bg: '#d1fae5',
     dot: '#10b981',
@@ -52,13 +91,13 @@ const STATUS_CONFIG = {
 } as const
 
 function formatNOK(n: number) {
-  return `NOK ${n.toLocaleString('nb-NO')}`
+  return `NOK ${n.toLocaleString('en-US')}`
 }
 
 function formatDate(dateString: string | null | undefined) {
-  if (!dateString) return 'Ikke satt'
+  if (!dateString) return 'Not set'
   try {
-    return new Date(dateString).toLocaleDateString('nb-NO', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -91,6 +130,10 @@ function getDaysRemaining(loan: Loan) {
 }
 
 function getLoanNotes(loan: Loan) {
+  return loan.notes?.trim() || ''
+}
+
+function getBorrowedLoanNotes(loan: BorrowedLoan) {
   return loan.notes?.trim() || ''
 }
 
@@ -129,7 +172,7 @@ function LentLoanCard({
           </View>
           <View style={styles.loanIdentityText}>
             <Text style={styles.loanName}>{loan.recipient}</Text>
-            <Text style={styles.loanSubtext}>Gitt {formatDate(loan.dateGiven)}</Text>
+            <Text style={styles.loanSubtext}>Given {formatDate(loan.dateGiven)}</Text>
           </View>
         </View>
 
@@ -144,15 +187,15 @@ function LentLoanCard({
 
       <View style={styles.metricRow}>
         <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Belop</Text>
+          <Text style={styles.metricLabel}>Amount</Text>
           <Text style={styles.metricValue}>{formatNOK(loan.amount)}</Text>
         </View>
         <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Forfall</Text>
+          <Text style={styles.metricLabel}>Due date</Text>
           <Text style={styles.metricValue}>{formatDate(loan.expectedRepaymentDate)}</Text>
         </View>
         <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Dager igjen</Text>
+          <Text style={styles.metricLabel}>Days left</Text>
           <Text
             style={[
               styles.metricValue,
@@ -179,15 +222,15 @@ function LentLoanCard({
         <View style={styles.loanExpandedSection}>
           <View style={styles.loanExpandedGrid}>
             <View style={styles.detailCard}>
-              <Text style={styles.detailLabel}>Opprettet</Text>
+              <Text style={styles.detailLabel}>Created</Text>
               <Text style={styles.detailValue}>{formatDate(loan.createdAt)}</Text>
             </View>
             <View style={styles.detailCard}>
-              <Text style={styles.detailLabel}>Oppdatert</Text>
+              <Text style={styles.detailLabel}>Updated</Text>
               <Text style={styles.detailValue}>{formatDate(loan.updatedAt)}</Text>
             </View>
             <View style={styles.detailCard}>
-              <Text style={styles.detailLabel}>Tilbakebetalt</Text>
+              <Text style={styles.detailLabel}>Repaid</Text>
               <Text style={styles.detailValue}>{formatDate(loan.repaidAt)}</Text>
             </View>
           </View>
@@ -200,7 +243,7 @@ function LentLoanCard({
                 activeOpacity={0.8}
               >
                 <Ionicons name="pencil" size={15} color="#475569" />
-                <Text style={styles.secondaryActionText}>Rediger</Text>
+                <Text style={styles.secondaryActionText}>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.primaryAction}
@@ -208,7 +251,7 @@ function LentLoanCard({
                 activeOpacity={0.8}
               >
                 <Ionicons name="checkmark-circle" size={16} color="#059669" />
-                <Text style={styles.primaryActionText}>Marker tilbakebetalt</Text>
+                <Text style={styles.primaryActionText}>Mark as repaid</Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -218,17 +261,160 @@ function LentLoanCard({
   )
 }
 
-function MineLoansPlaceholder() {
+function getBorrowedDaysRemaining(loan: BorrowedLoan) {
+  if (loan.status === 'paid_off' || loan.daysRemaining === null) return '--'
+  return Math.max(0, loan.daysRemaining)
+}
+
+function BorrowedLoanCard({
+  loan,
+  onEdit,
+  onMarkPaidOff,
+  onDelete,
+}: {
+  loan: BorrowedLoan
+  onEdit: (loan: BorrowedLoan) => void
+  onMarkPaidOff: (loan: BorrowedLoan) => void
+  onDelete: (loan: BorrowedLoan) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const status = BORROWED_STATUS_CONFIG[loan.status] ?? BORROWED_STATUS_CONFIG.active
+  const avatar = avatarColor(loan.lender)
+
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setExpanded((prev) => !prev)
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={toggleExpanded}
+      style={[
+        styles.loanCard,
+        expanded ? styles.loanCardExpanded : null,
+        loan.status === 'paid_off' ? styles.loanCardRepaid : null,
+      ]}
+    >
+      <View style={styles.loanTopRow}>
+        <View style={styles.loanIdentity}>
+          <View style={[styles.avatar, { backgroundColor: avatar }]}>
+            <Text style={styles.avatarText}>{getInitials(loan.lender)}</Text>
+          </View>
+          <View style={styles.loanIdentityText}>
+            <Text style={styles.loanName}>{loan.lender}</Text>
+            <Text style={styles.loanSubtext}>Original {formatNOK(loan.originalAmount)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.loanRightBlock}>
+          <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: status.dot }]} />
+            <Text style={[styles.statusPillText, { color: status.color }]}>{status.label}</Text>
+          </View>
+          <Text style={styles.remainingAmount}>{formatNOK(loan.currentBalance)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.metricRow}>
+        <View style={styles.metricBlock}>
+          <Text style={styles.metricLabel}>Balance</Text>
+          <Text style={styles.metricValue}>{formatNOK(loan.currentBalance)}</Text>
+        </View>
+        <View style={styles.metricBlock}>
+          <Text style={styles.metricLabel}>Payoff date</Text>
+          <Text style={styles.metricValue}>{formatDate(loan.payoffDate)}</Text>
+        </View>
+        <View style={styles.metricBlock}>
+          <Text style={styles.metricLabel}>Days left</Text>
+          <Text
+            style={[
+              styles.metricValue,
+              loan.status !== 'paid_off' &&
+              typeof loan.daysRemaining === 'number' &&
+              loan.daysRemaining <= 7
+                ? styles.metricValueWarning
+                : null,
+            ]}
+          >
+            {getBorrowedDaysRemaining(loan)}
+          </Text>
+        </View>
+      </View>
+
+      {getBorrowedLoanNotes(loan) ? (
+        <View style={styles.notesBanner}>
+          <Ionicons name="chatbubble-ellipses-outline" size={14} color="#a78bfa" />
+          <Text style={styles.notesText} numberOfLines={2}>
+            {getBorrowedLoanNotes(loan)}
+          </Text>
+        </View>
+      ) : null}
+
+      {expanded ? (
+        <View style={styles.loanExpandedSection}>
+          <View style={styles.loanExpandedGrid}>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailLabel}>Created</Text>
+              <Text style={styles.detailValue}>{formatDate(loan.createdAt)}</Text>
+            </View>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailLabel}>Updated</Text>
+              <Text style={styles.detailValue}>{formatDate(loan.updatedAt)}</Text>
+            </View>
+            <View style={styles.detailCard}>
+              <Text style={styles.detailLabel}>Paid off</Text>
+              <Text style={styles.detailValue}>{formatDate(loan.paidOffAt)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionRow}>
+            {loan.status !== 'paid_off' ? (
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={() => onEdit(loan)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="pencil" size={15} color="#475569" />
+                <Text style={styles.secondaryActionText}>Edit</Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {loan.status !== 'paid_off' ? (
+              <TouchableOpacity
+                style={styles.primaryAction}
+                onPress={() => onMarkPaidOff(loan)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="checkmark-circle" size={16} color="#059669" />
+                <Text style={styles.primaryActionText}>Mark as paid off</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.dangerAction}
+                onPress={() => onDelete(loan)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={16} color="#b91c1c" />
+                <Text style={styles.dangerActionText}>Delete</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      ) : null}
+    </TouchableOpacity>
+  )
+}
+
+function EmptyMineLoansState() {
   return (
     <View style={styles.placeholderCard}>
       <View style={styles.placeholderIcon}>
         <Ionicons name="business-outline" size={22} color="#1d4ed8" />
       </View>
-      <Text style={styles.placeholderTitle}>Mine lan er ikke koblet til backend ennå</Text>
+      <Text style={styles.placeholderTitle}>No personal loans yet</Text>
       <Text style={styles.placeholderText}>
-        Prototypen hadde en egen seksjon for personlige banklan. Denne appen har forelopig bare
-        ekte data og handlinger for utlante lan, sa jeg lot designet bli, men uten hardkodet
-        demo-innhold.
+        Add a loan you owe to track your balance, due date, and payment history.
       </Text>
     </View>
   )
@@ -237,30 +423,58 @@ function MineLoansPlaceholder() {
 export function LoansScreen() {
   const [tab, setTab] = useState<TabKey>('lent')
   const [loans, setLoans] = useState<Loan[]>([])
+  const [borrowedLoans, setBorrowedLoans] = useState<BorrowedLoan[]>([])
   const [summary, setSummary] = useState<LoanSummary | null>(null)
+  const [borrowedSummary, setBorrowedSummary] = useState<BorrowedLoanSummary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [lentError, setLentError] = useState('')
+  const [borrowedError, setBorrowedError] = useState('')
   const [refetching, setRefetching] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isAddBorrowedModalOpen, setIsAddBorrowedModalOpen] = useState(false)
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null)
-  const [confirmModal, setConfirmModal] = useState<{ type: 'repaid'; loan: Loan } | null>(null)
+  const [editingBorrowedLoan, setEditingBorrowedLoan] = useState<BorrowedLoan | null>(null)
+  const [confirmModal, setConfirmModal] = useState<LoansScreenConfirmModal | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
   const [repaidExpanded, setRepaidExpanded] = useState(false)
+  const [paidOffExpanded, setPaidOffExpanded] = useState(false)
 
   const fetchLoans = async () => {
-    try {
-      setError('')
-      const [loansData, summaryData] = await Promise.all([loanApi.list(), loanApi.getSummary()])
-      setLoans(loansData)
-      setSummary(summaryData)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to load loans'
-      setError(msg)
-      console.error('Error loading loans:', msg)
-    } finally {
-      setLoading(false)
-      setRefetching(false)
+    setLentError('')
+    setBorrowedError('')
+
+    const [lentListResult, lentSummaryResult, borrowedListResult, borrowedSummaryResult] =
+      await Promise.allSettled([
+        loanApi.list(),
+        loanApi.getSummary(),
+        borrowedLoanApi.list(),
+        borrowedLoanApi.getSummary(),
+      ])
+
+    const nextState = resolveLoansScreenFetchState({
+      lentListResult,
+      lentSummaryResult,
+      borrowedListResult,
+      borrowedSummaryResult,
+    })
+
+    setLoans(nextState.loans)
+    setSummary(nextState.summary)
+    setBorrowedLoans(nextState.borrowedLoans)
+    setBorrowedSummary(nextState.borrowedSummary)
+    setLentError(nextState.lentError)
+    setBorrowedError(nextState.borrowedError)
+
+    if (nextState.lentError) {
+      console.error('Error loading lent loans:', nextState.lentError)
     }
+
+    if (nextState.borrowedError) {
+      console.error('Error loading borrowed loans:', nextState.borrowedError)
+    }
+
+    setLoading(false)
+    setRefetching(false)
   }
 
   useEffect(() => {
@@ -284,11 +498,31 @@ export function LoansScreen() {
     await fetchLoans()
   }
 
+  const handleAddBorrowedLoan = async (payload) => {
+    await borrowedLoanApi.create(payload)
+    setIsAddBorrowedModalOpen(false)
+    await fetchLoans()
+  }
+
+  const handleEditBorrowedLoan = async (id, payload) => {
+    await borrowedLoanApi.update(id, payload)
+    setEditingBorrowedLoan(null)
+    await fetchLoans()
+  }
+
   const handleConfirmAction = async () => {
     if (!confirmModal) return
     setIsConfirming(true)
     try {
-      await loanApi.markRepaid(confirmModal.loan.id)
+      const action = resolveConfirmAction(confirmModal)
+
+      if (action.type === 'repaid') {
+        await loanApi.markRepaid(action.id)
+      } else if (action.type === 'paid-off') {
+        await borrowedLoanApi.markPaidOff(action.id)
+      } else {
+        await borrowedLoanApi.remove(action.id)
+      }
       setConfirmModal(null)
       await fetchLoans()
     } catch (e) {
@@ -303,6 +537,11 @@ export function LoansScreen() {
     setRepaidExpanded((prev) => !prev)
   }
 
+  const togglePaidOff = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setPaidOffExpanded((prev) => !prev)
+  }
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -313,7 +552,20 @@ export function LoansScreen() {
 
   const activeLoans = loans.filter((loan) => loan.status !== 'repaid')
   const repaidLoans = loans.filter((loan) => loan.status === 'repaid')
+  const activeBorrowedLoans = borrowedLoans.filter((loan) => loan.status !== 'paid_off')
+  const paidOffBorrowedLoans = borrowedLoans.filter((loan) => loan.status === 'paid_off')
   const totalLent = summary?.totalOutstandingAmount ?? activeLoans.reduce((sum, loan) => sum + loan.amount, 0)
+  const totalBorrowed =
+    borrowedSummary?.totalCurrentBalance ??
+    activeBorrowedLoans.reduce((sum, loan) => sum + loan.currentBalance, 0)
+  const currentError = tab === 'mine' ? borrowedError : lentError
+  const openAddModal = () => {
+    if (tab === 'mine') {
+      setIsAddBorrowedModalOpen(true)
+      return
+    }
+    setIsAddModalOpen(true)
+  }
 
   return (
     <>
@@ -327,8 +579,8 @@ export function LoansScreen() {
         <View style={styles.hero}>
           <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.heroEyebrow}>Oversikt</Text>
-              <Text style={styles.heroTitle}>Lan</Text>
+              <Text style={styles.heroEyebrow}>Overview</Text>
+              <Text style={styles.heroTitle}>Loans</Text>
             </View>
             <View style={styles.heroActions}>
               <TouchableOpacity
@@ -345,7 +597,7 @@ export function LoansScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.heroIconButton, styles.heroAddButton]}
-                onPress={() => setIsAddModalOpen(true)}
+                onPress={openAddModal}
                 activeOpacity={0.8}
               >
                 <Ionicons name="add" size={20} color="#0f172a" />
@@ -355,29 +607,33 @@ export function LoansScreen() {
 
           <View style={styles.summaryGrid}>
             <View style={styles.summaryTile}>
-              <Text style={styles.summaryTileLabel}>Mine lan</Text>
-              <Text style={styles.summaryTileValue}>Ikke koblet</Text>
-              <Text style={styles.summaryTileMeta}>Venter pa ekte datakilde</Text>
+              <Text style={styles.summaryTileLabel}>My loans</Text>
+              <Text style={styles.summaryTileValue} numberOfLines={1}>
+                {borrowedError ? 'Not loaded' : formatNOK(totalBorrowed)}
+              </Text>
+              <Text style={styles.summaryTileMeta}>
+                {borrowedError ? 'Pull down to try again' : `${activeBorrowedLoans.length} active`}
+              </Text>
             </View>
             <View style={styles.summaryTile}>
-              <Text style={styles.summaryTileLabel}>Utlaant</Text>
+              <Text style={styles.summaryTileLabel}>Lent out</Text>
               <Text style={styles.summaryTileValue}>{formatNOK(totalLent)}</Text>
-              <Text style={styles.summaryTileMeta}>{activeLoans.length} aktive</Text>
+              <Text style={styles.summaryTileMeta}>{activeLoans.length} active</Text>
             </View>
           </View>
         </View>
 
-        {error ? (
+        {currentError ? (
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle" size={16} color="#991b1b" />
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>{currentError}</Text>
           </View>
         ) : null}
 
         <View style={styles.tabWrap}>
           {[
-            { key: 'mine' as const, label: 'Mine lan', icon: 'business-outline' as const },
-            { key: 'lent' as const, label: 'Utlaant', icon: 'swap-horizontal-outline' as const },
+            { key: 'mine' as const, label: 'My loans', icon: 'business-outline' as const },
+            { key: 'lent' as const, label: 'Lent out', icon: 'swap-horizontal-outline' as const },
           ].map((item) => (
             <TouchableOpacity
               key={item.key}
@@ -399,15 +655,77 @@ export function LoansScreen() {
 
         {tab === 'mine' ? (
           <View style={styles.section}>
-            <Text style={styles.sectionHint}>Prototype-layout beholdt uten demo-data</Text>
-            <MineLoansPlaceholder />
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionHint}>{activeBorrowedLoans.length} active personal loans</Text>
+                <Text style={styles.sectionTitle}>My loans</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.inlineAddButton}
+                onPress={() => setIsAddBorrowedModalOpen(true)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="add" size={15} color="#fff" />
+                <Text style={styles.inlineAddButtonText}>New loan</Text>
+              </TouchableOpacity>
+            </View>
+
+            {activeBorrowedLoans.length > 0 ? (
+              activeBorrowedLoans.map((loan) => (
+                <BorrowedLoanCard
+                  key={loan.id}
+                  loan={loan}
+                  onEdit={setEditingBorrowedLoan}
+                  onMarkPaidOff={(selectedLoan) =>
+                    setConfirmModal({ type: 'paid-off', loan: selectedLoan })
+                  }
+                  onDelete={(selectedLoan) =>
+                    setConfirmModal({ type: 'delete-borrowed', loan: selectedLoan })
+                  }
+                />
+              ))
+            ) : !borrowedError ? (
+              <EmptyMineLoansState />
+            ) : null}
+
+            {paidOffBorrowedLoans.length > 0 ? (
+              <View style={styles.repaidSection}>
+                <TouchableOpacity style={styles.repaidHeader} onPress={togglePaidOff} activeOpacity={0.8}>
+                  <View>
+                    <Text style={styles.sectionHint}>History</Text>
+                    <Text style={styles.sectionTitle}>Paid off loans ({paidOffBorrowedLoans.length})</Text>
+                  </View>
+                  <Ionicons
+                    name={paidOffExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#64748b"
+                  />
+                </TouchableOpacity>
+
+                {paidOffExpanded
+                  ? paidOffBorrowedLoans.map((loan) => (
+                      <BorrowedLoanCard
+                        key={loan.id}
+                        loan={loan}
+                        onEdit={setEditingBorrowedLoan}
+                        onMarkPaidOff={(selectedLoan) =>
+                          setConfirmModal({ type: 'paid-off', loan: selectedLoan })
+                        }
+                        onDelete={(selectedLoan) =>
+                          setConfirmModal({ type: 'delete-borrowed', loan: selectedLoan })
+                        }
+                      />
+                    ))
+                  : null}
+              </View>
+            ) : null}
           </View>
         ) : (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View>
-                <Text style={styles.sectionHint}>{activeLoans.length} aktive utlån</Text>
-                <Text style={styles.sectionTitle}>Utlaante lan</Text>
+                <Text style={styles.sectionHint}>{activeLoans.length} active loans</Text>
+                <Text style={styles.sectionTitle}>Lent out loans</Text>
               </View>
               <TouchableOpacity
                 style={styles.inlineAddButton}
@@ -415,7 +733,7 @@ export function LoansScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="add" size={15} color="#fff" />
-                <Text style={styles.inlineAddButtonText}>Nytt lan</Text>
+                <Text style={styles.inlineAddButtonText}>New loan</Text>
               </TouchableOpacity>
             </View>
 
@@ -430,12 +748,12 @@ export function LoansScreen() {
                   }
                 />
               ))
-            ) : !error ? (
+            ) : !lentError ? (
               <View style={styles.placeholderCard}>
                 <Ionicons name="document-text-outline" size={36} color="#cbd5e1" />
-                <Text style={styles.placeholderTitle}>Ingen aktive utlån</Text>
+                <Text style={styles.placeholderTitle}>No active loans</Text>
                 <Text style={styles.placeholderText}>
-                  Legg til ditt forste utlån for a begynne a spore forfall og tilbakebetalinger.
+                  Add your first loan to start tracking due dates and repayments.
                 </Text>
               </View>
             ) : null}
@@ -448,8 +766,8 @@ export function LoansScreen() {
                   activeOpacity={0.8}
                 >
                   <View>
-                    <Text style={styles.sectionHint}>Historikk</Text>
-                    <Text style={styles.sectionTitle}>Tilbakebetalte lan ({repaidLoans.length})</Text>
+                    <Text style={styles.sectionHint}>History</Text>
+                    <Text style={styles.sectionTitle}>Repaid loans ({repaidLoans.length})</Text>
                   </View>
                   <Ionicons
                     name={repaidExpanded ? 'chevron-up' : 'chevron-down'}
@@ -482,6 +800,12 @@ export function LoansScreen() {
         onSubmit={handleAddLoan}
       />
 
+      <AddBorrowedLoanModal
+        isOpen={isAddBorrowedModalOpen}
+        onClose={() => setIsAddBorrowedModalOpen(false)}
+        onSubmit={handleAddBorrowedLoan}
+      />
+
       <EditLoanModal
         isOpen={editingLoan !== null}
         loan={editingLoan}
@@ -489,15 +813,41 @@ export function LoansScreen() {
         onSubmit={handleEditLoan}
       />
 
+      <EditBorrowedLoanModal
+        isOpen={editingBorrowedLoan !== null}
+        loan={editingBorrowedLoan}
+        onClose={() => setEditingBorrowedLoan(null)}
+        onSubmit={handleEditBorrowedLoan}
+      />
+
       <ConfirmModal
         isOpen={confirmModal !== null}
-        title="Marker som tilbakebetalt?"
-        body={`Er du sikker pa at lanet til ${confirmModal?.loan.recipient ?? ''} er tilbakebetalt?`}
-        confirmText="Marker tilbakebetalt"
-        cancelText="Avbryt"
+        title={
+          confirmModal?.type === 'delete-borrowed'
+            ? 'Delete personal loan?'
+            : confirmModal?.type === 'paid-off'
+            ? 'Mark as paid off?'
+            : 'Mark as repaid?'
+        }
+        body={
+          confirmModal?.type === 'delete-borrowed'
+            ? `Are you sure you want to delete the loan from ${confirmModal.loan.lender}?`
+            : confirmModal?.type === 'paid-off'
+            ? `Are you sure the loan from ${confirmModal.loan.lender} has been paid off?`
+            : `Are you sure the loan to ${confirmModal?.loan.recipient ?? ''} has been repaid?`
+        }
+        confirmText={
+          confirmModal?.type === 'delete-borrowed'
+            ? 'Delete loan'
+            : confirmModal?.type === 'paid-off'
+            ? 'Mark as paid off'
+            : 'Mark as repaid'
+        }
+        cancelText="Cancel"
         onConfirm={handleConfirmAction}
         onCancel={() => setConfirmModal(null)}
         isConfirming={isConfirming}
+        confirmDestructive={confirmModal?.type === 'delete-borrowed'}
       />
     </>
   )
@@ -863,6 +1213,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#059669',
+  },
+  dangerAction: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fef2f2',
+  },
+  dangerActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#b91c1c',
   },
   placeholderCard: {
     backgroundColor: '#fff',

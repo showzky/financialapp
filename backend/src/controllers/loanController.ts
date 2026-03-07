@@ -81,7 +81,7 @@ export const createLoan = asyncHandler(async (req: Request, res: Response) => {
     amount: payload.amount,
     dateGiven: payload.dateGiven.toISOString(), // ADD THIS
     expectedRepaymentDate: payload.expectedRepaymentDate.toISOString(), // ADD THIS
-    notes: normalizedNotes,
+    ...(normalizedNotes !== undefined ? { notes: normalizedNotes } : {}),
   })
 
   res.status(201).json(created)

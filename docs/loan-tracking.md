@@ -84,6 +84,20 @@ PATCH  /api/v1/loans/:id/repaid   # mark a loan as repaid
 DELETE /api/v1/loans/:id
 ```
 
+## Compatibility boundary for the current rollout
+
+As of March 2026, the existing loan endpoints remain **lent-loan only**.
+They are backed by the `loans_given` table and should keep their current
+meaning during the borrowed-loans rollout:
+
+- `GET /api/v1/loans` returns loans the user has given to other people
+- `GET /api/v1/loans/summary` returns summary totals for those lent loans
+- `POST/PATCH/DELETE` on `/api/v1/loans` continue to manage lent loans only
+
+Planned support for "my loans" / borrowed loans should be added as an
+additive backend surface so the existing web Loans page, dashboard card,
+and mobile dashboard do not change behavior unexpectedly.
+
 All loan routes are protected and require an authenticated session.
 The request/response payloads correspond to the types declared on the
 frontend (`Loan`, `CreateLoanPayload`, `UpdateLoanPayload`).
@@ -108,8 +122,9 @@ push` will keep the schema in sync with hosted environments.
 
 - Frontend unit tests cover status logic (`src/tests/loanStatus.test.ts`)
   and component rendering (`LoanTable.test.tsx`).
-- Backend tests (if applicable) should verify due-state computation and
-  the `repaid` endpoint.
+- Backend route and controller tests now lock the current lent-loan
+  compatibility boundary in [backend/src/routes/loanRoutes.test.ts](backend/src/routes/loanRoutes.test.ts)
+  and [backend/src/controllers/loanController.test.ts](backend/src/controllers/loanController.test.ts).
 
 ## Additional notes
 

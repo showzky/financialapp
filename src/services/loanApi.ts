@@ -1,5 +1,5 @@
 import { backendRequest } from './backendClient'
-import type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '@/types/loan'
+import type { CreateLoanPayload, Loan, LoanSummary, UpdateLoanPayload } from '@shared'
 
 export const loanApi = {
   list: (params?: { isVacation?: boolean }) => {
