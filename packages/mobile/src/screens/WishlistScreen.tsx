@@ -11,8 +11,11 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { wishlistApi, type WishlistItem } from '../services/wishlistApi'
+import { ScreenHero } from '../components/ScreenHero'
+import { screenThemes } from '../theme/screenThemes'
 
 export function WishlistScreen() {
+  const theme = screenThemes.wishlist
   const [items, setItems] = useState<WishlistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,7 +44,7 @@ export function WishlistScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
         <ActivityIndicator size="large" color="#3b82f6" />
         <Text style={styles.loadingText}>Loading wishlist...</Text>
       </View>
@@ -50,7 +53,7 @@ export function WishlistScreen() {
 
   if (error) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity
@@ -67,11 +70,27 @@ export function WishlistScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Wishlist</Text>
-      </View>
+    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+      <ScreenHero
+        eyebrow="Collection"
+        title="Wishlist"
+        subtitle={`${items.length} saved item${items.length === 1 ? '' : 's'} curated for later.`}
+        theme={theme.hero}
+        actions={
+          <TouchableOpacity
+            style={[
+              styles.heroAction,
+              {
+                backgroundColor: theme.actionSurface,
+                borderColor: theme.actionBorder,
+              },
+            ]}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add" size={18} color={theme.actionText} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* Summary */}
       <View style={styles.summaryCard}>
@@ -196,16 +215,13 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 12,
   },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    backgroundColor: '#fff',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
+  heroAction: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summaryCard: {
     marginHorizontal: 16,

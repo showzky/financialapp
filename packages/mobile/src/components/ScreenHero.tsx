@@ -1,0 +1,88 @@
+import React, { type ReactNode } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+
+export type ScreenHeroTheme = {
+  background: string
+  eyebrow: string
+  title: string
+  subtitle: string
+}
+
+type ScreenHeroProps = {
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  actions?: ReactNode
+  children?: ReactNode
+  theme: ScreenHeroTheme
+}
+
+export function ScreenHero({
+  eyebrow,
+  title,
+  subtitle,
+  actions,
+  children,
+  theme,
+}: ScreenHeroProps) {
+  return (
+    <View style={[styles.hero, { backgroundColor: theme.background }]}>
+      <View style={styles.topRow}>
+        <View style={styles.copy}>
+          {eyebrow ? <Text style={[styles.eyebrow, { color: theme.eyebrow }]}>{eyebrow}</Text> : null}
+          <Text style={[styles.title, { color: theme.title }]}>{title}</Text>
+          {subtitle ? <Text style={[styles.subtitle, { color: theme.subtitle }]}>{subtitle}</Text> : null}
+        </View>
+        {actions ? <View style={styles.actions}>{actions}</View> : null}
+      </View>
+
+      {children ? <View style={styles.body}>{children}</View> : null}
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  hero: {
+    paddingTop: 28,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 18,
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  copy: {
+    flex: 1,
+  },
+  eyebrow: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    marginBottom: 6,
+    fontWeight: '700',
+  },
+  title: {
+    fontSize: 32,
+    lineHeight: 36,
+    fontWeight: '800',
+  },
+  subtitle: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  body: {
+    marginTop: 18,
+  },
+})

@@ -10,6 +10,8 @@ import {
   FlatList,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { ScreenHero } from '../components/ScreenHero'
+import { screenThemes } from '../theme/screenThemes'
 
 interface Subscription {
   id: string
@@ -21,6 +23,7 @@ interface Subscription {
 }
 
 export function IndicatorsScreen() {
+  const theme = screenThemes.indicators
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -59,18 +62,20 @@ export function IndicatorsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     )
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Subscriptions</Text>
-      </View>
+    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+      <ScreenHero
+        eyebrow="Overview"
+        title="Subscriptions"
+        subtitle="See recurring services, monthly weight, and annual drag at a glance."
+        theme={theme.hero}
+      />
 
       {/* Monthly Overview */}
       <View style={styles.overviewCard}>
@@ -191,17 +196,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    backgroundColor: '#fff',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
   },
   overviewCard: {
     marginHorizontal: 16,

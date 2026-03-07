@@ -20,12 +20,15 @@ import { CategoryAccordionSection } from '../components/CategoryAccordionSection
 import { CategoryDetailModal } from '../components/CategoryDetailModal'
 import { AddExpenseModal } from '../components/AddExpenseModal'
 import { SetIncomeModal } from '../components/SetIncomeModal' // ADDED THIS
+import { ScreenHero } from '../components/ScreenHero'
+import { screenThemes } from '../theme/screenThemes'
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
 }
 
 export function HomeScreen() {
+  const theme = screenThemes.home
   const { selectedMonth, setSelectedMonth } = usePeriod()
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -140,7 +143,7 @@ export function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     )
@@ -148,7 +151,7 @@ export function HomeScreen() {
 
   if (error || !dashboard) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>{error ?? 'Failed to load dashboard'}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadDashboard}>
@@ -162,19 +165,29 @@ export function HomeScreen() {
   const allocationBalance = dashboard.totalIncome - dashboard.totalAllocated
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Financial Overview</Text>
-        <TouchableOpacity
-          style={styles.monthButton}
-          onPress={() => setMonthPickerVisible(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.monthButtonText}>{selectedMonthLabel}</Text>
-          <Ionicons name="chevron-down" size={16} color="#1d4ed8" />
-        </TouchableOpacity>
-      </View>
+    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+      <ScreenHero
+        eyebrow="Overview"
+        title="Financial Overview"
+        subtitle="Track income, allocations, and monthly momentum from one place."
+        theme={theme.hero}
+        actions={
+          <TouchableOpacity
+            style={[
+              styles.monthButton,
+              {
+                backgroundColor: theme.actionSurface,
+                borderColor: theme.actionBorder,
+              },
+            ]}
+            onPress={() => setMonthPickerVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.monthButtonText, { color: theme.actionText }]}>{selectedMonthLabel}</Text>
+            <Ionicons name="chevron-down" size={16} color={theme.actionText} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* ── Phase 2: 3-Stat Row ── ADDED THIS */}
       <View style={styles.statRow}>
@@ -462,20 +475,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    backgroundColor: '#fff',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
   },
   monthButton: {
     flexDirection: 'row',
