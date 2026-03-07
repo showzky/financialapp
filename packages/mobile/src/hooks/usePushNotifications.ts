@@ -119,17 +119,21 @@ export const usePushNotifications = ({ authStatus }: UsePushNotificationsInput):
       return false
     }
 
-    const token = await notificationApi.registerForPushNotificationsAsync()
-    if (!token) {
-      return false
-    }
-
-    setExpoPushToken(token)
     await persistPreferences({
       ...preferences,
       enabled: true,
     })
-    await syncPushToken(token)
+
+    try {
+      const token = await notificationApi.registerForPushNotificationsAsync()
+      if (token) {
+        setExpoPushToken(token)
+        await syncPushToken(token)
+      }
+    } catch (error) {
+      console.warn('Remote push token is not configured yet:', error)
+      setExpoPushToken(null)
+    }
 
     return true
   }, [persistPreferences, preferences, syncPushToken])
@@ -139,6 +143,12 @@ export const usePushNotifications = ({ authStatus }: UsePushNotificationsInput):
       ...preferences,
       enabled: false,
     })
+
+    try {
+      await notificationApi.cancelAllScheduledNotificationsAsync()
+    } catch {
+      // Ignore failures while clearing local reminders.
+    }
 
     if (!expoPushToken) {
       return

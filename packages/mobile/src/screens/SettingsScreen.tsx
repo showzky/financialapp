@@ -47,8 +47,10 @@ export function SettingsScreen() {
 
   const pushNotificationDescription = !isReady
     ? 'Loading notification settings...'
-    : preferences.enabled && expoPushToken
-      ? 'Ready for reusable app notifications'
+    : preferences.enabled && permissionState === 'granted'
+      ? expoPushToken
+        ? 'Ready for local reminders and remote push'
+        : 'Ready for local reminders'
       : permissionState === 'denied'
         ? 'Permission denied. You can try again later.'
         : 'Receive app notifications'
