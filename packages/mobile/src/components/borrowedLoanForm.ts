@@ -8,6 +8,7 @@ export type BorrowedLoanFormValues = {
   lender: string
   originalAmount: string
   currentBalance: string
+  interestRate: string
   payoffDate: string
   notes: string
 }
@@ -16,6 +17,7 @@ export type BorrowedLoanFormErrors = {
   lender: string
   originalAmount: string
   currentBalance: string
+  interestRate: string
   payoffDate: string
   notes: string
 }
@@ -45,6 +47,7 @@ export const getBorrowedLoanFormErrors = (
 ): BorrowedLoanFormErrors => {
   const parsedOriginalAmount = Number(values.originalAmount)
   const parsedCurrentBalance = Number(values.currentBalance)
+  const parsedInterestRate = Number(values.interestRate)
 
   return {
     lender: !values.lender.trim() ? 'Lender is required' : '',
@@ -62,6 +65,13 @@ export const getBorrowedLoanFormErrors = (
         : parsedCurrentBalance > parsedOriginalAmount
         ? 'Current balance cannot exceed original amount'
         : '',
+    interestRate:
+      !values.interestRate ||
+      !Number.isFinite(parsedInterestRate) ||
+      parsedInterestRate < 0 ||
+      parsedInterestRate > 100
+        ? 'Enter an interest rate between 0 and 100'
+        : '',
     payoffDate: !isValidIsoDate(values.payoffDate) ? 'Use format YYYY-MM-DD' : '',
     notes: values.notes.length > 400 ? 'Max 400 characters' : '',
   }
@@ -73,6 +83,7 @@ export const buildCreateBorrowedLoanPayload = (
   lender: values.lender.trim(),
   originalAmount: Number(values.originalAmount),
   currentBalance: Number(values.currentBalance),
+  interestRate: Number(values.interestRate),
   payoffDate: values.payoffDate,
   notes: values.notes.trim() || undefined,
 })
@@ -89,6 +100,9 @@ export const buildUpdateBorrowedLoanPayload = (
   }
   if (Number(values.currentBalance) !== loan.currentBalance) {
     payload.currentBalance = Number(values.currentBalance)
+  }
+  if (Number(values.interestRate) !== loan.interestRate) {
+    payload.interestRate = Number(values.interestRate)
   }
   if (values.payoffDate !== loan.payoffDate.slice(0, 10)) payload.payoffDate = values.payoffDate
   if (values.notes !== (loan.notes ?? '')) payload.notes = values.notes.trim() || null

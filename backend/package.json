@@ -13,6 +13,7 @@
     "start": "node dist/app.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node tools/run-tests.mjs",
+    "migrate:latest": "node ./tools/applyLatestMigration.mjs",
     "auth:generate": "tsx src/tools/generateLocalAuthCredentials.ts"
   },
   "dependencies": {

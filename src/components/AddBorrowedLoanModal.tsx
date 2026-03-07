@@ -11,6 +11,7 @@ const initialState = {
   lender: '',
   originalAmount: '',
   currentBalance: '',
+  interestRate: '',
   payoffDate: '',
   notes: '',
 }
@@ -33,12 +34,21 @@ export const AddBorrowedLoanModal = ({
   const notes = formState.notes.trim()
   const originalAmount = Number(formState.originalAmount.trim())
   const currentBalance = Number(formState.currentBalance.trim())
+  const interestRate = Number(formState.interestRate.trim())
   const isOriginalAmountValid = formState.originalAmount.trim() !== '' && Number.isFinite(originalAmount) && originalAmount > 0
   const isCurrentBalanceValid = formState.currentBalance.trim() !== '' && Number.isFinite(currentBalance) && currentBalance >= 0
+  const isInterestRateValid =
+    formState.interestRate.trim() !== '' && Number.isFinite(interestRate) && interestRate >= 0 && interestRate <= 100
   const isBalanceRangeValid = isOriginalAmountValid && isCurrentBalanceValid ? currentBalance <= originalAmount : true
   const isPayoffDateValid = formState.payoffDate !== ''
 
-  const isFormValid = lender.length > 0 && isOriginalAmountValid && isCurrentBalanceValid && isBalanceRangeValid && isPayoffDateValid
+  const isFormValid =
+    lender.length > 0 &&
+    isOriginalAmountValid &&
+    isCurrentBalanceValid &&
+    isInterestRateValid &&
+    isBalanceRangeValid &&
+    isPayoffDateValid
 
   const handleClose = () => {
     setFormState(initialState)
@@ -63,6 +73,7 @@ export const AddBorrowedLoanModal = ({
         lender,
         originalAmount,
         currentBalance,
+        interestRate,
         payoffDate: formState.payoffDate,
         notes: notes.length > 0 ? notes : null,
       })
@@ -138,6 +149,24 @@ export const AddBorrowedLoanModal = ({
               />
               {hasTriedSubmit && !isCurrentBalanceValid ? <p className="text-xs text-red-500">Enter a valid current balance.</p> : null}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="borrowed-loan-interest-rate" className="text-sm font-medium text-text-muted">
+              Interest rate (%)
+            </label>
+            <input
+              id="borrowed-loan-interest-rate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={formState.interestRate}
+              onChange={(event) => setFormState((current) => ({ ...current, interestRate: event.target.value }))}
+              placeholder="6"
+              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            {hasTriedSubmit && !isInterestRateValid ? <p className="text-xs text-red-500">Enter an interest rate between 0 and 100.</p> : null}
           </div>
 
           {hasTriedSubmit && !isBalanceRangeValid ? (

@@ -38,6 +38,7 @@ export const createBorrowedLoan = asyncHandler(async (req: Request, res: Respons
     lender: payload.lender,
     originalAmount: payload.originalAmount,
     currentBalance: payload.currentBalance,
+    interestRate: payload.interestRate,
     payoffDate: payload.payoffDate,
     notes: payload.notes ?? null,
   })

@@ -32,10 +32,13 @@ const payoffDateSchema = z
   .regex(isoDateRegex, 'payoffDate must be in YYYY-MM-DD format')
   .refine(isValidIsoDate, 'payoffDate must be a real calendar date')
 
+const interestRateSchema = z.number().finite().min(0).max(100)
+
 export const createBorrowedLoanSchema = z.object({
   lender: z.string().trim().min(1).max(150),
   originalAmount: z.number().finite().positive(),
   currentBalance: z.number().finite().min(0),
+  interestRate: interestRateSchema,
   payoffDate: payoffDateSchema,
   notes: notesSchema.nullable().optional(),
 }).refine((value) => value.currentBalance <= value.originalAmount, {
@@ -48,6 +51,7 @@ export const updateBorrowedLoanSchema = z
     lender: z.string().trim().min(1).max(150).optional(),
     originalAmount: z.number().finite().positive().optional(),
     currentBalance: z.number().finite().min(0).optional(),
+    interestRate: interestRateSchema.optional(),
     payoffDate: payoffDateSchema.optional(),
     notes: notesSchema.nullable().optional(),
   })
@@ -56,6 +60,7 @@ export const updateBorrowedLoanSchema = z
       value.lender !== undefined ||
       value.originalAmount !== undefined ||
       value.currentBalance !== undefined ||
+      value.interestRate !== undefined ||
       value.payoffDate !== undefined ||
       value.notes !== undefined,
     {

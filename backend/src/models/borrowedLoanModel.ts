@@ -8,6 +8,7 @@ export type BorrowedLoan = {
   lender: string
   originalAmount: number
   currentBalance: number
+  interestRate: number
   payoffDate: string
   notes: string | null
   paidOffAt: string | null
@@ -22,6 +23,7 @@ export type CreateBorrowedLoanModelInput = {
   lender: string
   originalAmount: number
   currentBalance: number
+  interestRate: number
   payoffDate: string
   notes?: string | null
 }
@@ -30,6 +32,7 @@ export type UpdateBorrowedLoanModelInput = {
   lender?: string | undefined
   originalAmount?: number | undefined
   currentBalance?: number | undefined
+  interestRate?: number | undefined
   payoffDate?: string | undefined
   notes?: string | null | undefined
 }
@@ -48,6 +51,7 @@ const borrowedLoanSelect = `
   lender,
   original_amount::float8 AS "originalAmount",
   current_balance::float8 AS "currentBalance",
+  interest_rate::float8 AS "interestRate",
   payoff_date AS "payoffDate",
   notes,
   paid_off_at AS "paidOffAt",
@@ -105,6 +109,7 @@ export const borrowedLoanModel = {
         lender,
         original_amount,
         current_balance,
+        interest_rate,
         payoff_date,
         notes,
         paid_off_at
@@ -114,8 +119,9 @@ export const borrowedLoanModel = {
         $2,
         $3::numeric(12, 2),
         $4::numeric(12, 2),
-        $5::date,
-        $6,
+        $5::numeric(5, 2),
+        $6::date,
+        $7,
         CASE
           WHEN $4::numeric(12, 2) <= 0::numeric THEN NOW()
           ELSE NULL::timestamptz
@@ -128,6 +134,7 @@ export const borrowedLoanModel = {
         input.lender,
         input.originalAmount,
         input.currentBalance,
+        input.interestRate,
         input.payoffDate,
         input.notes ?? null,
       ],
@@ -148,6 +155,7 @@ export const borrowedLoanModel = {
   ): Promise<BorrowedLoan | null> {
     const hasOriginalAmountUpdate = input.originalAmount !== undefined
     const hasCurrentBalanceUpdate = input.currentBalance !== undefined
+    const hasInterestRateUpdate = input.interestRate !== undefined
     const hasNotesUpdate = input.notes !== undefined
 
     const result = await db.query<BorrowedLoan>(
@@ -157,13 +165,14 @@ export const borrowedLoanModel = {
         lender = COALESCE($3, lender),
         original_amount = CASE WHEN $4 THEN $5::numeric(12, 2) ELSE original_amount END,
         current_balance = CASE WHEN $6 THEN $7::numeric(12, 2) ELSE current_balance END,
+        interest_rate = CASE WHEN $8 THEN $9::numeric(5, 2) ELSE interest_rate END,
         paid_off_at = CASE
           WHEN $6 AND $7::numeric(12, 2) <= 0::numeric THEN COALESCE(paid_off_at, NOW())
           WHEN $6 AND $7::numeric(12, 2) > 0::numeric THEN NULL
           ELSE paid_off_at
         END,
-        payoff_date = COALESCE($8::date, payoff_date),
-        notes = CASE WHEN $9 THEN $10 ELSE notes END,
+        payoff_date = COALESCE($10::date, payoff_date),
+        notes = CASE WHEN $11 THEN $12 ELSE notes END,
         updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING ${borrowedLoanSelect}
@@ -176,6 +185,8 @@ export const borrowedLoanModel = {
         input.originalAmount ?? null,
         hasCurrentBalanceUpdate,
         input.currentBalance ?? null,
+        hasInterestRateUpdate,
+        input.interestRate ?? null,
         input.payoffDate ?? null,
         hasNotesUpdate,
         input.notes ?? null,

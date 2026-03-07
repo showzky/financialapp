@@ -30,6 +30,7 @@ export function EditBorrowedLoanModal({ isOpen, loan, onClose, onSubmit }: Props
   const [lender, setLender] = useState('')
   const [originalAmount, setOriginalAmount] = useState('')
   const [currentBalance, setCurrentBalance] = useState('')
+  const [interestRate, setInterestRate] = useState('')
   const [payoffDate, setPayoffDate] = useState('')
   const [notes, setNotes] = useState('')
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
@@ -41,6 +42,7 @@ export function EditBorrowedLoanModal({ isOpen, loan, onClose, onSubmit }: Props
       setLender(loan.lender ?? '')
       setOriginalAmount(String(loan.originalAmount ?? ''))
       setCurrentBalance(String(loan.currentBalance ?? ''))
+      setInterestRate(String(loan.interestRate ?? ''))
       setPayoffDate(loan.payoffDate ? loan.payoffDate.slice(0, 10) : '')
       setNotes(loan.notes ?? '')
       setHasTriedSubmit(false)
@@ -59,6 +61,7 @@ export function EditBorrowedLoanModal({ isOpen, loan, onClose, onSubmit }: Props
     lender,
     originalAmount,
     currentBalance,
+    interestRate,
     payoffDate,
     notes,
   })
@@ -71,10 +74,11 @@ export function EditBorrowedLoanModal({ isOpen, loan, onClose, onSubmit }: Props
       lender.trim() !== loan.lender ||
       parsedOriginalAmount !== loan.originalAmount ||
       parsedCurrentBalance !== loan.currentBalance ||
+      Number(interestRate) !== loan.interestRate ||
       payoffDate !== (loan.payoffDate ? loan.payoffDate.slice(0, 10) : '') ||
       notes !== (loan.notes ?? '')
     )
-  }, [lender, parsedOriginalAmount, parsedCurrentBalance, payoffDate, notes, loan])
+  }, [lender, parsedOriginalAmount, parsedCurrentBalance, interestRate, payoffDate, notes, loan])
 
   const handleSubmit = async () => {
     setHasTriedSubmit(true)
@@ -87,6 +91,7 @@ export function EditBorrowedLoanModal({ isOpen, loan, onClose, onSubmit }: Props
         lender,
         originalAmount,
         currentBalance,
+        interestRate,
         payoffDate,
         notes,
       })
@@ -169,6 +174,25 @@ export function EditBorrowedLoanModal({ isOpen, loan, onClose, onSubmit }: Props
                 />
                 {hasTriedSubmit && errors.currentBalance ? (
                   <Text style={styles.errorText}>{errors.currentBalance}</Text>
+                ) : null}
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Interest Rate (%)</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    hasTriedSubmit && errors.interestRate ? styles.inputError : null,
+                  ]}
+                  placeholder="6"
+                  placeholderTextColor="#9ca3af"
+                  value={interestRate}
+                  onChangeText={setInterestRate}
+                  keyboardType="numeric"
+                  returnKeyType="next"
+                />
+                {hasTriedSubmit && errors.interestRate ? (
+                  <Text style={styles.errorText}>{errors.interestRate}</Text>
                 ) : null}
               </View>
 

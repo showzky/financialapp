@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   UIManager,
   View,
@@ -94,6 +95,13 @@ function formatNOK(n: number) {
   return `NOK ${n.toLocaleString('en-US')}`
 }
 
+function formatRate(rate: number) {
+  return `${rate.toLocaleString('en-US', {
+    minimumFractionDigits: rate % 1 === 0 ? 0 : 1,
+    maximumFractionDigits: 2,
+  })}%`
+}
+
 function formatDate(dateString: string | null | undefined) {
   if (!dateString) return 'Not set'
   try {
@@ -105,6 +113,10 @@ function formatDate(dateString: string | null | undefined) {
   } catch {
     return dateString
   }
+}
+
+function getTodayIsoDate() {
+  return new Date().toISOString().slice(0, 10)
 }
 
 function getInitials(name: string) {
@@ -135,6 +147,20 @@ function getLoanNotes(loan: Loan) {
 
 function getBorrowedLoanNotes(loan: BorrowedLoan) {
   return loan.notes?.trim() || ''
+}
+
+function getBorrowedPaidAmount(loan: BorrowedLoan) {
+  return Math.max(0, loan.originalAmount - loan.currentBalance)
+}
+
+function getBorrowedPaidPercent(loan: BorrowedLoan) {
+  if (!loan.originalAmount || loan.originalAmount <= 0) return 0
+  return Math.max(0, Math.min(100, Math.round((getBorrowedPaidAmount(loan) / loan.originalAmount) * 100)))
+}
+
+function getEstimatedInterestAmount(loan: BorrowedLoan) {
+  if (!loan.interestRate || loan.interestRate <= 0) return 0
+  return Math.round((loan.currentBalance * (loan.interestRate / 100 / 12)) * 100) / 100
 }
 
 function LentLoanCard({
@@ -269,106 +295,208 @@ function getBorrowedDaysRemaining(loan: BorrowedLoan) {
 function BorrowedLoanCard({
   loan,
   onEdit,
-  onMarkPaidOff,
   onDelete,
+  onRecordPayment,
 }: {
   loan: BorrowedLoan
   onEdit: (loan: BorrowedLoan) => void
-  onMarkPaidOff: (loan: BorrowedLoan) => void
   onDelete: (loan: BorrowedLoan) => void
+  onRecordPayment: (loan: BorrowedLoan, paymentAmount: number, interestAmount: number) => Promise<void>
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [paymentPanelOpen, setPaymentPanelOpen] = useState(false)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [interestAmount, setInterestAmount] = useState('0')
+  const [paymentDate, setPaymentDate] = useState(getTodayIsoDate())
+  const [isSavingPayment, setIsSavingPayment] = useState(false)
   const status = BORROWED_STATUS_CONFIG[loan.status] ?? BORROWED_STATUS_CONFIG.active
   const avatar = avatarColor(loan.lender)
+  const paidAmount = getBorrowedPaidAmount(loan)
+  const paidPercent = getBorrowedPaidPercent(loan)
+  const presetAmounts = [500, 1000, 1500, 2000].filter((amount) => amount <= loan.currentBalance)
+  const estimatedInterestAmount = getEstimatedInterestAmount(loan)
+  const parsedPaymentAmount = Number(paymentAmount)
+  const parsedInterestAmount = Number(interestAmount)
+  const principalApplied =
+    Number.isFinite(parsedPaymentAmount) && Number.isFinite(parsedInterestAmount)
+      ? Math.max(0, parsedPaymentAmount - parsedInterestAmount)
+      : 0
 
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
     setExpanded((prev) => !prev)
   }
 
+  const togglePaymentPanel = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setExpanded(true)
+    const nextOpenState = !paymentPanelOpen
+    setPaymentPanelOpen(nextOpenState)
+    if (nextOpenState) {
+      if (!paymentAmount) {
+        setPaymentAmount(String(Math.min(loan.currentBalance, 1500)))
+      }
+      setInterestAmount(String(estimatedInterestAmount))
+      if (!paymentDate) {
+        setPaymentDate(getTodayIsoDate())
+      }
+    }
+  }
+
+  const closePaymentPanel = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setPaymentPanelOpen(false)
+    setPaymentAmount('')
+    setInterestAmount('0')
+    setPaymentDate(getTodayIsoDate())
+  }
+
+  const handleSavePayment = async () => {
+    if (
+      !Number.isFinite(parsedPaymentAmount) ||
+      parsedPaymentAmount <= 0 ||
+      !Number.isFinite(parsedInterestAmount) ||
+      parsedInterestAmount < 0 ||
+      parsedInterestAmount > parsedPaymentAmount ||
+      principalApplied <= 0 ||
+      principalApplied > loan.currentBalance ||
+      !paymentDate
+    ) {
+      return
+    }
+
+    setIsSavingPayment(true)
+    try {
+      await onRecordPayment(loan, parsedPaymentAmount, parsedInterestAmount)
+      closePaymentPanel()
+    } finally {
+      setIsSavingPayment(false)
+    }
+  }
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={toggleExpanded}
+    <View
       style={[
         styles.loanCard,
+        styles.borrowedLoanCard,
         expanded ? styles.loanCardExpanded : null,
         loan.status === 'paid_off' ? styles.loanCardRepaid : null,
       ]}
     >
       <View style={styles.loanTopRow}>
         <View style={styles.loanIdentity}>
-          <View style={[styles.avatar, { backgroundColor: avatar }]}>
+          <View style={[styles.avatar, styles.borrowedAvatar, { backgroundColor: avatar }]}>
             <Text style={styles.avatarText}>{getInitials(loan.lender)}</Text>
           </View>
           <View style={styles.loanIdentityText}>
-            <Text style={styles.loanName}>{loan.lender}</Text>
-            <Text style={styles.loanSubtext}>Original {formatNOK(loan.originalAmount)}</Text>
+            <Text style={[styles.loanName, styles.borrowedLoanName]}>{loan.lender}</Text>
+            <Text style={styles.loanSubtext}>
+              Original {formatNOK(loan.originalAmount)} · {formatRate(loan.interestRate)} APR
+            </Text>
           </View>
         </View>
 
         <View style={styles.loanRightBlock}>
-          <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
+          <View style={[styles.statusPill, styles.borrowedStatusPill, { backgroundColor: status.bg, borderColor: status.dot }]}>
             <View style={[styles.statusDot, { backgroundColor: status.dot }]} />
             <Text style={[styles.statusPillText, { color: status.color }]}>{status.label}</Text>
           </View>
-          <Text style={styles.remainingAmount}>{formatNOK(loan.currentBalance)}</Text>
         </View>
       </View>
 
-      <View style={styles.metricRow}>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Balance</Text>
-          <Text style={styles.metricValue}>{formatNOK(loan.currentBalance)}</Text>
+      <TouchableOpacity activeOpacity={0.9} onPress={toggleExpanded}>
+        <View style={styles.balanceSection}>
+          <Text style={styles.balanceLabel}>Remaining balance</Text>
+          <Text style={styles.balanceValue}>{formatNOK(loan.currentBalance)}</Text>
         </View>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Payoff date</Text>
-          <Text style={styles.metricValue}>{formatDate(loan.payoffDate)}</Text>
-        </View>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Days left</Text>
-          <Text
-            style={[
-              styles.metricValue,
-              loan.status !== 'paid_off' &&
-              typeof loan.daysRemaining === 'number' &&
-              loan.daysRemaining <= 7
-                ? styles.metricValueWarning
-                : null,
-            ]}
-          >
-            {getBorrowedDaysRemaining(loan)}
-          </Text>
-        </View>
-      </View>
 
-      {getBorrowedLoanNotes(loan) ? (
-        <View style={styles.notesBanner}>
-          <Ionicons name="chatbubble-ellipses-outline" size={14} color="#a78bfa" />
-          <Text style={styles.notesText} numberOfLines={2}>
-            {getBorrowedLoanNotes(loan)}
-          </Text>
+        <View style={styles.progressWrap}>
+          <View style={styles.progressLabels}>
+            <Text style={styles.progressLabel}>Principal paid</Text>
+            <Text style={styles.progressLabel}>{formatNOK(paidAmount)}</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${paidPercent}%` }]} />
+          </View>
+          <Text style={styles.progressPct}>{paidPercent}% of principal paid off</Text>
         </View>
-      ) : null}
+
+        <View style={styles.metricRow}>
+          <View style={styles.metricBlock}>
+            <Text style={styles.metricLabel}>Balance</Text>
+            <Text style={styles.metricValue}>{formatNOK(loan.currentBalance)}</Text>
+          </View>
+          <View style={styles.metricBlock}>
+            <Text style={styles.metricLabel}>Payoff date</Text>
+            <Text style={styles.metricValue}>{formatDate(loan.payoffDate)}</Text>
+          </View>
+          <View style={styles.metricBlock}>
+            <Text style={styles.metricLabel}>Days left</Text>
+            <Text
+              style={[
+                styles.metricValue,
+                loan.status !== 'paid_off' &&
+                typeof loan.daysRemaining === 'number' &&
+                loan.daysRemaining <= 7
+                  ? styles.metricValueWarning
+                  : null,
+              ]}
+            >
+              {getBorrowedDaysRemaining(loan)}
+            </Text>
+          </View>
+        </View>
+
+        {getBorrowedLoanNotes(loan) ? (
+          <View style={[styles.notesBanner, styles.borrowedNotesBanner]}>
+            <Ionicons name="document-text-outline" size={14} color="#64748b" />
+            <Text style={styles.notesText} numberOfLines={2}>
+              {getBorrowedLoanNotes(loan)}
+            </Text>
+          </View>
+        ) : null}
+      </TouchableOpacity>
 
       {expanded ? (
         <View style={styles.loanExpandedSection}>
-          <View style={styles.loanExpandedGrid}>
-            <View style={styles.detailCard}>
+          <View style={[styles.loanExpandedGrid, styles.borrowedFootGrid]}>
+            <View style={[styles.detailCard, styles.borrowedFootCard]}>
               <Text style={styles.detailLabel}>Created</Text>
               <Text style={styles.detailValue}>{formatDate(loan.createdAt)}</Text>
             </View>
-            <View style={styles.detailCard}>
+            <View style={[styles.detailCard, styles.borrowedFootCard]}>
               <Text style={styles.detailLabel}>Updated</Text>
               <Text style={styles.detailValue}>{formatDate(loan.updatedAt)}</Text>
             </View>
-            <View style={styles.detailCard}>
-              <Text style={styles.detailLabel}>Paid off</Text>
-              <Text style={styles.detailValue}>{formatDate(loan.paidOffAt)}</Text>
+            <View style={[styles.detailCard, styles.borrowedFootCard]}>
+              <Text style={styles.detailLabel}>
+                {loan.status === 'paid_off' ? 'Paid off' : 'Last updated'}
+              </Text>
+              <Text style={styles.detailValue}>
+                {formatDate(loan.status === 'paid_off' ? loan.paidOffAt : loan.updatedAt)}
+              </Text>
             </View>
           </View>
 
           <View style={styles.actionRow}>
+            {loan.status !== 'paid_off' ? (
+              <TouchableOpacity
+                style={[styles.primaryAction, paymentPanelOpen ? styles.primaryActionOpen : null]}
+                onPress={togglePaymentPanel}
+                activeOpacity={0.8}
+                disabled={isSavingPayment}
+              >
+                <Ionicons
+                  name={paymentPanelOpen ? 'close' : 'checkmark-circle'}
+                  size={16}
+                  color={paymentPanelOpen ? '#854d0e' : '#15803d'}
+                />
+                <Text style={[styles.primaryActionText, paymentPanelOpen ? styles.primaryActionTextOpen : null]}>
+                  {paymentPanelOpen ? 'Cancel payment' : 'Record payment'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+
             {loan.status !== 'paid_off' ? (
               <TouchableOpacity
                 style={styles.secondaryAction}
@@ -377,17 +505,6 @@ function BorrowedLoanCard({
               >
                 <Ionicons name="pencil" size={15} color="#475569" />
                 <Text style={styles.secondaryActionText}>Edit</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {loan.status !== 'paid_off' ? (
-              <TouchableOpacity
-                style={styles.primaryAction}
-                onPress={() => onMarkPaidOff(loan)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="checkmark-circle" size={16} color="#059669" />
-                <Text style={styles.primaryActionText}>Mark as paid off</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -400,9 +517,129 @@ function BorrowedLoanCard({
               </TouchableOpacity>
             )}
           </View>
+
+          {loan.status !== 'paid_off' && paymentPanelOpen ? (
+            <View style={styles.paymentPanel}>
+              <Text style={styles.paymentPanelTitle}>Record payment</Text>
+              <Text style={styles.paymentPanelHint}>
+                Split the payment between interest and principal.
+              </Text>
+
+              <View style={styles.paymentPresets}>
+                {presetAmounts.map((amount) => {
+                  const isActive = paymentAmount === String(amount)
+
+                  return (
+                    <TouchableOpacity
+                      key={amount}
+                      style={[
+                        styles.presetButton,
+                        isActive ? styles.presetButtonActive : null,
+                      ]}
+                      onPress={() => setPaymentAmount(String(amount))}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={[
+                          styles.presetButtonText,
+                          isActive ? styles.presetButtonTextActive : null,
+                        ]}
+                      >
+                        {formatNOK(amount)}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+
+              <View style={styles.paymentFieldsRow}>
+                <View style={styles.paymentField}>
+                  <Text style={styles.paymentFieldLabel}>Payment (NOK)</Text>
+                  <TextInput
+                    style={styles.paymentInput}
+                    keyboardType="numeric"
+                    value={paymentAmount}
+                    onChangeText={setPaymentAmount}
+                    placeholder="0"
+                    placeholderTextColor="#94a3b8"
+                  />
+                </View>
+                <View style={styles.paymentField}>
+                  <Text style={styles.paymentFieldLabel}>
+                    Interest ({formatRate(loan.interestRate)} APR)
+                  </Text>
+                  <TextInput
+                    style={styles.paymentInput}
+                    keyboardType="numeric"
+                    value={interestAmount}
+                    onChangeText={setInterestAmount}
+                    placeholder="0"
+                    placeholderTextColor="#94a3b8"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.paymentFieldsRow}>
+                <View style={styles.paymentField}>
+                  <Text style={styles.paymentFieldLabel}>Date</Text>
+                  <TextInput
+                    style={styles.paymentInput}
+                    value={paymentDate}
+                    onChangeText={setPaymentDate}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="none"
+                  />
+                </View>
+                <View style={[styles.paymentField, styles.paymentBreakdownCard]}>
+                  <Text style={styles.paymentFieldLabel}>Principal applied</Text>
+                  <Text style={styles.paymentBreakdownValue}>{formatNOK(principalApplied)}</Text>
+                  <Text style={styles.paymentBreakdownHint}>
+                    This is what reduces the balance.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.paymentPanelActions}>
+                <TouchableOpacity
+                  style={styles.paymentCancelButton}
+                  onPress={closePaymentPanel}
+                  activeOpacity={0.85}
+                  disabled={isSavingPayment}
+                >
+                  <Text style={styles.paymentCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.paymentSaveButton,
+                    !paymentAmount ||
+                    principalApplied <= 0 ||
+                    parsedInterestAmount > parsedPaymentAmount ||
+                    principalApplied > loan.currentBalance ||
+                    isSavingPayment
+                      ? styles.paymentSaveButtonDisabled
+                      : null,
+                  ]}
+                  onPress={handleSavePayment}
+                  activeOpacity={0.85}
+                  disabled={
+                    !paymentAmount ||
+                    principalApplied <= 0 ||
+                    parsedInterestAmount > parsedPaymentAmount ||
+                    principalApplied > loan.currentBalance ||
+                    isSavingPayment
+                  }
+                >
+                  <Text style={styles.paymentSaveButtonText}>
+                    {isSavingPayment ? 'Saving...' : 'Save payment'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
         </View>
       ) : null}
-    </TouchableOpacity>
+    </View>
   )
 }
 
@@ -507,6 +744,23 @@ export function LoansScreen() {
   const handleEditBorrowedLoan = async (id, payload) => {
     await borrowedLoanApi.update(id, payload)
     setEditingBorrowedLoan(null)
+    await fetchLoans()
+  }
+
+  const handleRecordBorrowedPayment = async (
+    loan: BorrowedLoan,
+    paymentAmount: number,
+    interestAmount: number,
+  ) => {
+    const principalAmount = Math.max(0, paymentAmount - interestAmount)
+    const nextBalance = Math.max(0, loan.currentBalance - principalAmount)
+
+    await borrowedLoanApi.update(loan.id, { currentBalance: nextBalance })
+
+    if (nextBalance === 0) {
+      setPaidOffExpanded(true)
+    }
+
     await fetchLoans()
   }
 
@@ -676,9 +930,7 @@ export function LoansScreen() {
                   key={loan.id}
                   loan={loan}
                   onEdit={setEditingBorrowedLoan}
-                  onMarkPaidOff={(selectedLoan) =>
-                    setConfirmModal({ type: 'paid-off', loan: selectedLoan })
-                  }
+                  onRecordPayment={handleRecordBorrowedPayment}
                   onDelete={(selectedLoan) =>
                     setConfirmModal({ type: 'delete-borrowed', loan: selectedLoan })
                   }
@@ -708,9 +960,7 @@ export function LoansScreen() {
                         key={loan.id}
                         loan={loan}
                         onEdit={setEditingBorrowedLoan}
-                        onMarkPaidOff={(selectedLoan) =>
-                          setConfirmModal({ type: 'paid-off', loan: selectedLoan })
-                        }
+                        onRecordPayment={handleRecordBorrowedPayment}
                         onDelete={(selectedLoan) =>
                           setConfirmModal({ type: 'delete-borrowed', loan: selectedLoan })
                         }
@@ -1037,6 +1287,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 1,
   },
+  borrowedLoanCard: {
+    borderRadius: 22,
+    borderColor: '#dbe4ee',
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
+  },
   loanCardExpanded: {
     shadowOpacity: 0.08,
     shadowRadius: 16,
@@ -1065,6 +1323,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  borrowedAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+  },
   avatarText: {
     color: '#fff',
     fontSize: 14,
@@ -1078,6 +1341,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#1e293b',
+  },
+  borrowedLoanName: {
+    fontSize: 22,
+    lineHeight: 24,
   },
   loanSubtext: {
     fontSize: 12,
@@ -1096,6 +1363,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     gap: 6,
   },
+  borrowedStatusPill: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   statusDot: {
     width: 6,
     height: 6,
@@ -1109,6 +1381,50 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#1e293b',
+  },
+  balanceSection: {
+    marginTop: 18,
+  },
+  balanceLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  balanceValue: {
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+    color: '#0f172a',
+  },
+  progressWrap: {
+    marginTop: 14,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#f1f5f9',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#22c55e',
+  },
+  progressPct: {
+    marginTop: 6,
+    textAlign: 'right',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#16a34a',
   },
   metricRow: {
     flexDirection: 'row',
@@ -1145,6 +1461,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+  borrowedNotesBanner: {
+    backgroundColor: '#f8fafc',
+  },
   notesText: {
     flex: 1,
     fontSize: 13,
@@ -1161,11 +1480,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  borrowedFootGrid: {
+    marginTop: 2,
+  },
   detailCard: {
     flex: 1,
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 10,
+  },
+  borrowedFootCard: {
+    borderRadius: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   detailLabel: {
     fontSize: 11,
@@ -1209,10 +1536,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#ecfdf5',
   },
+  primaryActionOpen: {
+    backgroundColor: '#fef9c3',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
   primaryActionText: {
     fontSize: 13,
     fontWeight: '800',
     color: '#059669',
+  },
+  primaryActionTextOpen: {
+    color: '#854d0e',
   },
   dangerAction: {
     flex: 1.2,
@@ -1228,6 +1563,127 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#b91c1c',
+  },
+  paymentPanel: {
+    marginTop: 14,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e8eef5',
+  },
+  paymentPanelTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  paymentPanelHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 14,
+  },
+  paymentPresets: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginBottom: 12,
+  },
+  presetButton: {
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: '#d7e0ea',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  presetButtonActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  presetButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  presetButtonTextActive: {
+    color: '#fff',
+  },
+  paymentFieldsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  paymentField: {
+    flex: 1,
+  },
+  paymentBreakdownCard: {
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e8eef5',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  paymentFieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 5,
+  },
+  paymentInput: {
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#d7e0ea',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#0f172a',
+  },
+  paymentBreakdownValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  paymentBreakdownHint: {
+    marginTop: 4,
+    fontSize: 11,
+    color: '#94a3b8',
+  },
+  paymentPanelActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  paymentCancelButton: {
+    flex: 1,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#d7e0ea',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentCancelButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  paymentSaveButton: {
+    flex: 1,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentSaveButtonDisabled: {
+    opacity: 0.55,
+  },
+  paymentSaveButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
   },
   placeholderCard: {
     backgroundColor: '#fff',

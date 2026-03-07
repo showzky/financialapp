@@ -45,6 +45,7 @@ export type BorrowedLoan = {
   lender: string
   originalAmount: number
   currentBalance: number
+  interestRate: number
   payoffDate: string
   notes: string | null
   paidOffAt: string | null
@@ -58,6 +59,7 @@ export type CreateBorrowedLoanPayload = {
   lender: string
   originalAmount: number
   currentBalance: number
+  interestRate: number
   payoffDate: string
   notes?: string | null
 }
@@ -66,6 +68,7 @@ export type UpdateBorrowedLoanPayload = {
   lender?: string
   originalAmount?: number
   currentBalance?: number
+  interestRate?: number
   payoffDate?: string
   notes?: string | null
 }

@@ -13,6 +13,7 @@ type EditBorrowedLoanFormState = {
   lender: string
   originalAmount: string
   currentBalance: string
+  interestRate: string
   payoffDate: string
   notes: string
 }
@@ -21,6 +22,7 @@ const emptyState: EditBorrowedLoanFormState = {
   lender: '',
   originalAmount: '',
   currentBalance: '',
+  interestRate: '',
   payoffDate: '',
   notes: '',
 }
@@ -29,6 +31,7 @@ const toFormState = (loan: BorrowedLoan): EditBorrowedLoanFormState => ({
   lender: loan.lender,
   originalAmount: String(loan.originalAmount),
   currentBalance: String(loan.currentBalance),
+  interestRate: String(loan.interestRate),
   payoffDate: loan.payoffDate.slice(0, 10),
   notes: loan.notes ?? '',
 })
@@ -57,12 +60,21 @@ export const EditBorrowedLoanModal = ({
   const notes = formState.notes.trim()
   const originalAmount = Number(formState.originalAmount.trim())
   const currentBalance = Number(formState.currentBalance.trim())
+  const interestRate = Number(formState.interestRate.trim())
   const isOriginalAmountValid = formState.originalAmount.trim() !== '' && Number.isFinite(originalAmount) && originalAmount > 0
   const isCurrentBalanceValid = formState.currentBalance.trim() !== '' && Number.isFinite(currentBalance) && currentBalance >= 0
+  const isInterestRateValid =
+    formState.interestRate.trim() !== '' && Number.isFinite(interestRate) && interestRate >= 0 && interestRate <= 100
   const isBalanceRangeValid = isOriginalAmountValid && isCurrentBalanceValid ? currentBalance <= originalAmount : true
   const isPayoffDateValid = formState.payoffDate !== ''
 
-  const isFormValid = lender.length > 0 && isOriginalAmountValid && isCurrentBalanceValid && isBalanceRangeValid && isPayoffDateValid
+  const isFormValid =
+    lender.length > 0 &&
+    isOriginalAmountValid &&
+    isCurrentBalanceValid &&
+    isInterestRateValid &&
+    isBalanceRangeValid &&
+    isPayoffDateValid
 
   const hasChanges = useMemo(() => {
     if (!loan) {
@@ -73,10 +85,11 @@ export const EditBorrowedLoanModal = ({
       lender !== loan.lender ||
       originalAmount !== loan.originalAmount ||
       currentBalance !== loan.currentBalance ||
+      interestRate !== loan.interestRate ||
       formState.payoffDate !== loan.payoffDate.slice(0, 10) ||
       notes !== (loan.notes ?? '')
     )
-  }, [currentBalance, formState.payoffDate, lender, loan, notes, originalAmount])
+  }, [currentBalance, formState.payoffDate, interestRate, lender, loan, notes, originalAmount])
 
   if (!isOpen || !loan) {
     return null
@@ -105,6 +118,7 @@ export const EditBorrowedLoanModal = ({
         lender,
         originalAmount,
         currentBalance,
+        interestRate,
         payoffDate: formState.payoffDate,
         notes: notes.length > 0 ? notes : null,
       })
@@ -182,6 +196,23 @@ export const EditBorrowedLoanModal = ({
                 />
                 {hasTriedSubmit && !isCurrentBalanceValid ? <p className="text-xs text-error">Enter a valid current balance.</p> : null}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="edit-borrowed-loan-interest-rate" className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted">
+                Interest rate (%)
+              </label>
+              <input
+                id="edit-borrowed-loan-interest-rate"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={formState.interestRate}
+                onChange={(event) => setFormState((current) => ({ ...current, interestRate: event.target.value }))}
+                className="w-full border-0 border-b border-white/20 bg-transparent px-0 pb-2 pt-1 text-text-primary outline-none transition focus:border-accent focus:shadow-[0_6px_14px_-8px_rgba(var(--accent-rgb),0.95)]"
+              />
+              {hasTriedSubmit && !isInterestRateValid ? <p className="text-xs text-error">Enter an interest rate between 0 and 100.</p> : null}
             </div>
 
             {hasTriedSubmit && !isBalanceRangeValid ? <p className="text-xs text-error">Current balance cannot exceed the original amount.</p> : null}

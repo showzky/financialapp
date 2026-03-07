@@ -29,6 +29,7 @@ export function AddBorrowedLoanModal({ isOpen, onClose, onSubmit }: Props) {
   const [lender, setLender] = useState('')
   const [originalAmount, setOriginalAmount] = useState('')
   const [currentBalance, setCurrentBalance] = useState('')
+  const [interestRate, setInterestRate] = useState('')
   const [payoffDate, setPayoffDate] = useState('')
   const [notes, setNotes] = useState('')
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
@@ -39,6 +40,7 @@ export function AddBorrowedLoanModal({ isOpen, onClose, onSubmit }: Props) {
     setLender('')
     setOriginalAmount('')
     setCurrentBalance('')
+    setInterestRate('')
     setPayoffDate('')
     setNotes('')
     setHasTriedSubmit(false)
@@ -55,6 +57,7 @@ export function AddBorrowedLoanModal({ isOpen, onClose, onSubmit }: Props) {
     lender,
     originalAmount,
     currentBalance,
+    interestRate,
     payoffDate,
     notes,
   })
@@ -68,7 +71,16 @@ export function AddBorrowedLoanModal({ isOpen, onClose, onSubmit }: Props) {
     setSubmitting(true)
     setSubmitError('')
     try {
-      await onSubmit(buildCreateBorrowedLoanPayload({ lender, originalAmount, currentBalance, payoffDate, notes }))
+      await onSubmit(
+        buildCreateBorrowedLoanPayload({
+          lender,
+          originalAmount,
+          currentBalance,
+          interestRate,
+          payoffDate,
+          notes,
+        }),
+      )
       resetForm()
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Something went wrong')
@@ -147,6 +159,25 @@ export function AddBorrowedLoanModal({ isOpen, onClose, onSubmit }: Props) {
                 />
                 {hasTriedSubmit && errors.currentBalance ? (
                   <Text style={styles.errorText}>{errors.currentBalance}</Text>
+                ) : null}
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Interest Rate (%)</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    hasTriedSubmit && errors.interestRate ? styles.inputError : null,
+                  ]}
+                  placeholder="6"
+                  placeholderTextColor="#9ca3af"
+                  value={interestRate}
+                  onChangeText={setInterestRate}
+                  keyboardType="numeric"
+                  returnKeyType="next"
+                />
+                {hasTriedSubmit && errors.interestRate ? (
+                  <Text style={styles.errorText}>{errors.interestRate}</Text>
                 ) : null}
               </View>
 
