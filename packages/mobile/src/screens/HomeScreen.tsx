@@ -44,6 +44,9 @@ export function HomeScreen() {
     month: 'long',
     year: 'numeric',
   })
+  const selectedMonthName = selectedMonth.toLocaleDateString('en-US', {
+    month: 'long',
+  })
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -66,6 +69,16 @@ export function HomeScreen() {
       setMonthPickerVisible(false)
     },
     [setSelectedMonth],
+  )
+
+  const handleShiftMonth = useCallback(
+    async (delta: number) => {
+      const nextMonth = new Date(selectedMonth)
+      nextMonth.setDate(1)
+      nextMonth.setMonth(nextMonth.getMonth() + delta)
+      await setSelectedMonth(nextMonth)
+    },
+    [selectedMonth, setSelectedMonth],
   )
 
   useEffect(() => {
@@ -163,31 +176,119 @@ export function HomeScreen() {
 
   const isOverAllocated = dashboard.freeToAssign < 0
   const allocationBalance = dashboard.totalIncome - dashboard.totalAllocated
+  const allocationProgress = Math.max(
+    0,
+    Math.min(
+      dashboard.totalAllocated > 0 ? (dashboard.totalSpent / dashboard.totalAllocated) * 100 : 0,
+      100,
+    ),
+  )
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
       <ScreenHero
         eyebrow="Overview"
-        title="Financial Overview"
+        title={'Financial\nOverview'}
         subtitle="Track income, allocations, and monthly momentum from one place."
         theme={theme.hero}
         actions={
-          <TouchableOpacity
+          <View
             style={[
-              styles.monthButton,
+              styles.monthSwitcher,
               {
                 backgroundColor: theme.actionSurface,
                 borderColor: theme.actionBorder,
               },
             ]}
-            onPress={() => setMonthPickerVisible(true)}
-            activeOpacity={0.85}
           >
-            <Text style={[styles.monthButtonText, { color: theme.actionText }]}>{selectedMonthLabel}</Text>
-            <Ionicons name="chevron-down" size={16} color={theme.actionText} />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.monthSwitchButton} onPress={() => handleShiftMonth(-1)} activeOpacity={0.8}>
+              <Text style={[styles.monthSwitchGlyph, { color: theme.actionText }]}>{'<'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setMonthPickerVisible(true)} activeOpacity={0.85}>
+              <Text style={[styles.monthSwitchLabel, { color: theme.actionText }]}>{selectedMonthName}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.monthSwitchButton} onPress={() => handleShiftMonth(1)} activeOpacity={0.8}>
+              <Text style={[styles.monthSwitchGlyph, { color: theme.actionText }]}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
         }
-      />
+      >
+        <View style={styles.heroMetricGrid}>
+          {[
+            { label: 'Income', value: dashboard.totalIncome, icon: 'arrow-down', accent: '#4ade80' },
+            { label: 'Allocated', value: dashboard.totalAllocated, icon: 'albums-outline', accent: '#818cf8' },
+            { label: 'Free to assign', value: dashboard.freeToAssign, icon: 'diamond-outline', accent: '#38bdf8' },
+          ].map((item) => (
+            <View key={item.label} style={styles.heroMetricCard}>
+              <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={16} color={item.accent} />
+              <Text style={styles.heroMetricValue}>{item.value.toLocaleString('nb-NO')}</Text>
+              <Text style={styles.heroMetricLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.heroProgressSection}>
+          <View style={styles.heroProgressMeta}>
+            <Text style={styles.heroProgressHint}>
+              {allocationBalance < 0
+                ? `NOK ${Math.abs(allocationBalance).toLocaleString('nb-NO')} over-allocated`
+                : `NOK ${allocationBalance.toLocaleString('nb-NO')} left to allocate`}
+            </Text>
+            <Text style={styles.heroProgressHint}>
+              {dashboard.totalSpent.toLocaleString('nb-NO')} / {dashboard.totalAllocated.toLocaleString('nb-NO')}
+            </Text>
+          </View>
+          <View style={styles.heroProgressTrack}>
+            <View style={[styles.heroProgressFill, { width: `${allocationProgress}%` }]} />
+          </View>
+        </View>
+      </ScreenHero>
+
+      <View style={styles.dashboardBody}>
+        <TouchableOpacity style={styles.transferCard} activeOpacity={0.9} onPress={() => setAddExpenseModalOpen(true)}>
+          <View style={styles.transferIconWrap}>
+            <Text style={styles.transferIcon}>$</Text>
+          </View>
+          <View style={styles.transferCopy}>
+            <Text style={styles.transferEyebrow}>Transfer to bills account</Text>
+            <Text style={styles.transferAmount}>NOK {dashboard.totalSpent.toLocaleString('nb-NO')}</Text>
+            <Text style={styles.transferHint}>Fixed costs this month</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#f97316" />
+        </TouchableOpacity>
+
+        <View style={styles.insightGrid}>
+          <View style={styles.insightCard}>
+            <View style={[styles.insightIconWrap, styles.categoriesInsightIcon]}>
+              <Ionicons name="pie-chart-outline" size={18} color="#7c3aed" />
+            </View>
+            <Text style={styles.insightValue}>{dashboard.categoryCount}</Text>
+            <Text style={styles.insightLabel}>Categories</Text>
+          </View>
+          <View style={styles.insightCard}>
+            <View style={[styles.insightIconWrap, styles.loanInsightIcon]}>
+              <Ionicons name="document-text-outline" size={18} color="#f97316" />
+            </View>
+            <Text style={styles.insightValue}>{dashboard.activeLoans}</Text>
+            <Text style={styles.insightLabel}>Active Loans</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.loanSpotlightCard} activeOpacity={0.85}>
+          <View style={styles.loanSpotlightLeft}>
+            <View style={styles.loanSpotlightIconWrap}>
+              <Ionicons name="document-text-outline" size={16} color="#f97316" />
+            </View>
+            <View>
+              <Text style={styles.loanSpotlightValue}>NOK {dashboard.loanBalance.toLocaleString('nb-NO')}</Text>
+              <Text style={styles.loanSpotlightMeta}>
+                {dashboard.activeLoans} active {dashboard.activeLoans === 1 ? 'loan' : 'loans'}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+        </TouchableOpacity>
+      </View>
 
       {/* ── Phase 2: 3-Stat Row ── ADDED THIS */}
       <View style={styles.statRow}>
@@ -358,7 +459,7 @@ export function HomeScreen() {
 
       {/* ── Phase 3: Categories Grid ── */}
       <View style={styles.categoriesSection}>
-        <Text style={styles.sectionTitle}>Categories</Text>
+        <Text style={styles.dashboardSectionTitle}>Categories</Text>
         {groupedCategories.length === 0 ? (
           <Text style={styles.emptyCategories}>No categories yet</Text>
         ) : (
@@ -366,7 +467,7 @@ export function HomeScreen() {
             <CategoryAccordionSection
               key={group.key}
               title={group.title}
-              subtitle={`${group.itemCount} ${group.itemCount === 1 ? 'item' : 'items'} • ${group.description}`}
+              subtitle={`${group.itemCount} ${group.itemCount === 1 ? 'item' : 'items'} - ${group.description}`}
               totalLabel={`NOK ${group.totalAllocated.toLocaleString()}`}
               accentColor={group.accentColor}
               previewLabels={group.previewNames}
@@ -389,25 +490,33 @@ export function HomeScreen() {
 
       {/* Quick Actions */}
       <View style={styles.actionsSection}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionButtons}>
+        <Text style={styles.dashboardSectionTitle}>Quick Actions</Text>
+        <View style={styles.dashboardActionGrid}>
           <TouchableOpacity
-            style={styles.actionButton}
+            style={styles.dashboardActionCard}
             onPress={() => setAddExpenseModalOpen(true)}
+            activeOpacity={0.85}
           >
-            <Ionicons name="add-circle" size={28} color="#3b82f6" />
-            <Text style={styles.actionLabel}>Add Expense</Text>
+            <View style={[styles.dashboardActionIcon, styles.dashboardActionIconBlue]}>
+              <Ionicons name="add" size={22} color="#6d5bd0" />
+            </View>
+            <Text style={styles.dashboardActionLabel}>Add Expense</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.actionButton}
+            style={styles.dashboardActionCard}
             onPress={() => setSetIncomeModalOpen(true)}
+            activeOpacity={0.85}
           >
-            <Ionicons name="arrow-up-circle" size={28} color="#10b981" />
-            <Text style={styles.actionLabel}>Set income</Text>
+            <View style={[styles.dashboardActionIcon, styles.dashboardActionIconGreen]}>
+              <Text style={styles.dashboardActionEmoji}>$</Text>
+            </View>
+            <Text style={styles.dashboardActionLabel}>Set income</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="document-text-outline" size={28} color="#f59e0b" />
-            <Text style={styles.actionLabel}>Add Loan</Text>
+          <TouchableOpacity style={styles.dashboardActionCard} activeOpacity={0.85}>
+            <View style={[styles.dashboardActionIcon, styles.dashboardActionIconOrange]}>
+              <Ionicons name="document-text-outline" size={20} color="#f97316" />
+            </View>
+            <Text style={styles.dashboardActionLabel}>Add Loan</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -476,25 +585,223 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  monthButton: {
+  monthSwitcher: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#eff6ff',
-    borderRadius: 999,
+    gap: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
-  monthButtonText: {
-    color: '#1d4ed8',
-    fontSize: 14,
+  monthSwitchButton: {
+    paddingHorizontal: 2,
+  },
+  monthSwitchGlyph: {
+    fontSize: 18,
+    lineHeight: 20,
     fontWeight: '700',
+    fontFamily: 'DMSans_700Bold',
+  },
+  monthSwitchLabel: {
+    minWidth: 72,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: 'DMSans_700Bold',
+  },
+  heroMetricGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  heroMetricCard: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  heroMetricValue: {
+    marginTop: 6,
+    fontSize: 16,
+    color: '#f1f5f9',
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  heroMetricLabel: {
+    marginTop: 2,
+    fontSize: 10,
+    color: '#64748b',
+    textAlign: 'center',
+    fontFamily: 'DMSans_500Medium',
+  },
+  heroProgressSection: {
+    marginTop: 14,
+  },
+  heroProgressMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 5,
+  },
+  heroProgressHint: {
+    flex: 1,
+    fontSize: 11,
+    color: '#64748b',
+    fontFamily: 'DMSans_500Medium',
+  },
+  heroProgressTrack: {
+    height: 5,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#ef4444',
+  },
+  dashboardBody: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 14,
+  },
+  transferCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#f3c38a',
+    backgroundColor: '#fff8ef',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  transferIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffedd5',
+  },
+  transferIcon: {
+    fontSize: 22,
+    lineHeight: 24,
+    color: '#16a34a',
+    fontFamily: 'DMSans_800ExtraBold',
+  },
+  transferCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  transferEyebrow: {
+    fontSize: 13,
+    color: '#9a3412',
+    fontFamily: 'DMSans_700Bold',
+  },
+  transferAmount: {
+    fontSize: 18,
+    color: '#7c2d12',
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  transferHint: {
+    fontSize: 12,
+    color: '#c2410c',
+    fontFamily: 'DMSans_500Medium',
+  },
+  insightGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  insightCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  insightIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  categoriesInsightIcon: {
+    backgroundColor: '#f3f0ff',
+  },
+  loanInsightIcon: {
+    backgroundColor: '#fff7ed',
+  },
+  insightValue: {
+    fontSize: 18,
+    color: '#1f2937',
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  insightLabel: {
+    marginTop: 4,
+    fontSize: 13,
+    color: '#94a3b8',
+    fontFamily: 'DMSans_500Medium',
+  },
+  loanSpotlightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  loanSpotlightLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  loanSpotlightIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff7ed',
+  },
+  loanSpotlightValue: {
+    fontSize: 17,
+    color: '#1f2937',
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  loanSpotlightMeta: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontFamily: 'DMSans_500Medium',
   },
   summarySection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    display: 'none',
   },
   card: {
     paddingHorizontal: 16,
@@ -626,10 +933,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   statsGrid: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginBottom: 24,
+    display: 'none',
   },
   statBox: {
     flex: 1,
@@ -653,8 +957,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   loanSection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    display: 'none',
   },
   // ── REMOVED old sectionHeader / loanCard / loanLabel / loanAmount / loanDesc ──
   // ── Phase 2: Compact loan styles ── ADDED THIS
@@ -691,10 +994,7 @@ const styles = StyleSheet.create({
   },
   // ── Phase 2: Stats row styles ── ADDED THIS
   statRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 10,
-    marginBottom: 16,
+    display: 'none',
   },
   statRowItem: {
     flex: 1,
@@ -740,8 +1040,7 @@ const styles = StyleSheet.create({
   },
   // ── Phase 2: Cash flow bar styles ── ADDED THIS
   cashFlowSection: {
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    display: 'none',
   },
   cashFlowBarTrack: {
     height: 10,
@@ -778,6 +1077,7 @@ const styles = StyleSheet.create({
   // ── Phase 3: Categories grid styles ──
   categoriesSection: {
     paddingHorizontal: 16,
+    marginTop: 14,
     marginBottom: 24,
   },
   categoriesGrid: {
@@ -792,10 +1092,64 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 16,
   },
+  dashboardSectionTitle: {
+    fontSize: 18,
+    color: '#243043',
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    color: '#243043',
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  dashboardActionGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  dashboardActionCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  dashboardActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  dashboardActionIconBlue: {
+    backgroundColor: '#eef2ff',
+  },
+  dashboardActionIconGreen: {
+    backgroundColor: '#ecfdf5',
+  },
+  dashboardActionIconOrange: {
+    backgroundColor: '#fff7ed',
+  },
+  dashboardActionEmoji: {
+    fontSize: 18,
+    lineHeight: 20,
+    color: '#10b981',
+    fontFamily: 'DMSans_800ExtraBold',
+  },
+  dashboardActionLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    fontFamily: 'DMSans_600SemiBold',
   },
   actionButtons: {
     flexDirection: 'row',

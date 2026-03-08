@@ -6,6 +6,14 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import { useFonts } from 'expo-font'
+import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display'
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+  DMSans_800ExtraBold,
+} from '@expo-google-fonts/dm-sans'
 
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
@@ -84,7 +92,15 @@ function RootNavigator() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts(Ionicons.font)
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+    DMSerifDisplay_400Regular,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+    DMSans_800ExtraBold,
+  })
 
   if (!fontsLoaded) {
     return (

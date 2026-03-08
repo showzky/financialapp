@@ -1,8 +1,8 @@
 import React, { type ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 
 export type ScreenHeroTheme = {
-  background: string
   eyebrow: string
   title: string
   subtitle: string
@@ -10,8 +10,8 @@ export type ScreenHeroTheme = {
 
 type ScreenHeroProps = {
   eyebrow?: string
-  title: string
-  subtitle?: string
+  title: ReactNode
+  subtitle?: ReactNode
   actions?: ReactNode
   children?: ReactNode
   theme: ScreenHeroTheme
@@ -26,7 +26,7 @@ export function ScreenHero({
   theme,
 }: ScreenHeroProps) {
   return (
-    <View style={[styles.hero, { backgroundColor: theme.background }]}>
+    <LinearGradient colors={['#0f172a', '#1e3a5f']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
       <View style={styles.topRow}>
         <View style={styles.copy}>
           {eyebrow ? <Text style={[styles.eyebrow, { color: theme.eyebrow }]}>{eyebrow}</Text> : null}
@@ -37,7 +37,7 @@ export function ScreenHero({
       </View>
 
       {children ? <View style={styles.body}>{children}</View> : null}
-    </View>
+    </LinearGradient>
   )
 }
 
@@ -70,12 +70,14 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 36,
     fontWeight: '800',
+    fontFamily: 'DMSerifDisplay_400Regular',
   },
   subtitle: {
     marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
+    fontFamily: 'DMSans_500Medium',
   },
   actions: {
     flexDirection: 'row',
