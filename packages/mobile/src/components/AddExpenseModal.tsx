@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { transactionApi } from '../services/transactionApi'
 import { addExpenseModalStyles as styles } from './AddExpenseModal.styles'
 import type { CategoryWithSpent } from '../services/dashboardApi'
+import { getPocketMoneyRoleLabel, inferPocketMoneyRole } from '../utils/pocketMoney'
 
 type Props = {
   isOpen: boolean
@@ -104,6 +105,10 @@ export function AddExpenseModal({
 
   const errors = mode === 'existing' ? existingErrors : newCategoryErrors
   const hasErrors = Object.values(errors).some(Boolean)
+  const inferredPocketMoneyRole = inferPocketMoneyRole({
+    name: newCategoryName,
+    type: newCategoryType,
+  })
 
   const handleSubmit = async () => {
     setHasTriedSubmit(true)
@@ -268,6 +273,16 @@ export function AddExpenseModal({
                   {hasTriedSubmit && newCategoryErrors.name && (
                     <Text style={styles.errorText}>{newCategoryErrors.name}</Text>
                   )}
+                  <View style={styles.roleHintBox}>
+                    <Text style={styles.roleHintLabel}>Pocket money behavior</Text>
+                    <Text style={styles.roleHintValue}>
+                      {getPocketMoneyRoleLabel(inferredPocketMoneyRole)}
+                    </Text>
+                    <Text style={styles.roleHintText}>
+                      Fixed categories count as bills. Budget names with words like saving count as
+                      savings, and names like fun, personal, or pocket count as pocket money.
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.section}>

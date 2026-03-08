@@ -167,6 +167,31 @@ export const addExpenseModalStyles = StyleSheet.create({
     color: '#ef4444',
     marginTop: 4,
   },
+  roleHintBox: {
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#f8fbff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 2,
+  },
+  roleHintLabel: {
+    fontSize: 11,
+    color: '#1d4ed8',
+    fontWeight: '700',
+  },
+  roleHintValue: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  roleHintText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#64748b',
+  },
   errorBox: {
     backgroundColor: '#fef2f2',
     borderWidth: 1,

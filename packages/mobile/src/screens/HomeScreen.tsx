@@ -23,10 +23,13 @@ import { AddExpenseModal } from '../components/AddExpenseModal'
 import { SetIncomeModal } from '../components/SetIncomeModal' // ADDED THIS
 import { ScreenHero } from '../components/ScreenHero'
 import { screenThemes } from '../theme/screenThemes'
+import { inferEssentialBucket, inferPocketMoneyRole } from '../utils/pocketMoney'
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
 }
+
+type PocketBucketKey = 'bills' | 'food' | 'fuel' | 'savings' | 'pocket' | 'other'
 
 export function HomeScreen() {
   const theme = screenThemes.home
@@ -128,6 +131,38 @@ export function HomeScreen() {
         }
       })
       .filter((group) => group.itemCount > 0)
+  }, [dashboard])
+
+  const pocketMoneySummary = useMemo(() => {
+    if (!dashboard) return null
+
+    const buckets: Record<PocketBucketKey, number> = {
+      bills: 0,
+      food: 0,
+      fuel: 0,
+      savings: 0,
+      pocket: 0,
+      other: 0,
+    }
+
+    for (const category of dashboard.categories) {
+      const role = inferPocketMoneyRole(category)
+      const bucket =
+        role === 'essential'
+          ? inferEssentialBucket(category.name)
+          : role
+      buckets[bucket] += category.allocated
+    }
+
+    const committedTotal =
+      buckets.bills + buckets.food + buckets.fuel + buckets.savings + buckets.other
+    const pocketMoneyLeft = dashboard.totalIncome - committedTotal
+
+    return {
+      ...buckets,
+      committedTotal,
+      pocketMoneyLeft,
+    }
   }, [dashboard])
 
   useEffect(() => {
@@ -299,17 +334,69 @@ export function HomeScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.transferCard} activeOpacity={0.9} onPress={() => setAddExpenseModalOpen(true)}>
-          <View style={styles.transferIconWrap}>
-            <Text style={styles.transferIcon}>$</Text>
+        {pocketMoneySummary ? (
+          <View
+            style={[
+              styles.pocketMoneyCard,
+              pocketMoneySummary.pocketMoneyLeft < 0 && styles.pocketMoneyCardWarning,
+            ]}
+          >
+            <View style={styles.pocketMoneyHeader}>
+              <View style={styles.pocketMoneyCopy}>
+                <Text style={styles.pocketMoneyEyebrow}>Pocket money left</Text>
+                <Text
+                  style={[
+                    styles.pocketMoneyAmount,
+                    pocketMoneySummary.pocketMoneyLeft < 0 && styles.pocketMoneyAmountWarning,
+                  ]}
+                >
+                  NOK {pocketMoneySummary.pocketMoneyLeft.toLocaleString('nb-NO')}
+                </Text>
+                <Text style={styles.pocketMoneyHint}>
+                  {pocketMoneySummary.pocketMoneyLeft < 0
+                    ? `Committed categories are NOK ${Math.abs(pocketMoneySummary.pocketMoneyLeft).toLocaleString('nb-NO')} above income.`
+                    : 'Bills, food, fuel, savings, and other essentials reduce this first.'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.pocketMoneyIconWrap,
+                  pocketMoneySummary.pocketMoneyLeft < 0 && styles.pocketMoneyIconWrapWarning,
+                ]}
+              >
+                <Ionicons
+                  name={pocketMoneySummary.pocketMoneyLeft < 0 ? 'alert-circle-outline' : 'wallet-outline'}
+                  size={20}
+                  color={pocketMoneySummary.pocketMoneyLeft < 0 ? '#b91c1c' : '#2563eb'}
+                />
+              </View>
+            </View>
+
+            <View style={styles.pocketMoneyBreakdown}>
+              {[
+                { label: 'Bills', value: pocketMoneySummary.bills, tone: styles.pocketMoneyChipBills },
+                { label: 'Food', value: pocketMoneySummary.food, tone: styles.pocketMoneyChipFood },
+                { label: 'Fuel', value: pocketMoneySummary.fuel, tone: styles.pocketMoneyChipFuel },
+                { label: 'Savings', value: pocketMoneySummary.savings, tone: styles.pocketMoneyChipSavings },
+                { label: 'Other', value: pocketMoneySummary.other, tone: styles.pocketMoneyChipOther },
+              ]
+                .filter((item) => item.value > 0)
+                .map((item) => (
+                  <View key={item.label} style={[styles.pocketMoneyChip, item.tone]}>
+                    <Text style={styles.pocketMoneyChipLabel}>{item.label}</Text>
+                    <Text style={styles.pocketMoneyChipValue}>NOK {item.value.toLocaleString('nb-NO')}</Text>
+                  </View>
+                ))}
+            </View>
+
+            <View style={styles.pocketMoneyFooter}>
+              <Text style={styles.pocketMoneyFooterLabel}>Planned pocket money</Text>
+              <Text style={styles.pocketMoneyFooterValue}>
+                NOK {pocketMoneySummary.pocket.toLocaleString('nb-NO')}
+              </Text>
+            </View>
           </View>
-          <View style={styles.transferCopy}>
-            <Text style={styles.transferEyebrow}>Transfer to bills account</Text>
-            <Text style={styles.transferAmount}>NOK {dashboard.fixedCostsTotal.toLocaleString('nb-NO')}</Text>
-            <Text style={styles.transferHint}>Fixed costs this month</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#f97316" />
-        </TouchableOpacity>
+        ) : null}
 
         <View style={styles.insightGrid}>
           <View style={styles.insightCard}>
@@ -822,6 +909,124 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#c2410c',
     fontFamily: 'DMSans_500Medium',
+  },
+  pocketMoneyCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    backgroundColor: '#f8fbff',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 14,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  pocketMoneyCardWarning: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fff8f8',
+  },
+  pocketMoneyHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  pocketMoneyCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  pocketMoneyEyebrow: {
+    fontSize: 13,
+    color: '#1d4ed8',
+    fontFamily: 'DMSans_700Bold',
+  },
+  pocketMoneyAmount: {
+    fontSize: 28,
+    color: '#0f172a',
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  pocketMoneyAmountWarning: {
+    color: '#b91c1c',
+  },
+  pocketMoneyHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#64748b',
+    fontFamily: 'DMSans_500Medium',
+  },
+  pocketMoneyIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dbeafe',
+  },
+  pocketMoneyIconWrapWarning: {
+    backgroundColor: '#fee2e2',
+  },
+  pocketMoneyBreakdown: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pocketMoneyChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    gap: 2,
+  },
+  pocketMoneyChipBills: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#fed7aa',
+  },
+  pocketMoneyChipFood: {
+    backgroundColor: '#ecfeff',
+    borderColor: '#a5f3fc',
+  },
+  pocketMoneyChipFuel: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#fde68a',
+  },
+  pocketMoneyChipSavings: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  pocketMoneyChipOther: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#d1d5db',
+  },
+  pocketMoneyChipLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  pocketMoneyChipValue: {
+    fontSize: 12,
+    color: '#0f172a',
+    fontFamily: 'DMSans_700Bold',
+  },
+  pocketMoneyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#dbeafe',
+    paddingTop: 12,
+  },
+  pocketMoneyFooterLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontFamily: 'DMSans_500Medium',
+  },
+  pocketMoneyFooterValue: {
+    fontSize: 15,
+    color: '#1d4ed8',
+    fontFamily: 'DMSans_700Bold',
   },
   insightGrid: {
     flexDirection: 'row',
