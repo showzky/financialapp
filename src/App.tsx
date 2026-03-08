@@ -12,6 +12,7 @@ import { SubscriptionsDash } from '@/pages/SubscriptionsDash'
 import { VacationDash } from '@/pages/VacationDash'
 import { userApi } from '@/services/userApi'
 import { Wishlist } from '@/pages/Wishlist'
+import { Flow } from '@/pages/flow'
 
 const shouldBypassLoginOnLocalhost = (): boolean => {
   // ADD THIS: always require login on localhost to prevent unauthorized API calls
@@ -75,6 +76,8 @@ function App() {
       <Route path="/login" element={bypassLoginScreen ? <Navigate to="/" replace /> : <Login />} />
 
       <Route element={<RequireFrontendLogin />}>
+        <Route path="/flow" element={<Flow />} />
+
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/notes" element={<Notes />} />

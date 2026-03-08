@@ -1,4 +1,5 @@
 // ADD THIS: Category card showing allocation and burn-down
+import { useEffect, useState } from 'react'
 import type { BudgetCategory } from '@/types/budget'
 import { formatCurrency } from '@/utils/currency'
 import { NeoCard } from './NeoCard'
@@ -27,6 +28,46 @@ export const BudgetCategoryCard = ({
   const utilization =
     category.allocated === 0 ? 0 : Math.min(category.spent / category.allocated, 1)
   const isFixed = category.type === 'fixed'
+  const [allocatedInput, setAllocatedInput] = useState(String(category.allocated))
+  const [spentInput, setSpentInput] = useState(String(category.spent))
+
+  useEffect(() => {
+    setAllocatedInput(String(category.allocated))
+  }, [category.allocated])
+
+  useEffect(() => {
+    setSpentInput(String(category.spent))
+  }, [category.spent])
+
+  const commitAllocated = () => {
+    const nextAllocated = Math.max(0, Number(allocatedInput) || 0)
+    setAllocatedInput(String(nextAllocated))
+
+    if (nextAllocated !== category.allocated) {
+      onChangeAmounts(category.id, { allocated: nextAllocated })
+    }
+  }
+
+  const commitSpent = () => {
+    const nextSpent = Math.max(0, Number(spentInput) || 0)
+    setSpentInput(String(nextSpent))
+
+    if (nextSpent !== category.spent) {
+      onChangeAmounts(category.id, { spent: nextSpent })
+    }
+  }
+
+  const handleEnterCommit = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+    commit: () => void,
+  ) => {
+    if (event.key !== 'Enter') {
+      return
+    }
+
+    event.currentTarget.blur()
+    commit()
+  }
 
   return (
     <NeoCard
@@ -64,11 +105,11 @@ export const BudgetCategoryCard = ({
             type="number"
             min={0}
             step={1}
-            value={category.allocated}
+            value={allocatedInput}
             disabled={readOnly}
-            onChange={(event) =>
-              onChangeAmounts(category.id, { allocated: Number(event.target.value) })
-            }
+            onChange={(event) => setAllocatedInput(event.target.value)}
+            onBlur={commitAllocated}
+            onKeyDown={(event) => handleEnterCommit(event, commitAllocated)}
             className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-text-primary outline-none focus:ring-2 focus:ring-accent/40"
           />
         </label>
@@ -80,11 +121,11 @@ export const BudgetCategoryCard = ({
               type="number"
               min={0}
               step={1}
-              value={category.spent}
+              value={spentInput}
               disabled={readOnly}
-              onChange={(event) =>
-                onChangeAmounts(category.id, { spent: Number(event.target.value) })
-              }
+              onChange={(event) => setSpentInput(event.target.value)}
+              onBlur={commitSpent}
+              onKeyDown={(event) => handleEnterCommit(event, commitSpent)}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-text-primary outline-none focus:ring-2 focus:ring-accent/40"
             />
           </label>

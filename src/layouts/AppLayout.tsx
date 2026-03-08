@@ -10,7 +10,7 @@ export const AppLayout = () => {
 
   const [isMoreOpen, setIsMoreOpen] = useState(false)
   const moreIsActive = ['/wishlist', '/loans', '/subscriptions', '/vacation'].some((path) =>
-    location.pathname.startsWith(path)
+    location.pathname.startsWith(path),
   )
 
   const navItemClass = (isActive: boolean) =>
@@ -20,7 +20,9 @@ export const AppLayout = () => {
 
   const dropdownItemClass = (isActive: boolean) =>
     `block w-full rounded-neo px-3 py-2 text-sm font-semibold transition ${
-      isActive ? 'bg-white/10 text-text-primary' : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
+      isActive
+        ? 'bg-white/10 text-text-primary'
+        : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
     }`
 
   const handleLogout = async () => {
@@ -40,17 +42,13 @@ export const AppLayout = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) => navItemClass(isActive)}
-          >
+          <NavLink to="/" end className={({ isActive }) => navItemClass(isActive)}>
             Dashboard
           </NavLink>
-          <NavLink
-            to="/history"
-            className={({ isActive }) => navItemClass(isActive)}
-          >
+          <NavLink to="/flow" className={({ isActive }) => navItemClass(isActive)}>
+            Flow
+          </NavLink>
+          <NavLink to="/history" className={({ isActive }) => navItemClass(isActive)}>
             Monthly Records
           </NavLink>
 
@@ -77,7 +75,8 @@ export const AppLayout = () => {
                   setIsMoreOpen(false)
                   ;(event.currentTarget as HTMLButtonElement).focus()
                 }
-                if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault()
                   setIsMoreOpen(true)
                 }
               }}

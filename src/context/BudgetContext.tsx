@@ -2,8 +2,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { BudgetCategoryType, BudgetState } from '@/types/budget'
 import type { RecurringTransaction } from '@/types/recurring'
+import {
+  DASHBOARD_CREDIT_NOTE,
+  DASHBOARD_EXPENSE_NOTE,
+  type BudgetTransaction,
+} from '@/types/transaction'
 import { hasBackendConfig } from '@/services/backendClient'
 import { categoryApi } from '@/services/categoryApi'
+import { transactionApi } from '@/services/transactionApi'
 import { userApi } from '@/services/userApi'
 
 const defaultDashboardState: BudgetState = {
@@ -117,6 +123,7 @@ const BudgetContext = createContext<
       removeCategory: (id: string) => void
       reorderCategories: (orderedIds: string[]) => void
       resetDashboard: () => void
+      transactions: BudgetTransaction[]
       recurringTransactions: RecurringTransaction[]
       addRecurringTransaction: (entry: Omit<RecurringTransaction, 'id' | 'lastAppliedDate'>) => void
       updateRecurringTransaction: (id: string, updates: Partial<RecurringTransaction>) => void
@@ -131,6 +138,7 @@ const BudgetContext = createContext<
 
 export const BudgetProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<BudgetState>(createInitialState) // ADD THIS: editable global state
+  const [transactions, setTransactions] = useState<BudgetTransaction[]>([])
   const [recurringTransactions, setRecurringTransactions] =
     useState<RecurringTransaction[]>(readRecurringFromStorage)
 
@@ -162,6 +170,15 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
       })
       .catch(() => {
         // ADD THIS: keep local state if backend is unreachable or token is invalid
+      })
+
+    void transactionApi
+      .list()
+      .then((remoteTransactions) => {
+        setTransactions(remoteTransactions)
+      })
+      .catch(() => {
+        // ADD THIS: keep local transaction history empty if backend is unreachable or token is invalid
       })
   }, [])
 
@@ -238,6 +255,9 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
   const updateCategoryAmounts = (id: string, updates: { allocated?: number; spent?: number }) => {
     // ADD THIS: update category budget/spent values and recalculate UI automatically
+    let transactionDelta = 0
+    let transactionNote: string | undefined
+
     setState((current) => ({
       ...current,
       categories: current.categories.map((category) => {
@@ -253,6 +273,18 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
         const clampedSpent =
           category.type === 'fixed' ? 0 : Math.min(nextSpent, Math.max(nextAllocated, 0))
+
+        if (category.type === 'budget' && updates.spent !== undefined) {
+          const delta = clampedSpent - category.spent
+
+          if (delta > 0) {
+            transactionDelta = delta
+            transactionNote = DASHBOARD_EXPENSE_NOTE
+          } else if (delta < 0) {
+            transactionDelta = Math.abs(delta)
+            transactionNote = DASHBOARD_CREDIT_NOTE
+          }
+        }
 
         return {
           ...category,
@@ -275,9 +307,27 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
     if (payload.allocated === undefined && payload.spent === undefined) return
 
-    void categoryApi.update(id, payload).catch(() => {
-      // ADD THIS: keep local values if backend sync fails
-    })
+    void categoryApi
+      .update(id, payload)
+      .then(() => {
+        if (!transactionDelta || !transactionNote) {
+          return
+        }
+
+        return transactionApi
+          .create({
+            categoryId: id,
+            amount: transactionDelta,
+            note: transactionNote,
+            transactionDate: new Date().toISOString().slice(0, 10),
+          })
+          .then((createdTransaction) => {
+            setTransactions((current) => [createdTransaction, ...current])
+          })
+      })
+      .catch(() => {
+        // ADD THIS: keep local values if backend sync fails
+      })
   }
 
   const removeCategory = (id: string) => {
@@ -455,6 +505,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         removeCategory,
         reorderCategories,
         resetDashboard,
+        transactions,
         recurringTransactions,
         addRecurringTransaction,
         updateRecurringTransaction,
