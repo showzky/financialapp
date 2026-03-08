@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { wishlistApi, type WishlistItem } from '../services/wishlistApi'
 import { ScreenHero } from '../components/ScreenHero'
+import { WishlistItemSheet } from '../components/WishlistItemSheet'
 import { screenThemes } from '../theme/screenThemes'
 
 const formatNok = (value: number) => `NOK ${value.toLocaleString('nb-NO')}`
@@ -45,25 +46,56 @@ export function WishlistScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const [isItemSheetOpen, setIsItemSheetOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<WishlistItem | null>(null)
+
+  const loadWishlist = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await wishlistApi.list()
+      setItems(data || [])
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load wishlist'
+      setError(message)
+      console.error('Error loading wishlist:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await wishlistApi.list()
-        setItems(data || [])
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load wishlist'
-        setError(message)
-        console.error('Error loading wishlist:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     void loadWishlist()
   }, [])
+
+  const openAddItemSheet = () => {
+    setEditingItem(null)
+    setIsItemSheetOpen(true)
+  }
+
+  const openEditItemSheet = (item: WishlistItem) => {
+    setEditingItem(item)
+    setIsItemSheetOpen(true)
+  }
+
+  const closeItemSheet = () => {
+    setIsItemSheetOpen(false)
+    setEditingItem(null)
+  }
+
+  const handleItemSaved = (savedItem: WishlistItem) => {
+    setItems((currentItems) => {
+      const exists = currentItems.some((currentItem) => currentItem.id === savedItem.id)
+
+      if (!exists) {
+        return [savedItem, ...currentItems]
+      }
+
+      return currentItems.map((currentItem) =>
+        currentItem.id === savedItem.id ? savedItem : currentItem,
+      )
+    })
+  }
 
   const categories = useMemo(
     () => [
@@ -88,14 +120,13 @@ export function WishlistScreen() {
   }, [items, selectedCategory])
 
   const purchasedCount = filteredItems.filter((item) => item.purchased).length
-  const totalPrice = filteredItems.reduce((sum, item) => sum + (item.price || 0), 0)
   const remainingTotal = filteredItems
     .filter((item) => !item.purchased)
     .reduce((sum, item) => sum + (item.price || 0), 0)
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}> 
         <ActivityIndicator size="large" color="#3b82f6" />
         <Text style={styles.loadingText}>Loading wishlist...</Text>
       </View>
@@ -104,16 +135,10 @@ export function WishlistScreen() {
 
   if (error) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}> 
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => {
-            setLoading(true)
-            setError(null)
-          }}
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={() => void loadWishlist()}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -121,149 +146,164 @@ export function WishlistScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
-      <ScreenHero
-        eyebrow="Collection"
-        title="Wishlist"
-        subtitle={`${filteredItems.length} saved item${filteredItems.length === 1 ? '' : 's'}`}
-        theme={theme.hero}
-        actions={
-          <TouchableOpacity
-            style={[
-              styles.heroAction,
-              {
-                backgroundColor: theme.actionSurface,
-                borderColor: theme.actionBorder,
-              },
-            ]}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="add" size={18} color={theme.actionText} />
-          </TouchableOpacity>
-        }
-      >
-        <View style={styles.heroStatsRow}>
-          <View style={styles.heroStatCard}>
-            <Text style={styles.heroStatValue}>{filteredItems.length}</Text>
-            <Text style={styles.heroStatLabel}>Total items</Text>
-          </View>
-          <View style={styles.heroStatCard}>
-            <Text style={styles.heroStatValue}>{purchasedCount}</Text>
-            <Text style={styles.heroStatLabel}>Purchased</Text>
-          </View>
-          <View style={styles.heroStatCard}>
-            <Text style={styles.heroStatValue}>{formatNok(remainingTotal)}</Text>
-            <Text style={styles.heroStatLabel}>Remaining</Text>
-          </View>
-        </View>
-      </ScreenHero>
-
-      <View style={styles.content}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
+    <>
+      <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+        <ScreenHero
+          eyebrow="Collection"
+          title="Wishlist"
+          subtitle={`${filteredItems.length} saved item${filteredItems.length === 1 ? '' : 's'}`}
+          theme={theme.hero}
+          actions={
+            <TouchableOpacity
+              style={[
+                styles.heroAction,
+                {
+                  backgroundColor: theme.actionSurface,
+                  borderColor: theme.actionBorder,
+                },
+              ]}
+              activeOpacity={0.85}
+              onPress={openAddItemSheet}
+            >
+              <Ionicons name="add" size={18} color={theme.actionText} />
+            </TouchableOpacity>
+          }
         >
-          {categories.map((category) => {
-            const isActive = category === selectedCategory
-
-            return (
-              <TouchableOpacity
-                key={category}
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-                onPress={() => setSelectedCategory(category)}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                  {category}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
-        </ScrollView>
-
-        <Text style={styles.resultsMeta}>
-          {filteredItems.length} item{filteredItems.length === 1 ? '' : 's'} - images from database
-        </Text>
-
-        {filteredItems.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="heart-outline" size={48} color="#d1d5db" />
-            <Text style={styles.emptyText}>No wishlist items in this category</Text>
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStatCard}>
+              <Text style={styles.heroStatValue}>{filteredItems.length}</Text>
+              <Text style={styles.heroStatLabel}>Total items</Text>
+            </View>
+            <View style={styles.heroStatCard}>
+              <Text style={styles.heroStatValue}>{purchasedCount}</Text>
+              <Text style={styles.heroStatLabel}>Purchased</Text>
+            </View>
+            <View style={styles.heroStatCard}>
+              <Text style={styles.heroStatValue}>{formatNok(remainingTotal)}</Text>
+              <Text style={styles.heroStatLabel}>Remaining</Text>
+            </View>
           </View>
-        ) : (
-          <View style={styles.itemsList}>
-            {filteredItems.map((item) => {
-              const tone = getCategoryTone(item.category)
+        </ScreenHero>
+
+        <View style={styles.content}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}
+          >
+            {categories.map((category) => {
+              const isActive = category === selectedCategory
 
               return (
-                <View key={item.id} style={[styles.itemCard, item.purchased && styles.itemCardPurchased]}>
-                  <View style={styles.itemTopRow}>
-                    <View style={styles.itemMediaWrap}>
-                      {item.imageUrl ? (
-                        <Image
-                          source={{ uri: item.imageUrl }}
-                          style={[styles.itemImage, item.purchased && styles.itemImagePurchased]}
-                          resizeMode="contain"
-                        />
-                      ) : (
-                        <View style={styles.placeholderMedia}>
-                          <Ionicons name="image-outline" size={26} color="#cbd5e1" />
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.itemMain}>
-                      {item.category ? (
-                        <View style={[styles.categoryBadge, { backgroundColor: tone.backgroundColor }]}>
-                          <Text style={[styles.categoryText, { color: tone.textColor }]}>{item.category}</Text>
-                        </View>
-                      ) : null}
-
-                      <Text style={[styles.itemTitle, item.purchased && styles.itemPurchasedText]}>
-                        {item.title}
-                      </Text>
-
-                      {item.price ? (
-                        <Text style={[styles.priceValue, item.purchased && styles.itemPurchasedPrice]}>
-                          {formatNok(item.price)}
-                        </Text>
-                      ) : (
-                        <Text style={styles.mutedValue}>No price yet</Text>
-                      )}
-                    </View>
-
-                    <TouchableOpacity style={[styles.statusButton, item.purchased && styles.statusButtonPurchased]}>
-                      <Ionicons
-                        name={item.purchased ? 'checkmark' : 'cart-outline'}
-                        size={18}
-                        color={item.purchased ? '#22c55e' : '#64748b'}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.itemFooter}>
-                    <View style={styles.noteRow}>
-                      <Ionicons name="ellipse" size={8} color="#c4b5fd" />
-                      <Text style={styles.notesText} numberOfLines={2}>
-                        {item.notes?.trim() || 'No notes yet'}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity style={styles.editButton} activeOpacity={0.85}>
-                      <Ionicons name="pencil" size={14} color="#f97316" />
-                      <Text style={styles.editText}>Edit</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <TouchableOpacity
+                  key={category}
+                  style={[styles.filterChip, isActive && styles.filterChipActive]}
+                  onPress={() => setSelectedCategory(category)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                    {category}
+                  </Text>
+                </TouchableOpacity>
               )
             })}
-          </View>
-        )}
-      </View>
+          </ScrollView>
 
-      <View style={{ height: 32 }} />
-    </ScrollView>
+          <Text style={styles.resultsMeta}>
+            {filteredItems.length} item{filteredItems.length === 1 ? '' : 's'} in this view
+          </Text>
+
+          {filteredItems.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="heart-outline" size={48} color="#d1d5db" />
+              <Text style={styles.emptyText}>No wishlist items in this category</Text>
+            </View>
+          ) : (
+            <View style={styles.itemsList}>
+              {filteredItems.map((item) => {
+                const tone = getCategoryTone(item.category)
+
+                return (
+                  <View key={item.id} style={[styles.itemCard, item.purchased && styles.itemCardPurchased]}>
+                    <View style={styles.itemTopRow}>
+                      <View style={styles.itemMediaWrap}>
+                        {item.imageUrl ? (
+                          <Image
+                            source={{ uri: item.imageUrl }}
+                            style={[styles.itemImage, item.purchased && styles.itemImagePurchased]}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <View style={styles.placeholderMedia}>
+                            <Ionicons name="image-outline" size={26} color="#cbd5e1" />
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={styles.itemMain}>
+                        {item.category ? (
+                          <View style={[styles.categoryBadge, { backgroundColor: tone.backgroundColor }]}> 
+                            <Text style={[styles.categoryText, { color: tone.textColor }]}>{item.category}</Text>
+                          </View>
+                        ) : null}
+
+                        <Text style={[styles.itemTitle, item.purchased && styles.itemPurchasedText]}>
+                          {item.title}
+                        </Text>
+
+                        {item.price ? (
+                          <Text style={[styles.priceValue, item.purchased && styles.itemPurchasedPrice]}>
+                            {formatNok(item.price)}
+                          </Text>
+                        ) : (
+                          <Text style={styles.mutedValue}>No price yet</Text>
+                        )}
+                      </View>
+
+                      <TouchableOpacity style={[styles.statusButton, item.purchased && styles.statusButtonPurchased]}>
+                        <Ionicons
+                          name={item.purchased ? 'checkmark' : 'cart-outline'}
+                          size={18}
+                          color={item.purchased ? '#22c55e' : '#64748b'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.itemFooter}>
+                      <View style={styles.noteRow}>
+                        <Ionicons name="ellipse" size={8} color="#c4b5fd" />
+                        <Text style={styles.notesText} numberOfLines={2}>
+                          {item.notes?.trim() || 'No notes yet'}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        activeOpacity={0.85}
+                        onPress={() => openEditItemSheet(item)}
+                      >
+                        <Ionicons name="pencil" size={14} color="#f97316" />
+                        <Text style={styles.editText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )
+              })}
+            </View>
+          )}
+        </View>
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
+
+      <WishlistItemSheet
+        visible={isItemSheetOpen}
+        item={editingItem}
+        categories={categories.filter((category) => category !== 'All')}
+        onClose={closeItemSheet}
+        onSaved={handleItemSaved}
+      />
+    </>
   )
 }
 
