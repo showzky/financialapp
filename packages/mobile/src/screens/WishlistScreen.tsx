@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -7,18 +7,44 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  FlatList,
+  Image,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { wishlistApi, type WishlistItem } from '../services/wishlistApi'
 import { ScreenHero } from '../components/ScreenHero'
 import { screenThemes } from '../theme/screenThemes'
 
+const formatNok = (value: number) => `NOK ${value.toLocaleString('nb-NO')}`
+
+const getCategoryTone = (category?: string | null) => {
+  const normalized = category?.trim().toLowerCase()
+
+  if (normalized === 'technology' || normalized === 'tech') {
+    return {
+      backgroundColor: '#dbeafe',
+      textColor: '#3b82f6',
+    }
+  }
+
+  if (normalized === 'clothing' || normalized === 'fashion') {
+    return {
+      backgroundColor: '#fce7f3',
+      textColor: '#db2777',
+    }
+  }
+
+  return {
+    backgroundColor: '#ffedd5',
+    textColor: '#ea580c',
+  }
+}
+
 export function WishlistScreen() {
   const theme = screenThemes.wishlist
   const [items, setItems] = useState<WishlistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState('All')
 
   useEffect(() => {
     const loadWishlist = async () => {
@@ -39,8 +65,33 @@ export function WishlistScreen() {
     void loadWishlist()
   }, [])
 
-  const totalPrice = items.reduce((sum, item) => sum + (item.price || 0), 0)
-  const purchasedCount = items.filter((item) => item.purchased).length
+  const categories = useMemo(
+    () => [
+      'All',
+      ...Array.from(
+        new Set(
+          items
+            .map((item) => item.category?.trim())
+            .filter((category): category is string => Boolean(category)),
+        ),
+      ),
+    ],
+    [items],
+  )
+
+  const filteredItems = useMemo(() => {
+    if (selectedCategory === 'All') {
+      return items
+    }
+
+    return items.filter((item) => item.category?.trim() === selectedCategory)
+  }, [items, selectedCategory])
+
+  const purchasedCount = filteredItems.filter((item) => item.purchased).length
+  const totalPrice = filteredItems.reduce((sum, item) => sum + (item.price || 0), 0)
+  const remainingTotal = filteredItems
+    .filter((item) => !item.purchased)
+    .reduce((sum, item) => sum + (item.price || 0), 0)
 
   if (loading) {
     return (
@@ -74,7 +125,7 @@ export function WishlistScreen() {
       <ScreenHero
         eyebrow="Collection"
         title="Wishlist"
-        subtitle={`${items.length} saved item${items.length === 1 ? '' : 's'} curated for later.`}
+        subtitle={`${filteredItems.length} saved item${filteredItems.length === 1 ? '' : 's'}`}
         theme={theme.hero}
         actions={
           <TouchableOpacity
@@ -90,109 +141,126 @@ export function WishlistScreen() {
             <Ionicons name="add" size={18} color={theme.actionText} />
           </TouchableOpacity>
         }
-      />
+      >
+        <View style={styles.heroStatsRow}>
+          <View style={styles.heroStatCard}>
+            <Text style={styles.heroStatValue}>{filteredItems.length}</Text>
+            <Text style={styles.heroStatLabel}>Total items</Text>
+          </View>
+          <View style={styles.heroStatCard}>
+            <Text style={styles.heroStatValue}>{purchasedCount}</Text>
+            <Text style={styles.heroStatLabel}>Purchased</Text>
+          </View>
+          <View style={styles.heroStatCard}>
+            <Text style={styles.heroStatValue}>{formatNok(remainingTotal)}</Text>
+            <Text style={styles.heroStatLabel}>Remaining</Text>
+          </View>
+        </View>
+      </ScreenHero>
 
-      {/* Summary */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Items</Text>
-          <Text style={styles.summaryValue}>{items.length}</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Price</Text>
-          <Text style={styles.summaryValue}>NOK {totalPrice.toLocaleString()}</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Purchased</Text>
-          <Text style={styles.summaryValue}>{purchasedCount}</Text>
-        </View>
-      </View>
+      <View style={styles.content}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {categories.map((category) => {
+            const isActive = category === selectedCategory
 
-      {/* Items List */}
-      {items.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="heart-outline" size={48} color="#d1d5db" />
-          <Text style={styles.emptyText}>Your wishlist is empty</Text>
-          <TouchableOpacity style={styles.addButton}>
-            <Ionicons name="add" size={20} color="#fff" />
-            <Text style={styles.addButtonText}>Add Item</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.itemsSection}>
-          <FlatList
-            scrollEnabled={false}
-            data={items}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+            return (
               <TouchableOpacity
-                style={[styles.itemCard, item.purchased && styles.purchasedCard]}
+                key={category}
+                style={[styles.filterChip, isActive && styles.filterChipActive]}
+                onPress={() => setSelectedCategory(category)}
+                activeOpacity={0.85}
               >
-                <View style={styles.itemHeader}>
-                  <View style={styles.itemInfo}>
-                    <Text
-                      style={[
-                        styles.itemTitle,
-                        item.purchased && styles.purchasedText,
-                      ]}
-                    >
-                      {item.title}
-                    </Text>
-                    {item.category && (
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryText}>{item.category}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <TouchableOpacity style={styles.heartButton}>
-                    <Ionicons
-                      name={item.purchased ? 'heart' : 'heart-outline'}
-                      size={20}
-                      color={item.purchased ? '#ef4444' : '#9ca3af'}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {item.price && (
-                  <View style={styles.priceSection}>
-                    <Text style={styles.priceLabel}>Price</Text>
-                    <Text style={styles.priceValue}>NOK {item.price.toLocaleString()}</Text>
-                  </View>
-                )}
-
-                {item.notes && (
-                  <View style={styles.notesSection}>
-                    <Text style={styles.notesLabel}>Notes</Text>
-                    <Text style={styles.notesText}>{item.notes}</Text>
-                  </View>
-                )}
-
-                <View style={styles.itemFooter}>
-                  {item.purchased && (
-                    <View style={styles.purchasedBadge}>
-                      <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                      <Text style={styles.purchasedBadgeText}>Purchased</Text>
-                    </View>
-                  )}
-                  <TouchableOpacity style={styles.editButton}>
-                    <Ionicons name="pencil" size={16} color="#3b82f6" />
-                    <Text style={styles.editText}>Edit</Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                  {category}
+                </Text>
               </TouchableOpacity>
-            )}
-          />
-        </View>
-      )}
+            )
+          })}
+        </ScrollView>
 
-      {items.length > 0 && (
-        <TouchableOpacity style={styles.addItemButton}>
-          <Ionicons name="add" size={20} color="#fff" />
-          <Text style={styles.addButtonText}>Add Item</Text>
-        </TouchableOpacity>
-      )}
+        <Text style={styles.resultsMeta}>
+          {filteredItems.length} item{filteredItems.length === 1 ? '' : 's'} - images from database
+        </Text>
+
+        {filteredItems.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="heart-outline" size={48} color="#d1d5db" />
+            <Text style={styles.emptyText}>No wishlist items in this category</Text>
+          </View>
+        ) : (
+          <View style={styles.itemsList}>
+            {filteredItems.map((item) => {
+              const tone = getCategoryTone(item.category)
+
+              return (
+                <View key={item.id} style={[styles.itemCard, item.purchased && styles.itemCardPurchased]}>
+                  <View style={styles.itemTopRow}>
+                    <View style={styles.itemMediaWrap}>
+                      {item.imageUrl ? (
+                        <Image
+                          source={{ uri: item.imageUrl }}
+                          style={[styles.itemImage, item.purchased && styles.itemImagePurchased]}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <View style={styles.placeholderMedia}>
+                          <Ionicons name="image-outline" size={26} color="#cbd5e1" />
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.itemMain}>
+                      {item.category ? (
+                        <View style={[styles.categoryBadge, { backgroundColor: tone.backgroundColor }]}>
+                          <Text style={[styles.categoryText, { color: tone.textColor }]}>{item.category}</Text>
+                        </View>
+                      ) : null}
+
+                      <Text style={[styles.itemTitle, item.purchased && styles.itemPurchasedText]}>
+                        {item.title}
+                      </Text>
+
+                      {item.price ? (
+                        <Text style={[styles.priceValue, item.purchased && styles.itemPurchasedPrice]}>
+                          {formatNok(item.price)}
+                        </Text>
+                      ) : (
+                        <Text style={styles.mutedValue}>No price yet</Text>
+                      )}
+                    </View>
+
+                    <TouchableOpacity style={[styles.statusButton, item.purchased && styles.statusButtonPurchased]}>
+                      <Ionicons
+                        name={item.purchased ? 'checkmark' : 'cart-outline'}
+                        size={18}
+                        color={item.purchased ? '#22c55e' : '#64748b'}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.itemFooter}>
+                    <View style={styles.noteRow}>
+                      <Ionicons name="ellipse" size={8} color="#c4b5fd" />
+                      <Text style={styles.notesText} numberOfLines={2}>
+                        {item.notes?.trim() || 'No notes yet'}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity style={styles.editButton} activeOpacity={0.85}>
+                      <Ionicons name="pencil" size={14} color="#f97316" />
+                      <Text style={styles.editText}>Edit</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )
+            })}
+          </View>
+        )}
+      </View>
 
       <View style={{ height: 32 }} />
     </ScrollView>
@@ -202,7 +270,7 @@ export function WishlistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8fafc',
   },
   centerContainer: {
     flex: 1,
@@ -211,9 +279,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   loadingText: {
+    marginTop: 12,
     fontSize: 14,
     color: '#6b7280',
-    marginTop: 12,
+    fontFamily: 'DMSans_500Medium',
   },
   heroAction: {
     width: 42,
@@ -223,193 +292,217 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  summaryCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  summaryItem: {
+  heroStatsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
+    gap: 10,
+  },
+  heroStatCard: {
+    flex: 1,
+    minHeight: 64,
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 12,
     paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  summaryLabel: {
+  heroStatValue: {
     fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '600',
+    color: '#f8fafc',
+    fontFamily: 'DMSerifDisplay_400Regular',
   },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+  heroStatLabel: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#7f95b6',
+    fontFamily: 'DMSans_500Medium',
+  },
+  content: {
+    paddingTop: 16,
+    paddingHorizontal: 16,
+  },
+  filterRow: {
+    gap: 10,
+    paddingBottom: 10,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d9e1ea',
+  },
+  filterChipActive: {
+    backgroundColor: '#1f2b44',
+    borderColor: '#1f2b44',
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: '#61708c',
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  filterChipTextActive: {
+    color: '#ffffff',
+  },
+  resultsMeta: {
+    marginTop: 6,
+    marginBottom: 16,
+    fontSize: 14,
+    color: '#8ea0bb',
+    fontFamily: 'DMSans_500Medium',
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
-    marginHorizontal: 16,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#9ca3af',
     marginTop: 12,
-    marginBottom: 24,
+    fontSize: 16,
+    color: '#94a3b8',
+    fontFamily: 'DMSans_500Medium',
   },
-  itemsSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+  itemsList: {
+    gap: 14,
   },
   itemCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    overflow: 'hidden',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
-  purchasedCard: {
-    backgroundColor: '#f9fafb',
-    borderColor: '#d1d5db',
+  itemCardPurchased: {
+    backgroundColor: '#f8fafc',
   },
-  itemHeader: {
+  itemTopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    gap: 14,
   },
-  itemInfo: {
+  itemMediaWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  itemImage: {
+    width: 64,
+    height: 64,
+  },
+  itemImagePurchased: {
+    opacity: 0.55,
+  },
+  placeholderMedia: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemMain: {
     flex: 1,
-    marginRight: 12,
+    gap: 8,
   },
   itemTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 17,
+    lineHeight: 23,
+    color: '#263248',
+    fontFamily: 'DMSerifDisplay_400Regular',
   },
-  purchasedText: {
+  itemPurchasedText: {
     textDecorationLine: 'line-through',
-    color: '#9ca3af',
+    color: '#94a3b8',
   },
   categoryBadge: {
-    marginTop: 8,
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
     alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   categoryText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#b45309',
-  },
-  heartButton: {
-    padding: 4,
-  },
-  priceSection: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  priceLabel: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '600',
+    fontFamily: 'DMSans_700Bold',
   },
   priceValue: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
     color: '#10b981',
-    marginTop: 4,
+    fontFamily: 'DMSerifDisplay_400Regular',
   },
-  notesSection: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+  itemPurchasedPrice: {
+    color: '#94a3b8',
   },
-  notesLabel: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '600',
-    marginBottom: 4,
+  mutedValue: {
+    fontSize: 14,
+    color: '#94a3b8',
+    fontFamily: 'DMSans_500Medium',
   },
-  notesText: {
-    fontSize: 13,
-    color: '#6b7280',
-    lineHeight: 18,
+  statusButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#d9e1ea',
+  },
+  statusButtonPurchased: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#86efac',
   },
   itemFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#edf2f7',
   },
-  purchasedBadge: {
+  noteRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 6,
+    gap: 8,
   },
-  purchasedBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#10b981',
-    marginLeft: 4,
+  notesText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#7c8aa5',
+    fontFamily: 'DMSans_500Medium',
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    backgroundColor: '#eff6ff',
-    borderRadius: 6,
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d9e1ea',
+    backgroundColor: '#ffffff',
   },
   editText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#3b82f6',
-    marginLeft: 4,
-  },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  addItemButton: {
-    marginHorizontal: 16,
-    backgroundColor: '#3b82f6',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
+    fontSize: 13,
+    color: '#64748b',
+    fontFamily: 'DMSans_600SemiBold',
   },
   errorText: {
+    marginTop: 12,
     fontSize: 16,
     color: '#ef4444',
-    marginTop: 12,
+    fontFamily: 'DMSans_500Medium',
   },
   retryButton: {
     marginTop: 16,
@@ -420,7 +513,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#fff',
+    fontFamily: 'DMSans_600SemiBold',
   },
 })

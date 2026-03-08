@@ -4,6 +4,7 @@ export type WishlistItem = {
   id: string
   title: string
   price: number | null
+  imageUrl?: string | null
   category?: string | null
   notes?: string | null
   purchased: boolean
@@ -13,6 +14,7 @@ type WishlistItemDto = {
   id: string
   title: string
   price: number | null
+  imageUrl?: string | null
   category?: string | null
   notes?: string | null
   status?: 'active' | 'purchased'
@@ -22,6 +24,7 @@ const mapItem = (item: WishlistItemDto): WishlistItem => ({
   id: item.id,
   title: item.title,
   price: item.price ?? null,
+  imageUrl: item.imageUrl ?? null,
   category: item.category ?? null,
   notes: item.notes ?? null,
   purchased: item.status === 'purchased',
