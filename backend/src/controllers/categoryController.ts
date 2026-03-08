@@ -1,7 +1,7 @@
 // ADD THIS: category controllers with input validation and safe responses
 import { z } from 'zod'
 import type { Request, Response } from 'express'
-import { categoryModel } from '../models/categoryModel.js'
+import { categoryModel, DUPLICATE_CATEGORY_NAME_ERROR } from '../models/categoryModel.js'
 import { userModel } from '../models/userModel.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
@@ -60,8 +60,10 @@ export const createCategory = asyncHandler(async (req: Request, res: Response) =
     const created = await categoryModel.create({ ...payload, userId: req.auth.userId })
     res.status(201).json(created)
   } catch (catError) {
-    // ADD THIS: expose actual DB error instead of generic 500
     const msg = catError instanceof Error ? catError.message : String(catError)
+    if (msg === DUPLICATE_CATEGORY_NAME_ERROR) {
+      throw new AppError('A category with this name already exists', 409)
+    }
     throw new AppError(`Failed to create category: ${msg}`, 500)
   }
 })

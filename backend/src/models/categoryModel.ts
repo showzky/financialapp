@@ -29,19 +29,111 @@ export type UpdateCategoryInput = {
   spent?: number | undefined
 }
 
+const DUPLICATE_CATEGORY_NAME_ERROR = 'CATEGORY_NAME_EXISTS'
+
+type CategoryGroupRow = {
+  id: string
+  name: string
+  sortOrder: number
+}
+
+const DEFAULT_CATEGORY_GROUPS = [
+  { name: 'Housing', sortOrder: 1 },
+  { name: 'Transport', sortOrder: 2 },
+  { name: 'Living', sortOrder: 3 },
+  { name: 'Debt', sortOrder: 4 },
+  { name: 'Savings', sortOrder: 5 },
+  { name: 'Other', sortOrder: 6 },
+] as const
+
+const inferGroupName = (categoryName: string): string => {
+  const normalizedName = categoryName.trim().toLowerCase()
+
+  if (/(rent|mortgage|house|housing|utility|utilities|electric|water|internet|home)/.test(normalizedName)) {
+    return 'Housing'
+  }
+
+  if (/(transport|car|fuel|gas|diesel|uber|taxi|bus|train|parking|toll)/.test(normalizedName)) {
+    return 'Transport'
+  }
+
+  if (/(grocer|food|living|shopping|clothes|phone|mobile|daycare|child)/.test(normalizedName)) {
+    return 'Living'
+  }
+
+  if (/(debt|loan|credit|interest|repayment|installment)/.test(normalizedName)) {
+    return 'Debt'
+  }
+
+  if (/(saving|invest|emergency|retire|buffer|fund)/.test(normalizedName)) {
+    return 'Savings'
+  }
+
+  return 'Other'
+}
+
+const ensureDefaultGroupsForUser = async (userId: string): Promise<CategoryGroupRow[]> => {
+  for (const group of DEFAULT_CATEGORY_GROUPS) {
+    await db.query(
+      `
+      INSERT INTO category_groups (user_id, name, sort_order)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id, name)
+      DO UPDATE SET sort_order = EXCLUDED.sort_order
+      `,
+      [userId, group.name, group.sortOrder],
+    )
+  }
+
+  const groupsResult = await db.query<CategoryGroupRow>(
+    `
+    SELECT id, name, sort_order AS "sortOrder"
+    FROM category_groups
+    WHERE user_id = $1
+    ORDER BY sort_order ASC, created_at ASC
+    `,
+    [userId],
+  )
+
+  if (groupsResult.rows.length === 0) {
+    throw new Error('Failed to load category groups')
+  }
+
+  return groupsResult.rows
+}
+
 export const categoryModel = {
   async create(input: CreateCategoryInput): Promise<BudgetCategory> {
     const categoryId = randomUUID()
+    const groups = await ensureDefaultGroupsForUser(input.userId)
+    const inferredGroupName = inferGroupName(input.name)
+    const matchingGroup =
+      groups.find((group) => group.name === inferredGroupName) ??
+      groups.find((group) => group.name === 'Other') ??
+      groups[0]
+
+    if (!matchingGroup) {
+      throw new Error('Failed to resolve category group')
+    }
+
+    const existingResult = await db.query<{ id: string }>(
+      `
+      SELECT id
+      FROM budget_categories
+      WHERE user_id = $1 AND group_id = $2 AND LOWER(name) = LOWER($3)
+      LIMIT 1
+      `,
+      [input.userId, matchingGroup.id, input.name],
+    )
+
+    if (existingResult.rows[0]) {
+      throw new Error(DUPLICATE_CATEGORY_NAME_ERROR)
+    }
 
     const result = await db.query<BudgetCategory>(
       `
-      INSERT INTO budget_categories (id, user_id, name, type, allocated, spent)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (user_id, name)
-      DO UPDATE SET
-        type = EXCLUDED.type,
-        allocated = EXCLUDED.allocated,
-        spent = EXCLUDED.spent
+      INSERT INTO budget_categories (id, user_id, name, type, allocated, spent, group_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING
         id,
         user_id AS "userId",
@@ -51,7 +143,15 @@ export const categoryModel = {
         spent::float8 AS spent,
         created_at AS "createdAt"
       `,
-      [categoryId, input.userId, input.name, input.type, input.allocated ?? 0, input.spent ?? 0],
+      [
+        categoryId,
+        input.userId,
+        input.name,
+        input.type,
+        input.allocated ?? 0,
+        input.spent ?? 0,
+        matchingGroup.id,
+      ],
     )
 
     const row = result.rows[0]
@@ -152,3 +252,5 @@ export const categoryModel = {
     return result.rowCount === 1
   },
 }
+
+export { DUPLICATE_CATEGORY_NAME_ERROR }

@@ -2,8 +2,10 @@
 import { z } from 'zod'
 import type { Request, Response } from 'express'
 import { transactionModel } from '../models/transactionModel.js'
+import { userModel } from '../models/userModel.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
+import { env } from '../config/env.js'
 
 const createTransactionSchema = z.object({
   categoryId: z.string().trim().min(1),
@@ -37,10 +39,26 @@ export const createTransaction = asyncHandler(async (req: Request, res: Response
     throw new AppError('Unauthorized', 401)
   }
 
-  const payload = createTransactionSchema.parse(req.body)
-  const created = await transactionModel.create({ ...payload, userId: req.auth.userId })
+  try {
+    await userModel.upsertFromAuth({
+      id: req.auth.userId,
+      email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+      displayName: req.auth.email?.split('@')[0] ?? env.LOCAL_AUTH_USER_NAME,
+    })
+  } catch (userError) {
+    const msg = userError instanceof Error ? userError.message : String(userError)
+    throw new AppError(`Failed to ensure user exists: ${msg}`, 500)
+  }
 
-  res.status(201).json(created)
+  const payload = createTransactionSchema.parse(req.body)
+  try {
+    const created = await transactionModel.create({ ...payload, userId: req.auth.userId })
+
+    res.status(201).json(created)
+  } catch (transactionError) {
+    const msg = transactionError instanceof Error ? transactionError.message : String(transactionError)
+    throw new AppError(`Failed to create transaction: ${msg}`, 500)
+  }
 })
 
 export const listTransactions = asyncHandler(async (req: Request, res: Response) => {

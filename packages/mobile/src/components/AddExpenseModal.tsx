@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Modal,
   View,
@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Pressable,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { transactionApi } from '../services/transactionApi'
@@ -48,6 +49,18 @@ export function AddExpenseModal({
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
+  useEffect(() => {
+    if (categories.length === 0) {
+      setSelectedCategoryId('')
+      return
+    }
+
+    const hasSelectedCategory = categories.some((category) => category.id === selectedCategoryId)
+    if (!hasSelectedCategory) {
+      setSelectedCategoryId(categories[0].id)
+    }
+  }, [categories, selectedCategoryId])
+
   const resetForm = () => {
     setMode('existing')
     setSelectedCategoryId(categories[0]?.id ?? '')
@@ -67,6 +80,10 @@ export function AddExpenseModal({
   }
 
   const existingErrors = {
+    category:
+      categories.length > 0 && !selectedCategoryId
+        ? 'Select a category'
+        : '',
     amount:
       !amount || isNaN(Number(amount)) || Number(amount) <= 0
         ? 'Enter a valid amount'
@@ -103,19 +120,26 @@ export function AddExpenseModal({
         const newCategory = await transactionApi.createCategory({
           name: newCategoryName.trim(),
           type: newCategoryType,
-          allocated: newCategoryType === 'budget' ? Number(newCategoryAllocated) : 0,
+          allocated: newCategoryType === 'budget' ? Number(newCategoryAllocated) : Number(amount),
         })
         categoryIdToUse = newCategory.id
       }
 
-      // Use today's date
-      const today = new Date().toISOString().split('T')[0]
+      const now = new Date()
+      const isSelectedCurrentMonth =
+        now.getFullYear() === selectedMonth.getFullYear() &&
+        now.getMonth() === selectedMonth.getMonth()
+      const transactionDate = isSelectedCurrentMonth
+        ? now.toISOString().split('T')[0]
+        : new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1)
+            .toISOString()
+            .split('T')[0]
 
       // Then create the transaction
       await transactionApi.createTransaction({
         categoryId: categoryIdToUse,
         amount: Number(amount),
-        transactionDate: today,
+        transactionDate,
         note: note.trim() || undefined,
       })
 
@@ -130,17 +154,14 @@ export function AddExpenseModal({
 
   return (
     <Modal visible={isOpen} transparent animationType="slide" onRequestClose={handleClose}>
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={handleClose}
-      />
+      <View style={styles.root}>
+        <Pressable style={styles.overlay} onPress={handleClose} />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <View style={styles.sheet}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.container}
+        >
+          <View style={styles.sheet}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Add Expense</Text>
@@ -149,7 +170,11 @@ export function AddExpenseModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Mode Tabs */}
             <View style={styles.tabs}>
               <TouchableOpacity
@@ -218,6 +243,9 @@ export function AddExpenseModal({
                     <Text style={styles.noCategoriesText}>No categories available</Text>
                   )}
                 </View>
+                {hasTriedSubmit && existingErrors.category && (
+                  <Text style={styles.errorText}>{existingErrors.category}</Text>
+                )}
               </View>
             )}
 
@@ -370,8 +398,9 @@ export function AddExpenseModal({
               )}
             </TouchableOpacity>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   )
 }

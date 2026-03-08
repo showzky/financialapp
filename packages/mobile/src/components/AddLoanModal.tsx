@@ -105,7 +105,7 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
         onPress={handleClose}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardView}
         >
           {/* Card — stop overlay tap from bubbling into the card */}

@@ -242,7 +242,7 @@ export function HomeScreen() {
                 ? `NOK ${Math.abs(allocationBalance).toLocaleString('nb-NO')} over-allocated`
                 : `NOK ${allocationBalance.toLocaleString('nb-NO')} left to allocate`}
             </Text>
-            <Text style={styles.heroProgressHint}>
+            <Text style={[styles.heroProgressHint, styles.heroProgressHintRight]}>
               {dashboard.totalSpent.toLocaleString('nb-NO')} / {dashboard.totalAllocated.toLocaleString('nb-NO')}
             </Text>
           </View>
@@ -305,7 +305,7 @@ export function HomeScreen() {
           </View>
           <View style={styles.transferCopy}>
             <Text style={styles.transferEyebrow}>Transfer to bills account</Text>
-            <Text style={styles.transferAmount}>NOK {dashboard.totalSpent.toLocaleString('nb-NO')}</Text>
+            <Text style={styles.transferAmount}>NOK {dashboard.fixedCostsTotal.toLocaleString('nb-NO')}</Text>
             <Text style={styles.transferHint}>Fixed costs this month</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#f97316" />
@@ -401,8 +401,8 @@ export function HomeScreen() {
         <View style={styles.cashFlowLabels}>
           <Text style={[styles.cashFlowLeft, allocationBalance < 0 && styles.cashFlowLeftWarning]}>
             {allocationBalance < 0
-              ? `KR ${Math.abs(allocationBalance).toLocaleString()} over-allocated`
-              : `KR ${allocationBalance.toLocaleString()} left to allocate`}
+              ? `NOK ${Math.abs(allocationBalance).toLocaleString()} over-allocated`
+              : `NOK ${allocationBalance.toLocaleString()} left to allocate`}
           </Text>
           <Text style={styles.cashFlowRight}>
             {dashboard.totalSpent.toLocaleString()} / {dashboard.totalAllocated.toLocaleString()}
@@ -701,10 +701,13 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   heroProgressHint: {
-    flex: 1,
     fontSize: 11,
     color: '#64748b',
     fontFamily: 'DMSans_500Medium',
+    flexShrink: 1,
+  },
+  heroProgressHintRight: {
+    textAlign: 'right',
   },
   heroProgressTrack: {
     height: 5,
@@ -1143,7 +1146,9 @@ const styles = StyleSheet.create({
   },
   // ── Phase 2: Cash flow bar styles ── ADDED THIS
   cashFlowSection: {
-    display: 'none',
+    paddingHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 14,
   },
   cashFlowBarTrack: {
     height: 10,

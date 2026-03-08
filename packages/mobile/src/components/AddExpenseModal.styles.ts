@@ -1,19 +1,24 @@
 import { StyleSheet } from 'react-native'
 
 export const addExpenseModalStyles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(17, 24, 39, 0.45)',
   },
   container: {
-    flex: 1,
     justifyContent: 'flex-end',
+    flexShrink: 1,
+    maxHeight: '90%',
   },
   sheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',
