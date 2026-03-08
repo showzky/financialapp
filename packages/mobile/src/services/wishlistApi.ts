@@ -8,6 +8,7 @@ export type WishlistItem = {
   url: string
   normalizedUrl: string
   price: number | null
+  purchasedAmount?: number | null
   imageUrl?: string | null
   category?: string | null
   notes?: string | null
@@ -22,6 +23,7 @@ export type WishlistItemDto = {
   url: string
   normalizedUrl: string
   price: number | null
+  purchasedAmount?: number | null
   imageUrl?: string | null
   category?: string | null
   notes?: string | null
@@ -65,6 +67,7 @@ const mapItem = (item: WishlistItemDto): WishlistItem => ({
   url: item.url,
   normalizedUrl: item.normalizedUrl,
   price: item.price ?? null,
+  purchasedAmount: item.purchasedAmount ?? null,
   imageUrl: item.imageUrl ?? null,
   category: item.category ?? null,
   notes: item.notes ?? null,
@@ -92,5 +95,17 @@ export const wishlistApi = {
   async previewFromUrl(url: string): Promise<WishlistPreview> {
     const encodedUrl = encodeURIComponent(url)
     return backendClient.get<WishlistPreview>(`/wishlist/preview?url=${encodedUrl}`)
+  },
+
+  async markPurchased(id: string, purchasedAmount?: number): Promise<WishlistItem> {
+    const row = await backendClient.patch<WishlistItemDto>(`/wishlist/${id}/purchase`, {
+      purchasedAmount,
+    })
+    return mapItem(row)
+  },
+
+  async restorePurchased(id: string): Promise<WishlistItem> {
+    const row = await backendClient.patch<WishlistItemDto>(`/wishlist/${id}/restore`, {})
+    return mapItem(row)
   },
 }

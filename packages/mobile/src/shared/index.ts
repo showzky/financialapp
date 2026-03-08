@@ -22,6 +22,8 @@ export {
   notificationTopics,
 } from './contracts/notifications'
 
+export { getWishlistProgressSnapshot } from './contracts/wishlist'
+
 export type {
   AppNotificationData,
   AppNotificationDataValue,
@@ -32,3 +34,5 @@ export type {
   NotificationPermissionState,
   NotificationPreferences,
 } from './contracts/notifications'
+
+export type { WishlistProgressSnapshot } from './contracts/wishlist'
