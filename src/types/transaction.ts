@@ -15,6 +15,8 @@ export type CreateBudgetTransactionPayload = {
   note?: string
 }
 
+export type AppliedImportTargetKind = 'transaction' | 'wishlist' | 'local'
+
 export const DASHBOARD_EXPENSE_NOTE_PREFIX = '[dashboard-expense]'
 export const DASHBOARD_CREDIT_NOTE_PREFIX = '[dashboard-credit]'
 

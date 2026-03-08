@@ -1,13 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import type { FlowNode } from '@/pages/flow.types'
 import { formatFlowCurrency, formatFlowPercent, getFlowPanelAccent } from '@/pages/flow.utils'
 
 type FlowDetailPanelProps = {
   node: FlowNode | null
   onClose: () => void
+  customContent?: ReactNode
 }
 
-export const FlowDetailPanel = ({ node, onClose }: FlowDetailPanelProps) => {
+export const FlowDetailPanel = ({ node, onClose, customContent }: FlowDetailPanelProps) => {
   useEffect(() => {
     if (!node) {
       return undefined
@@ -99,42 +100,46 @@ export const FlowDetailPanel = ({ node, onClose }: FlowDetailPanelProps) => {
 
         <p className="flow-panel__note">{node.detail.note}</p>
 
-        <div className="flow-panel__transactions">
-          <span className="flow-panel__transactions-label">// RECENT TRANSACTIONS</span>
+        {customContent ? (
+          <div className="flow-panel__custom-content">{customContent}</div>
+        ) : (
+          <div className="flow-panel__transactions">
+            <span className="flow-panel__transactions-label">// RECENT TRANSACTIONS</span>
 
-          <div className="flow-panel__transactions-list">
-            {node.detail.transactions.length > 0 ? (
-              node.detail.transactions.map((transaction) => {
-                const amountColor = transaction.amount >= 0 ? '#00ff96' : '#ff2244'
+            <div className="flow-panel__transactions-list">
+              {node.detail.transactions.length > 0 ? (
+                node.detail.transactions.map((transaction) => {
+                  const amountColor = transaction.amount >= 0 ? '#00ff96' : '#ff2244'
 
-                return (
-                  <div key={transaction.id} className="flow-panel__transaction-item">
-                    <div>
-                      <div className="flow-panel__transaction-merchant">{transaction.merchant}</div>
-                      <div className="flow-panel__transaction-date">{transaction.date}</div>
+                  return (
+                    <div key={transaction.id} className="flow-panel__transaction-item">
+                      <div>
+                        <div className="flow-panel__transaction-merchant">{transaction.merchant}</div>
+                        <div className="flow-panel__transaction-date">{transaction.date}</div>
+                      </div>
+
+                      <div className="flow-panel__transaction-amount" style={{ color: amountColor }}>
+                        {transaction.amount >= 0 ? '+' : '-'}
+                        {formatFlowCurrency(Math.abs(transaction.amount)).replace('KR ', '')}
+                      </div>
                     </div>
-
-                    <div className="flow-panel__transaction-amount" style={{ color: amountColor }}>
-                      {transaction.amount >= 0 ? '+' : '-'}
-                      {formatFlowCurrency(Math.abs(transaction.amount)).replace('KR ', '')}
-                    </div>
+                  )
+                })
+              ) : (
+                <div className="flow-panel__transaction-item">
+                  <div>
+                    <div className="flow-panel__transaction-merchant">No tracked activity yet</div>
+                    <div className="flow-panel__transaction-date">Live dashboard sync</div>
                   </div>
-                )
-              })
-            ) : (
-              <div className="flow-panel__transaction-item">
-                <div>
-                  <div className="flow-panel__transaction-merchant">No tracked activity yet</div>
-                  <div className="flow-panel__transaction-date">Live dashboard sync</div>
-                </div>
 
-                <div className="flow-panel__transaction-amount" style={{ color: '#9db7d4' }}>
-                  WAITING
+                  <div className="flow-panel__transaction-amount" style={{ color: '#9db7d4' }}>
+                    WAITING
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   )

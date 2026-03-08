@@ -4,6 +4,8 @@ import {
   DASHBOARD_EXPENSE_NOTE_PREFIX,
   type BudgetTransaction,
 } from '@/types/transaction'
+import { classifyRevolutImport } from '@/components/flow/revolutImportClassifier'
+import type { StoredRevolutImportState } from '@/components/flow/revolutCsv'
 import type { FlowAnchorGroups, FlowLegendItem, FlowNode, FlowSummary, FlowTone } from '@/pages/flow.types'
 
 export type FlowBudgetTotals = {
@@ -14,6 +16,7 @@ export type FlowBudgetTotals = {
 
 const FLOW_HEADER_TAG = '// FINANCIAL_OS // LIVE CATEGORY MONITORING'
 const FLOW_TITLE = 'MISSION CONTROL'
+export const FLOW_REVOLUT_IMPORT_NODE_ID = 'system-revolut-import'
 
 const clampFlowRate = (value: number) => {
   if (!Number.isFinite(value)) {
@@ -176,6 +179,81 @@ const createFlowResultNode = (availableBuffer: number, totalAllocated: number, c
   },
 })
 
+const getRevolutImportVelocityState = (revolutImport: StoredRevolutImportState, categories: BudgetCategory[]) => {
+  const analysis = classifyRevolutImport(revolutImport, categories)
+  const totalRows = Math.max(revolutImport.summary.rows.length, 1)
+
+  if (revolutImport.summary.rows.length === 0) {
+    return {
+      tone: 'ok' as FlowTone,
+      rate: 0.18,
+      badge: 'UPLOAD FILE',
+      note:
+        'System-owned Flow node for Revolut statement preview. It behaves like a Flow card, but it is not a dashboard category and is not managed by the dashboard category UI.',
+      transactions: revolutImport.summary.rows,
+    }
+  }
+
+  const reviewShare = analysis.reviewCount / totalRows
+  const missingShare = analysis.missingCategoryCount / totalRows
+  // CHANGED THIS: count applied rows to reduce pressure
+  const appliedCount = analysis.rows.filter((row) => row.classification.appliedStatus === 'applied').length
+  const rate = clampFlowRate(Math.max(reviewShare, missingShare, analysis.transferCount > 0 ? 0.24 : 0.18))
+  const isBleeding = reviewShare >= 0.65 || analysis.missingCategoryCount >= 2
+  const isWarning = !isBleeding && analysis.reviewCount > 0
+
+  return {
+    tone: (isBleeding ? 'bleed' : isWarning ? 'warn' : 'ok') as FlowTone,
+    rate,
+    badge: isBleeding
+      ? `${analysis.reviewCount} REVIEW`
+      : isWarning
+        ? `${analysis.reviewCount} CHECKS`
+        : appliedCount > 0
+          ? `${appliedCount} APPLIED` // ADDED THIS
+          : `${analysis.autoMatchedCount} READY`,
+    note: isBleeding
+      ? 'Imported rows still need heavy review before they should influence the card lane.'
+      : isWarning
+        ? 'Imported rows are mostly understood, but some still need checks, funding confirmation, or category setup.'
+        : 'Imported rows are grouped and ready. The boss node is supervising review health, not acting as a spending category.',
+    transactions: analysis.rows,
+  }
+}
+
+const createFlowRevolutImportNode = (revolutImport: StoredRevolutImportState, categories: BudgetCategory[]): FlowNode => {
+  const transactionCount = revolutImport.summary.rows.length
+  const totalSpent = revolutImport.summary.totalSpent
+  const velocityState = getRevolutImportVelocityState(revolutImport, categories)
+
+  return {
+    id: FLOW_REVOLUT_IMPORT_NODE_ID,
+    group: 'card',
+    tone: velocityState.tone,
+    title: 'REVOLUT IMPORT',
+    typeLabel: '// SYSTEM IMPORT',
+    amount: totalSpent,
+    sublabel:
+      transactionCount > 0
+        ? `${transactionCount} ROWS • ${revolutImport.fileName.toUpperCase()}`
+        : 'CLICK TO OPEN STATEMENT IMPORTER',
+    desktopTop: 112,
+    badge: velocityState.badge,
+    progress: velocityState.rate,
+    detail: {
+      tag: 'SYSTEM IMPORT',
+      rate: velocityState.rate,
+      note: velocityState.note,
+      transactions: velocityState.transactions.slice(0, 5).map((row) => ({
+        id: row.id,
+        merchant: row.description,
+        date: row.date,
+        amount: row.amount,
+      })),
+    },
+  }
+}
+
 const buildFlowAnchorsForNodes = (nodes: FlowNode[]): FlowAnchorGroups => {
   const incomeNodes = nodes.filter((node) => node.group === 'income')
   const fixedNodes = nodes.filter((node) => node.group === 'fixed')
@@ -254,6 +332,7 @@ export const buildFlowNodes = (
   state: BudgetState,
   totals: FlowBudgetTotals,
   transactions: BudgetTransaction[],
+  revolutImport: StoredRevolutImportState,
 ): FlowNode[] => {
   const incomeNode = createFlowIncomeNode(state)
   const fixedNodes = state.categories
@@ -265,8 +344,9 @@ export const buildFlowNodes = (
   const availableBuffer = Math.max(state.income - totals.allocated, 0)
   const fixedAllocated = fixedNodes.reduce((sum, node) => sum + node.amount, 0)
   const resultNode = createFlowResultNode(availableBuffer, totals.allocated, fixedAllocated + totals.spent)
+  const revolutImportNode = createFlowRevolutImportNode(revolutImport, state.categories)
 
-  return [incomeNode, ...fixedNodes, ...budgetNodes, resultNode]
+  return [incomeNode, revolutImportNode, ...fixedNodes, ...budgetNodes, resultNode]
 }
 
 export const buildFlowAnchors = (nodes: FlowNode[]) => buildFlowAnchorsForNodes(nodes)
@@ -275,8 +355,9 @@ export const buildFlowDashboard = (
   state: BudgetState,
   totals: FlowBudgetTotals,
   transactions: BudgetTransaction[],
+  revolutImport: StoredRevolutImportState,
 ) => {
-  const nodes = buildFlowNodes(state, totals, transactions)
+  const nodes = buildFlowNodes(state, totals, transactions, revolutImport)
 
   return {
     summary: buildFlowSummary(state, totals),

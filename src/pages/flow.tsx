@@ -2,10 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FlowCanvasScene } from '@/components/flow/FlowCanvasScene'
 import { FlowDetailPanel } from '@/components/flow/FlowDetailPanel'
-import { FlowImportConsole } from '@/components/flow/FlowImportConsole'
+import { FlowImportManagerModal } from '@/components/flow/FlowImportManagerModal'
 import { FlowNodeCard } from '@/components/flow/FlowNodeCard'
+import {
+  EMPTY_REVOLUT_IMPORT_STATE,
+  isEmptyRevolutImportState,
+  readStoredRevolutImportState,
+  writeStoredRevolutImportState,
+} from '@/components/flow/revolutCsv'
 import { useBudgets } from '@/hooks/useBudgets'
-import { buildFlowDashboard, flowLegend } from '@/pages/flow.data'
+import { hasBackendConfig } from '@/services/backendClient'
+import { revolutImportStateApi } from '@/services/revolutImportStateApi'
+import { buildFlowDashboard, FLOW_REVOLUT_IMPORT_NODE_ID, flowLegend } from '@/pages/flow.data'
 import {
   formatFlowCurrency,
   getFlowHealthState,
@@ -45,21 +53,76 @@ const useCompactFlowLayout = (breakpoint = 1100) => {
 
 export const Flow = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const { state, totals, transactions } = useBudgets()
+  const [revolutImport, setRevolutImport] = useState(readStoredRevolutImportState)
+  const [isImportStateHydrated, setIsImportStateHydrated] = useState(() => !hasBackendConfig())
+  const { state, totals, transactions, appendTransaction, removeTransaction } = useBudgets() // CHANGED THIS
   const navigate = useNavigate()
   const isCompact = useCompactFlowLayout()
   const { summary: flowSummary, nodes: flowNodes, anchors: flowAnchors } = useMemo(
-    () => buildFlowDashboard(state, totals, transactions),
-    [state, totals, transactions],
+    () => buildFlowDashboard(state, totals, transactions, revolutImport),
+    [state, totals, transactions, revolutImport],
   )
 
   const nodesById = useMemo(() => new Map(flowNodes.map((node) => [node.id, node])), [flowNodes])
   const groupedNodes = useMemo(() => groupFlowNodes(flowNodes), [flowNodes])
   const selectedNode = selectedNodeId ? (nodesById.get(selectedNodeId) ?? null) : null
+  const isImportManagerOpen = selectedNode?.id === FLOW_REVOLUT_IMPORT_NODE_ID
   const healthState = getFlowHealthState(flowSummary.health)
   const incomeStat = getFlowSummaryStat(flowSummary, 'income-total')
   const spentStat = getFlowSummaryStat(flowSummary, 'spent-total')
   const pocketMoneyStat = getFlowSummaryStat(flowSummary, 'pocket-money')
+
+  useEffect(() => {
+    if (!hasBackendConfig()) {
+      return
+    }
+
+    let isCancelled = false
+
+    const hydrateImportState = async () => {
+      try {
+        const remoteState = await revolutImportStateApi.get()
+        if (isCancelled) {
+          return
+        }
+
+        if (isEmptyRevolutImportState(remoteState)) {
+          setIsImportStateHydrated(true)
+          return
+        }
+
+        setRevolutImport(remoteState)
+      } catch {
+        if (isCancelled) {
+          return
+        }
+
+        setRevolutImport((current) => current ?? EMPTY_REVOLUT_IMPORT_STATE)
+      } finally {
+        if (!isCancelled) {
+          setIsImportStateHydrated(true)
+        }
+      }
+    }
+
+    void hydrateImportState()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    writeStoredRevolutImportState(revolutImport)
+
+    if (!hasBackendConfig() || !isImportStateHydrated) {
+      return
+    }
+
+    void revolutImportStateApi.upsert(revolutImport).catch(() => {
+      // Keep local cache authoritative if the backend sync fails.
+    })
+  }, [isImportStateHydrated, revolutImport])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -145,9 +208,9 @@ export const Flow = () => {
           ))}
         </section>
 
-        <p className="flow-hint">// DRAG CORE OR TAP ANY NODE TO INSPECT //</p>
-
-        <FlowImportConsole />
+        <p className="flow-hint">
+          // DRAG CORE OR TAP ANY NODE TO INSPECT // CLICK THE REVOLUT IMPORT NODE TO UPLOAD A CSV OR EXCEL STATEMENT //
+        </p>
 
         {isCompact ? (
           <div className="flow-compact-layout">
@@ -208,7 +271,18 @@ export const Flow = () => {
         )}
       </div>
 
-      <FlowDetailPanel node={selectedNode} onClose={() => setSelectedNodeId(null)} />
+      <FlowDetailPanel node={isImportManagerOpen ? null : selectedNode} onClose={() => setSelectedNodeId(null)} />
+
+      <FlowImportManagerModal
+        isOpen={isImportManagerOpen}
+        onClose={() => setSelectedNodeId(null)}
+        categories={state.categories}
+        transactions={transactions}
+        value={revolutImport}
+        onChange={setRevolutImport}
+        onTransactionCreated={appendTransaction}
+        onTransactionRemoved={removeTransaction}
+      />
     </div>
   )
 }

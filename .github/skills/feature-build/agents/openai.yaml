@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Build"
+  short_description: "Implement multi-file product features"
+  default_prompt: "Use $feature-build to implement or refactor a repository feature that spans multiple files, packages, or layers."

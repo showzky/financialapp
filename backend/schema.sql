@@ -111,6 +111,14 @@ CREATE TABLE IF NOT EXISTS push_notification_tokens (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS revolut_import_states (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  state JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE wishlist_items
 ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'Medium';
 
@@ -213,6 +221,7 @@ CREATE INDEX IF NOT EXISTS idx_loans_given_user_id ON loans_given(user_id);
 CREATE INDEX IF NOT EXISTS idx_loans_given_user_repaid_expected ON loans_given(user_id, repaid_at, expected_repayment_date);
 CREATE INDEX IF NOT EXISTS idx_push_notification_tokens_user_id ON push_notification_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_push_notification_tokens_user_updated_at ON push_notification_tokens(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_revolut_import_states_user_id ON revolut_import_states(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_next_renewal ON subscriptions(user_id, next_renewal_date);
 

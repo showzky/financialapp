@@ -12,4 +12,10 @@ export const transactionApi = {
       body: JSON.stringify(payload),
     })
   },
+
+  async remove(id: string): Promise<void> {
+    return backendRequest<void>(`/transactions/${id}`, {
+      method: 'DELETE',
+    })
+  },
 }

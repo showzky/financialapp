@@ -132,6 +132,8 @@ const BudgetContext = createContext<
         appliedCount: number
         appliedNames: string[]
       }
+      appendTransaction: (transaction: BudgetTransaction) => void // ADDED THIS
+      removeTransaction: (transactionId: string) => void
     }
   | undefined
 >(undefined)
@@ -494,6 +496,47 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     return { allocated, spent, remaining }
   }, [state]) // ADD THIS: derived totals
 
+  // ADDED THIS: append a single imported transaction and bump category spent locally
+  const appendTransaction = (transaction: BudgetTransaction) => {
+    setTransactions((current) => [transaction, ...current])
+
+    setState((current) => ({
+      ...current,
+      categories: current.categories.map((category) => {
+        if (category.id !== transaction.categoryId) return category
+
+        return {
+          ...category,
+          spent: category.spent + transaction.amount,
+        }
+      }),
+    }))
+  }
+
+  const removeTransaction = (transactionId: string) => {
+    const transaction = transactions.find((item) => item.id === transactionId)
+
+    setTransactions((current) => current.filter((item) => item.id !== transactionId))
+
+    if (!transaction) {
+      return
+    }
+
+    setState((current) => ({
+      ...current,
+      categories: current.categories.map((category) => {
+        if (category.id !== transaction.categoryId) {
+          return category
+        }
+
+        return {
+          ...category,
+          spent: Math.max(0, category.spent - transaction.amount),
+        }
+      }),
+    }))
+  }
+
   return (
     <BudgetContext.Provider
       value={{
@@ -511,6 +554,8 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         updateRecurringTransaction,
         deleteRecurringTransaction,
         checkAndApplyRecurring,
+        appendTransaction, // ADDED THIS
+        removeTransaction,
       }}
     >
       {children}

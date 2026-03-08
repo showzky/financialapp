@@ -72,6 +72,40 @@ const inferGroupName = (categoryName: string): string => {
   return 'Other'
 }
 
+const categorySelect = `
+  budget_categories.id,
+  budget_categories.user_id AS "userId",
+  budget_categories.name,
+  budget_categories.type,
+  budget_categories.allocated::float8 AS allocated,
+  CASE
+    WHEN budget_categories.type = 'budget'
+      THEN COALESCE(ledger.ledger_spent, budget_categories.spent)::float8
+    ELSE budget_categories.spent::float8
+  END AS spent,
+  budget_categories.created_at AS "createdAt"
+`
+
+const categoryLedgerJoin = `
+  LEFT JOIN LATERAL (
+    SELECT GREATEST(
+      COALESCE(
+        SUM(
+          CASE
+            WHEN transactions.note LIKE '[dashboard-credit]%' THEN -transactions.amount
+            ELSE transactions.amount
+          END
+        ),
+        0
+      ),
+      0
+    ) AS ledger_spent
+    FROM transactions
+    WHERE transactions.user_id = budget_categories.user_id
+      AND transactions.category_id = budget_categories.id
+  ) AS ledger ON TRUE
+`
+
 const ensureDefaultGroupsForUser = async (userId: string): Promise<CategoryGroupRow[]> => {
   for (const group of DEFAULT_CATEGORY_GROUPS) {
     await db.query(
@@ -165,15 +199,9 @@ export const categoryModel = {
   async listByUser(userId: string): Promise<BudgetCategory[]> {
     const result = await db.query<BudgetCategory>(
       `
-      SELECT
-        id,
-        user_id AS "userId",
-        name,
-        type,
-        allocated::float8 AS allocated,
-        spent::float8 AS spent,
-        created_at AS "createdAt"
+      SELECT ${categorySelect}
       FROM budget_categories
+      ${categoryLedgerJoin}
       WHERE user_id = $1
       ORDER BY created_at DESC
       `,
@@ -186,15 +214,9 @@ export const categoryModel = {
   async getById(id: string, userId: string): Promise<BudgetCategory | null> {
     const result = await db.query<BudgetCategory>(
       `
-      SELECT
-        id,
-        user_id AS "userId",
-        name,
-        type,
-        allocated::float8 AS allocated,
-        spent::float8 AS spent,
-        created_at AS "createdAt"
+      SELECT ${categorySelect}
       FROM budget_categories
+      ${categoryLedgerJoin}
       WHERE id = $1 AND user_id = $2
       LIMIT 1
       `,
