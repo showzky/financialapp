@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { dashboardApi, type DashboardData, type CategoryWithSpent } from '../services/dashboardApi'
+import { useCustomTheme } from '../customthemes'
 import { usePeriod } from '../context/PeriodContext'
 import { MonthPickerModal } from '../components/MonthPickerModal'
 import { CategoryCard } from '../components/CategoryCard'
@@ -29,6 +30,13 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export function HomeScreen() {
   const theme = screenThemes.home
+  const {
+    activeTheme,
+    resolvedThemeId,
+    source,
+    clearManualTheme,
+    cycleTheme,
+  } = useCustomTheme()
   const { selectedMonth, setSelectedMonth } = usePeriod()
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -156,18 +164,18 @@ export function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={[styles.centerContainer, { backgroundColor: activeTheme.colors.screenBackground }]}>
+        <ActivityIndicator size="large" color={activeTheme.colors.accent} />
       </View>
     )
   }
 
   if (error || !dashboard) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
+      <View style={[styles.centerContainer, { backgroundColor: activeTheme.colors.screenBackground }]}>
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>{error ?? 'Failed to load dashboard'}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadDashboard}>
+        <TouchableOpacity style={[styles.retryButton, { backgroundColor: activeTheme.colors.accent }]} onPress={loadDashboard}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -185,7 +193,7 @@ export function HomeScreen() {
   )
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+    <ScrollView style={[styles.container, { backgroundColor: activeTheme.colors.screenBackground }]}>
       <ScreenHero
         eyebrow="Overview"
         title={'Financial\nOverview'}
@@ -245,6 +253,52 @@ export function HomeScreen() {
       </ScreenHero>
 
       <View style={styles.dashboardBody}>
+        <View
+          style={[
+            styles.themePreviewCard,
+            {
+              backgroundColor: activeTheme.colors.surface,
+              borderColor: activeTheme.colors.surfaceBorder,
+            },
+          ]}
+        >
+          <View style={styles.themePreviewCopy}>
+            <Text style={[styles.themePreviewEyebrow, { color: activeTheme.colors.accent }]}>Theme engine preview</Text>
+            <Text style={[styles.themePreviewTitle, { color: activeTheme.colors.text }]}>{activeTheme.label}</Text>
+            <Text style={[styles.themePreviewMeta, { color: activeTheme.colors.mutedText }]}>
+              {source === 'manual'
+                ? `Manual override active. Auto season is ${resolvedThemeId}.`
+                : `Automatic season match is ${resolvedThemeId}.`}
+            </Text>
+          </View>
+          <View style={styles.themePreviewActions}>
+            <TouchableOpacity
+              style={[styles.themePreviewButton, { backgroundColor: activeTheme.colors.accentSoft }]}
+              activeOpacity={0.85}
+              onPress={cycleTheme}
+            >
+              <Text style={[styles.themePreviewButtonText, { color: activeTheme.colors.accent }]}>
+                Cycle theme
+              </Text>
+            </TouchableOpacity>
+            {source === 'manual' ? (
+              <TouchableOpacity
+                style={[
+                  styles.themePreviewButton,
+                  styles.themePreviewSecondaryButton,
+                  { borderColor: activeTheme.colors.surfaceBorder },
+                ]}
+                activeOpacity={0.85}
+                onPress={clearManualTheme}
+              >
+                <Text style={[styles.themePreviewSecondaryText, { color: activeTheme.colors.text }]}>
+                  Back to auto
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+
         <TouchableOpacity style={styles.transferCard} activeOpacity={0.9} onPress={() => setAddExpenseModalOpen(true)}>
           <View style={styles.transferIconWrap}>
             <Text style={styles.transferIcon}>$</Text>
@@ -667,6 +721,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     gap: 14,
+  },
+  themePreviewCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 14,
+  },
+  themePreviewCopy: {
+    gap: 4,
+  },
+  themePreviewEyebrow: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontFamily: 'DMSans_700Bold',
+  },
+  themePreviewTitle: {
+    fontSize: 22,
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  themePreviewMeta: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'DMSans_500Medium',
+  },
+  themePreviewActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  themePreviewButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  themePreviewSecondaryButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+  },
+  themePreviewButtonText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_700Bold',
+  },
+  themePreviewSecondaryText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_700Bold',
   },
   transferCard: {
     flexDirection: 'row',

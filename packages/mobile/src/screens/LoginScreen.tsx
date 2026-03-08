@@ -1,20 +1,16 @@
 // @ts-nocheck
 import React, { useState } from 'react'
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
+
 import { useAuth } from '../auth/AuthContext'
+import { LoginBackgroundScene } from '../components/login/LoginBackgroundScene'
+import { LoginFormCard } from '../components/login/LoginFormCard'
+import { useLoginScreenTheme } from '../customthemes/login'
 
 export function LoginScreen() {
   const { signIn } = useAuth()
+  const loginTheme = useLoginScreenTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -34,148 +30,75 @@ export function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <Ionicons name="lock-closed" size={28} color="#3b82f6" />
-          <Text style={styles.title}>Sign in</Text>
-          <Text style={styles.subtitle}>Connect to your Finance Tracker account</Text>
-        </View>
+    <LinearGradient colors={loginTheme.colors.screenGradient} style={styles.screen}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.sceneShell}>
+          <LoginBackgroundScene theme={loginTheme} />
 
-        {error ? (
-          <View style={styles.errorBox}>
-            <Ionicons name="alert-circle" size={18} color="#ef4444" />
-            <Text style={styles.errorText}>{error}</Text>
+          {loginTheme.eventLabel ? (
+            <View style={styles.eventPill}>
+              <Text style={styles.eventPillText}>{loginTheme.eventLabel}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.content}>
+            <View style={styles.contentSpacer} />
+            <LoginFormCard
+              theme={loginTheme}
+              email={email}
+              password={password}
+              error={error}
+              loading={loading}
+              onEmailChange={setEmail}
+              onPasswordChange={setPassword}
+              onSubmit={onSubmit}
+            />
           </View>
-        ) : null}
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            placeholder="owner@financetracker.local"
-            placeholderTextColor="#9ca3af"
-            style={styles.input}
-            editable={!loading}
-          />
         </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="Your password"
-            placeholderTextColor="#9ca3af"
-            style={styles.input}
-            editable={!loading}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.button, (loading || !email.trim() || !password) && styles.buttonDisabled]}
-          onPress={onSubmit}
-          disabled={loading || !email.trim() || !password}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Sign in</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  screen: {
+    flex: 1,
+  },
+  sceneShell: {
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: 0,
+    backgroundColor: '#0b1120',
+  },
+  eventPill: {
+    position: 'absolute',
+    top: 18,
+    right: 16,
+    zIndex: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  eventPillText: {
+    color: '#d8deef',
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontFamily: 'DMSans_500Medium',
+  },
+  content: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 4,
+    paddingTop: 18,
     paddingHorizontal: 16,
-    backgroundColor: '#f9fafb',
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    marginTop: 10,
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 13,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  field: {
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#fff',
-  },
-  button: {
-    marginTop: 8,
-    height: 46,
-    borderRadius: 10,
-    backgroundColor: '#3b82f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#93c5fd',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    gap: 8,
-  },
-  errorText: {
-    color: '#b91c1c',
-    fontSize: 13,
-    flex: 1,
+  contentSpacer: {
+    height: 195,
   },
 })
