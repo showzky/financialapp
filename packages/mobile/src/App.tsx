@@ -6,8 +6,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import { useFonts } from 'expo-font'
+import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display'
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+  DMSans_800ExtraBold,
+} from '@expo-google-fonts/dm-sans'
 
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import { CustomThemeProvider, useCustomTheme } from './customthemes'
 import { NotificationProvider } from './context/NotificationContext'
 import { PeriodProvider } from './context/PeriodContext'
 import { HomeScreen } from './screens/HomeScreen'
@@ -30,10 +39,12 @@ function AuthFlow() {
 }
 
 function HomeTabs() {
+  const { activeTheme } = useCustomTheme()
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: true,
+        headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home'
 
@@ -51,9 +62,13 @@ function HomeTabs() {
 
           return <Ionicons name={iconName} size={size} color={color} />
         },
-        tabBarActiveTintColor: '#3b82f6',
-        tabBarInactiveTintColor: '#9ca3af',
+        tabBarActiveTintColor: activeTheme.colors.tabBarActive,
+        tabBarInactiveTintColor: activeTheme.colors.tabBarInactive,
         tabBarLabelStyle: { fontSize: 12 },
+        tabBarStyle: {
+          backgroundColor: activeTheme.colors.tabBarBackground,
+          borderTopColor: activeTheme.colors.surfaceBorder,
+        },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Dashboard' }} />
@@ -83,8 +98,17 @@ function RootNavigator() {
   )
 }
 
-export default function App() {
-  const [fontsLoaded] = useFonts(Ionicons.font)
+function AppShell() {
+  const { activeTheme } = useCustomTheme()
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+    DMSerifDisplay_400Regular,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+    DMSans_800ExtraBold,
+  })
 
   if (!fontsLoaded) {
     return (
@@ -93,24 +117,31 @@ export default function App() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f8fafc',
+          backgroundColor: activeTheme.colors.screenBackground,
         }}
       >
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={activeTheme.colors.accent} />
       </View>
     )
   }
 
   return (
+    <NavigationContainer>
+      <RootNavigator />
+    </NavigationContainer>
+  )
+}
+
+export default function App() {
+  return (
     <AuthProvider>
-      {/* ADDED THIS */}
-      <NotificationProvider>
-        <PeriodProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </PeriodProvider>
-      </NotificationProvider>
+      <CustomThemeProvider>
+        <NotificationProvider>
+          <PeriodProvider>
+            <AppShell />
+          </PeriodProvider>
+        </NotificationProvider>
+      </CustomThemeProvider>
     </AuthProvider>
   )
 }

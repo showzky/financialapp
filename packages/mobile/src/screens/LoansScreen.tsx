@@ -26,9 +26,11 @@ import { AddBorrowedLoanModal } from '../components/AddBorrowedLoanModal'
 import { EditLoanModal } from '../components/EditLoanModal'
 import { EditBorrowedLoanModal } from '../components/EditBorrowedLoanModal'
 import { ConfirmModal } from '../components/ConfirmModal'
+import { ScreenHero } from '../components/ScreenHero'
 import { useNotifications } from '../context/NotificationContext'
 import { notificationApi } from '../services/notificationApi'
 import { loanReminderScheduler } from '../services/loanReminderScheduler'
+import { screenThemes } from '../theme/screenThemes'
 import {
   resolveConfirmAction,
   resolveLoansScreenFetchState,
@@ -680,6 +682,7 @@ function EmptyMineLoansState() {
 }
 
 export function LoansScreen() {
+  const theme = screenThemes.home
   const { enablePushNotifications, permissionState, preferences } = useNotifications()
   const [tab, setTab] = useState<TabKey>('lent')
   const [loans, setLoans] = useState<Loan[]>([])
@@ -913,35 +916,47 @@ export function LoansScreen() {
           <RefreshControl refreshing={refetching} onRefresh={onRefresh} tintColor="#1d4ed8" />
         }
       >
-        <View style={styles.hero}>
-          <View style={styles.heroTopRow}>
-            <View>
-              <Text style={styles.heroEyebrow}>Overview</Text>
-              <Text style={styles.heroTitle}>Loans</Text>
-            </View>
+        <ScreenHero
+          eyebrow="Overview"
+          title="Loans"
+          subtitle="Track what you owe and what you lent out in one place."
+          theme={theme.hero}
+          actions={
             <View style={styles.heroActions}>
               <TouchableOpacity
-                style={styles.heroIconButton}
+                style={[
+                  styles.heroIconButton,
+                  {
+                    backgroundColor: theme.actionSurface,
+                    borderColor: theme.actionBorder,
+                  },
+                ]}
                 onPress={onRefresh}
                 disabled={refetching}
                 activeOpacity={0.8}
               >
                 {refetching ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={theme.actionText} />
                 ) : (
-                  <Ionicons name="refresh" size={18} color="#fff" />
+                  <Ionicons name="refresh" size={18} color={theme.actionText} />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.heroIconButton, styles.heroAddButton]}
+                style={[
+                  styles.heroIconButton,
+                  {
+                    backgroundColor: '#f8fafc',
+                    borderColor: 'rgba(255,255,255,0.24)',
+                  },
+                ]}
                 onPress={openAddModal}
                 activeOpacity={0.8}
               >
                 <Ionicons name="add" size={20} color="#0f172a" />
               </TouchableOpacity>
             </View>
-          </View>
-
+          }
+        >
           <View style={styles.summaryGrid}>
             <View style={styles.summaryTile}>
               <Text style={styles.summaryTileLabel}>My loans</Text>
@@ -958,7 +973,7 @@ export function LoansScreen() {
               <Text style={styles.summaryTileMeta}>{activeLoans.length} active</Text>
             </View>
           </View>
-        </View>
+        </ScreenHero>
 
         {currentError ? (
           <View style={styles.errorBanner}>

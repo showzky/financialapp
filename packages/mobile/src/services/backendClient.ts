@@ -42,6 +42,18 @@ export class BackendError extends Error {
   }
 }
 
+const extractBackendMessage = (bodyText: string | undefined): string | undefined => {
+  if (!bodyText) return undefined
+
+  try {
+    const parsed = JSON.parse(bodyText) as { message?: string; details?: string }
+    if (parsed.details) return `${parsed.message ?? 'Request failed'}: ${parsed.details}`
+    return parsed.message
+  } catch {
+    return bodyText
+  }
+}
+
 // In-memory token store – set by authApi after login, cleared on logout.
 let savedAuthToken: string | undefined
 
@@ -86,10 +98,13 @@ export const createBackendClient = (options: BackendClientOptions = {}) => {
         bodyText = undefined
       }
 
-      throw new BackendError(`Request failed (${response.status})`, {
-        status: response.status,
-        bodyText,
-      })
+      throw new BackendError(
+        extractBackendMessage(bodyText) ?? `Request failed (${response.status})`,
+        {
+          status: response.status,
+          bodyText,
+        },
+      )
     }
 
     // 204 / empty response

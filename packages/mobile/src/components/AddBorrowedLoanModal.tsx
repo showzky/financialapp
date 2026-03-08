@@ -93,7 +93,7 @@ export function AddBorrowedLoanModal({ isOpen, onClose, onSubmit }: Props) {
     <Modal visible={isOpen} transparent animationType="slide" onRequestClose={handleClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardView}
         >
           <TouchableOpacity activeOpacity={1} style={styles.card}>

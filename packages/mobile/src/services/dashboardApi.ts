@@ -11,6 +11,7 @@ export type CategoryWithSpent = {
 export type DashboardData = {
   totalIncome: number
   totalSpent: number
+  fixedCostsTotal: number
   remaining: number
   totalAllocated: number
   freeToAssign: number
@@ -93,6 +94,11 @@ export const dashboardApi = {
 
     const totalIncome = Number.isFinite(user.monthlyIncome) ? user.monthlyIncome : 0
     const totalSpent = sum(monthTransactions.map((t) => (Number.isFinite(t.amount) ? t.amount : 0)))
+    const fixedCostsTotal = sum(
+      categories
+        .filter((category) => category.type === 'fixed')
+        .map((category) => (Number.isFinite(category.allocated) ? category.allocated : 0)),
+    )
     const remaining = totalIncome - totalSpent
     const totalAllocated = sum(categories.map((c) => (Number.isFinite(c.allocated) ? c.allocated : 0)))
     const freeToAssign = totalIncome - totalAllocated
@@ -115,6 +121,7 @@ export const dashboardApi = {
     return {
       totalIncome,
       totalSpent,
+      fixedCostsTotal,
       remaining,
       totalAllocated,
       freeToAssign,

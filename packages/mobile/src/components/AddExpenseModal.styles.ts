@@ -1,19 +1,24 @@
 import { StyleSheet } from 'react-native'
 
 export const addExpenseModalStyles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(17, 24, 39, 0.45)',
   },
   container: {
-    flex: 1,
     justifyContent: 'flex-end',
+    flexShrink: 1,
+    maxHeight: '90%',
   },
   sheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -161,6 +166,31 @@ export const addExpenseModalStyles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
+  },
+  roleHintBox: {
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#f8fbff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 2,
+  },
+  roleHintLabel: {
+    fontSize: 11,
+    color: '#1d4ed8',
+    fontWeight: '700',
+  },
+  roleHintValue: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  roleHintText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#64748b',
   },
   errorBox: {
     backgroundColor: '#fef2f2',

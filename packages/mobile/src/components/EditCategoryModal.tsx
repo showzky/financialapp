@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { transactionApi } from '../services/transactionApi'
 import type { CategoryWithSpent } from '../services/dashboardApi'
+import { getPocketMoneyRoleLabel, inferPocketMoneyRole } from '../utils/pocketMoney'
 
 type Props = {
   isOpen: boolean
@@ -61,6 +62,10 @@ export function EditCategoryModal({
   }
 
   const hasErrors = Object.values(errors).some(Boolean)
+  const inferredPocketMoneyRole = inferPocketMoneyRole({
+    name,
+    type: categoryType,
+  })
 
   const handleSubmit = async () => {
     setHasTriedSubmit(true)
@@ -125,6 +130,16 @@ export function EditCategoryModal({
               {hasTriedSubmit && errors.name && (
                 <Text style={styles.errorText}>{errors.name}</Text>
               )}
+              <View style={styles.roleHintBox}>
+                <Text style={styles.roleHintLabel}>Pocket money behavior</Text>
+                <Text style={styles.roleHintValue}>
+                  {getPocketMoneyRoleLabel(inferredPocketMoneyRole)}
+                </Text>
+                <Text style={styles.roleHintText}>
+                  Fixed categories count as bills. Budget names with words like saving count as
+                  savings, and names like fun, personal, or pocket count as pocket money.
+                </Text>
+              </View>
             </View>
 
             <View style={styles.section}>
@@ -328,6 +343,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
+  },
+  roleHintBox: {
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#f8fbff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  roleHintLabel: {
+    fontSize: 11,
+    color: '#1d4ed8',
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  roleHintValue: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  roleHintText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#64748b',
   },
   errorBox: {
     backgroundColor: '#fef2f2',

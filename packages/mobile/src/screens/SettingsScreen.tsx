@@ -4,8 +4,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } f
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../auth/AuthContext'
 import { useNotifications } from '../context/NotificationContext'
+import { ScreenHero } from '../components/ScreenHero'
+import { screenThemes } from '../theme/screenThemes'
 
 export function SettingsScreen() {
+  const theme = screenThemes.settings
   const { signOut } = useAuth()
   const {
     disablePushNotifications,
@@ -82,11 +85,13 @@ export function SettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
-      </View>
+    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+      <ScreenHero
+        eyebrow="Preferences"
+        title="Settings"
+        subtitle="Control reminders, account preferences, and the app behavior in one place."
+        theme={theme.hero}
+      />
 
       {/* Account Section */}
       <View style={styles.section}>
@@ -310,17 +315,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    backgroundColor: '#fff',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
   },
   section: {
     marginBottom: 24,

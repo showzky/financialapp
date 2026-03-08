@@ -1,0 +1,86 @@
+import type { CustomThemeDefinition, CustomThemeId } from './types'
+
+export const customThemeOrder: CustomThemeId[] = ['default', 'spring', 'summer', 'easter', 'christmas']
+
+export const customThemeRegistry: Record<CustomThemeId, CustomThemeDefinition> = {
+  default: {
+    id: 'default',
+    label: 'Default',
+    colors: {
+      screenBackground: '#f3f6fb',
+      surface: '#ffffff',
+      surfaceBorder: '#dbe4f0',
+      text: '#0f172a',
+      mutedText: '#64748b',
+      accent: '#2563eb',
+      accentSoft: '#dbeafe',
+      tabBarBackground: '#ffffff',
+      tabBarActive: '#2563eb',
+      tabBarInactive: '#94a3b8',
+    },
+  },
+  spring: {
+    id: 'spring',
+    label: 'Spring',
+    colors: {
+      screenBackground: '#f3fbf4',
+      surface: '#ffffff',
+      surfaceBorder: '#ccebd3',
+      text: '#163020',
+      mutedText: '#5f7a67',
+      accent: '#2f9e44',
+      accentSoft: '#ddf7e3',
+      tabBarBackground: '#fcfffc',
+      tabBarActive: '#2f9e44',
+      tabBarInactive: '#8aa292',
+    },
+  },
+  summer: {
+    id: 'summer',
+    label: 'Summer',
+    colors: {
+      screenBackground: '#fff9ef',
+      surface: '#ffffff',
+      surfaceBorder: '#f6ddad',
+      text: '#3f2b12',
+      mutedText: '#8a6b42',
+      accent: '#f59e0b',
+      accentSoft: '#ffefc7',
+      tabBarBackground: '#fffdf7',
+      tabBarActive: '#f59e0b',
+      tabBarInactive: '#b8a37e',
+    },
+  },
+  easter: {
+    id: 'easter',
+    label: 'Easter',
+    colors: {
+      screenBackground: '#faf6ff',
+      surface: '#ffffff',
+      surfaceBorder: '#e6d7fb',
+      text: '#35214d',
+      mutedText: '#7b6a94',
+      accent: '#a855f7',
+      accentSoft: '#f3e8ff',
+      tabBarBackground: '#fffefe',
+      tabBarActive: '#a855f7',
+      tabBarInactive: '#b4a3c7',
+    },
+  },
+  christmas: {
+    id: 'christmas',
+    label: 'Christmas',
+    colors: {
+      screenBackground: '#f5fbf7',
+      surface: '#ffffff',
+      surfaceBorder: '#cfe7d7',
+      text: '#193126',
+      mutedText: '#5e7a6c',
+      accent: '#b91c1c',
+      accentSoft: '#d7f0df',
+      tabBarBackground: '#fcfffd',
+      tabBarActive: '#b91c1c',
+      tabBarInactive: '#8da899',
+    },
+  },
+}
