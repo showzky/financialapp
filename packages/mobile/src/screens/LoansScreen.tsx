@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
@@ -16,21 +15,23 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { loanApi, type Loan, type LoanSummary } from '../services/loanApi'
+import type { CreateLoanPayload, UpdateLoanPayload } from '../services/loanApi'
 import {
   borrowedLoanApi,
   type BorrowedLoan,
   type BorrowedLoanSummary,
 } from '../services/borrowedLoanApi'
+import type { CreateBorrowedLoanPayload, UpdateBorrowedLoanPayload } from '../services/borrowedLoanApi'
 import { AddLoanModal } from '../components/AddLoanModal'
 import { AddBorrowedLoanModal } from '../components/AddBorrowedLoanModal'
 import { EditLoanModal } from '../components/EditLoanModal'
 import { EditBorrowedLoanModal } from '../components/EditBorrowedLoanModal'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { ScreenHero } from '../components/ScreenHero'
+import { useScreenPalette } from '../customthemes'
 import { useNotifications } from '../context/NotificationContext'
 import { notificationApi } from '../services/notificationApi'
 import { loanReminderScheduler } from '../services/loanReminderScheduler'
-import { screenThemes } from '../theme/screenThemes'
 import {
   resolveConfirmAction,
   resolveLoansScreenFetchState,
@@ -682,7 +683,7 @@ function EmptyMineLoansState() {
 }
 
 export function LoansScreen() {
-  const theme = screenThemes.home
+  const { activeTheme } = useScreenPalette()
   const { enablePushNotifications, permissionState, preferences } = useNotifications()
   const [tab, setTab] = useState<TabKey>('lent')
   const [loans, setLoans] = useState<Loan[]>([])
@@ -794,7 +795,7 @@ export function LoansScreen() {
     )
   }
 
-  const handleAddLoan = async (payload) => {
+  const handleAddLoan = async (payload: CreateLoanPayload) => {
     const shouldPromptForNotifications = loans.length + borrowedLoans.length === 0 && !preferences.enabled
     await loanApi.create(payload)
     setIsAddModalOpen(false)
@@ -805,13 +806,13 @@ export function LoansScreen() {
     }
   }
 
-  const handleEditLoan = async (id, payload) => {
+  const handleEditLoan = async (id: string, payload: UpdateLoanPayload) => {
     await loanApi.update(id, payload)
     setEditingLoan(null)
     await fetchLoans()
   }
 
-  const handleAddBorrowedLoan = async (payload) => {
+  const handleAddBorrowedLoan = async (payload: CreateBorrowedLoanPayload) => {
     const shouldPromptForNotifications = loans.length + borrowedLoans.length === 0 && !preferences.enabled
     await borrowedLoanApi.create(payload)
     setIsAddBorrowedModalOpen(false)
@@ -822,7 +823,7 @@ export function LoansScreen() {
     }
   }
 
-  const handleEditBorrowedLoan = async (id, payload) => {
+  const handleEditBorrowedLoan = async (id: string, payload: UpdateBorrowedLoanPayload) => {
     await borrowedLoanApi.update(id, payload)
     setEditingBorrowedLoan(null)
     await fetchLoans()
@@ -884,8 +885,8 @@ export function LoansScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1d4ed8" />
+      <View style={[styles.centerContainer, { backgroundColor: activeTheme.colors.screenBackground }]}>
+        <ActivityIndicator size="large" color={activeTheme.colors.accent} />
       </View>
     )
   }
@@ -910,25 +911,30 @@ export function LoansScreen() {
   return (
     <>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: activeTheme.colors.screenBackground }]}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
-          <RefreshControl refreshing={refetching} onRefresh={onRefresh} tintColor="#1d4ed8" />
+          <RefreshControl refreshing={refetching} onRefresh={onRefresh} tintColor={activeTheme.colors.accent} />
         }
       >
         <ScreenHero
           eyebrow="Overview"
           title="Loans"
           subtitle="Track what you owe and what you lent out in one place."
-          theme={theme.hero}
+          theme={{
+            gradient: activeTheme.colors.heroGradient,
+            eyebrow: activeTheme.colors.heroEyebrow,
+            title: activeTheme.colors.heroTitle,
+            subtitle: activeTheme.colors.heroSubtitle,
+          }}
           actions={
             <View style={styles.heroActions}>
               <TouchableOpacity
                 style={[
                   styles.heroIconButton,
                   {
-                    backgroundColor: theme.actionSurface,
-                    borderColor: theme.actionBorder,
+                    backgroundColor: activeTheme.colors.heroActionSurface,
+                    borderColor: activeTheme.colors.heroActionBorder,
                   },
                 ]}
                 onPress={onRefresh}
@@ -936,49 +942,49 @@ export function LoansScreen() {
                 activeOpacity={0.8}
               >
                 {refetching ? (
-                  <ActivityIndicator size="small" color={theme.actionText} />
+                  <ActivityIndicator size="small" color={activeTheme.colors.heroActionText} />
                 ) : (
-                  <Ionicons name="refresh" size={18} color={theme.actionText} />
+                  <Ionicons name="refresh" size={18} color={activeTheme.colors.heroActionText} />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.heroIconButton,
                   {
-                    backgroundColor: '#f8fafc',
-                    borderColor: 'rgba(255,255,255,0.24)',
+                    backgroundColor: activeTheme.colors.accentSoft,
+                    borderColor: activeTheme.colors.accentLine,
                   },
                 ]}
                 onPress={openAddModal}
                 activeOpacity={0.8}
               >
-                <Ionicons name="add" size={20} color="#0f172a" />
+                <Ionicons name="add" size={20} color={activeTheme.colors.accent} />
               </TouchableOpacity>
             </View>
           }
         >
           <View style={styles.summaryGrid}>
-            <View style={styles.summaryTile}>
-              <Text style={styles.summaryTileLabel}>My loans</Text>
-              <Text style={styles.summaryTileValue} numberOfLines={1}>
+            <View style={[styles.summaryTile, { backgroundColor: activeTheme.colors.heroCardSurface, borderColor: activeTheme.colors.heroCardBorder }]}>
+              <Text style={[styles.summaryTileLabel, { color: activeTheme.colors.heroSubtitle }]}>My loans</Text>
+              <Text style={[styles.summaryTileValue, { color: activeTheme.colors.heroTitle }]} numberOfLines={1}>
                 {borrowedError ? 'Not loaded' : formatNOK(totalBorrowed)}
               </Text>
-              <Text style={styles.summaryTileMeta}>
+              <Text style={[styles.summaryTileMeta, { color: activeTheme.colors.heroSubtitle }]}>
                 {borrowedError ? 'Pull down to try again' : `${activeBorrowedLoans.length} active`}
               </Text>
             </View>
-            <View style={styles.summaryTile}>
-              <Text style={styles.summaryTileLabel}>Lent out</Text>
-              <Text style={styles.summaryTileValue}>{formatNOK(totalLent)}</Text>
-              <Text style={styles.summaryTileMeta}>{activeLoans.length} active</Text>
+            <View style={[styles.summaryTile, { backgroundColor: activeTheme.colors.heroCardSurface, borderColor: activeTheme.colors.heroCardBorder }]}>
+              <Text style={[styles.summaryTileLabel, { color: activeTheme.colors.heroSubtitle }]}>Lent out</Text>
+              <Text style={[styles.summaryTileValue, { color: activeTheme.colors.heroTitle }]}>{formatNOK(totalLent)}</Text>
+              <Text style={[styles.summaryTileMeta, { color: activeTheme.colors.heroSubtitle }]}>{activeLoans.length} active</Text>
             </View>
           </View>
         </ScreenHero>
 
         {currentError ? (
-          <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={16} color="#991b1b" />
-            <Text style={styles.errorText}>{currentError}</Text>
+          <View style={[styles.errorBanner, { backgroundColor: `${activeTheme.colors.danger}12`, borderColor: `${activeTheme.colors.danger}4D` }]}>
+            <Ionicons name="alert-circle" size={16} color={activeTheme.colors.danger} />
+            <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{currentError}</Text>
           </View>
         ) : null}
 
@@ -989,16 +995,34 @@ export function LoansScreen() {
           ].map((item) => (
             <TouchableOpacity
               key={item.key}
-              style={[styles.tabButton, tab === item.key ? styles.tabButtonActive : null]}
+              style={[
+                styles.tabButton,
+                {
+                  backgroundColor: activeTheme.colors.surface,
+                  borderColor: activeTheme.colors.surfaceBorder,
+                },
+                tab === item.key
+                  ? {
+                      backgroundColor: activeTheme.colors.accentSoft,
+                      borderColor: activeTheme.colors.accentLine,
+                    }
+                  : null,
+              ]}
               onPress={() => setTab(item.key)}
               activeOpacity={0.85}
             >
               <Ionicons
                 name={item.icon}
                 size={16}
-                color={tab === item.key ? '#0f172a' : '#64748b'}
+                color={tab === item.key ? activeTheme.colors.accent : activeTheme.colors.mutedText}
               />
-              <Text style={[styles.tabLabel, tab === item.key ? styles.tabLabelActive : null]}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: activeTheme.colors.mutedText },
+                  tab === item.key ? { color: activeTheme.colors.accent } : null,
+                ]}
+              >
                 {item.label}
               </Text>
             </TouchableOpacity>
@@ -1009,16 +1033,16 @@ export function LoansScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View>
-                <Text style={styles.sectionHint}>{activeBorrowedLoans.length} active personal loans</Text>
-                <Text style={styles.sectionTitle}>My loans</Text>
+                <Text style={[styles.sectionHint, { color: activeTheme.colors.mutedText }]}>{activeBorrowedLoans.length} active personal loans</Text>
+                <Text style={[styles.sectionTitle, { color: activeTheme.colors.text }]}>My loans</Text>
               </View>
               <TouchableOpacity
-                style={styles.inlineAddButton}
+                style={[styles.inlineAddButton, { backgroundColor: activeTheme.colors.accentSoft, borderColor: activeTheme.colors.accentLine }]}
                 onPress={() => setIsAddBorrowedModalOpen(true)}
                 activeOpacity={0.85}
               >
-                <Ionicons name="add" size={15} color="#fff" />
-                <Text style={styles.inlineAddButtonText}>New loan</Text>
+                <Ionicons name="add" size={15} color={activeTheme.colors.accent} />
+                <Text style={[styles.inlineAddButtonText, { color: activeTheme.colors.accent }]}>New loan</Text>
               </TouchableOpacity>
             </View>
 
@@ -1042,13 +1066,13 @@ export function LoansScreen() {
               <View style={styles.repaidSection}>
                 <TouchableOpacity style={styles.repaidHeader} onPress={togglePaidOff} activeOpacity={0.8}>
                   <View>
-                    <Text style={styles.sectionHint}>History</Text>
-                    <Text style={styles.sectionTitle}>Paid off loans ({paidOffBorrowedLoans.length})</Text>
+                    <Text style={[styles.sectionHint, { color: activeTheme.colors.mutedText }]}>History</Text>
+                    <Text style={[styles.sectionTitle, { color: activeTheme.colors.text }]}>Paid off loans ({paidOffBorrowedLoans.length})</Text>
                   </View>
                   <Ionicons
                     name={paidOffExpanded ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#64748b"
+                    color={activeTheme.colors.mutedText}
                   />
                 </TouchableOpacity>
 
@@ -1072,16 +1096,16 @@ export function LoansScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View>
-                <Text style={styles.sectionHint}>{activeLoans.length} active loans</Text>
-                <Text style={styles.sectionTitle}>Lent out loans</Text>
+                <Text style={[styles.sectionHint, { color: activeTheme.colors.mutedText }]}>{activeLoans.length} active loans</Text>
+                <Text style={[styles.sectionTitle, { color: activeTheme.colors.text }]}>Lent out loans</Text>
               </View>
               <TouchableOpacity
-                style={styles.inlineAddButton}
+                style={[styles.inlineAddButton, { backgroundColor: activeTheme.colors.accentSoft, borderColor: activeTheme.colors.accentLine }]}
                 onPress={() => setIsAddModalOpen(true)}
                 activeOpacity={0.85}
               >
-                <Ionicons name="add" size={15} color="#fff" />
-                <Text style={styles.inlineAddButtonText}>New loan</Text>
+                <Ionicons name="add" size={15} color={activeTheme.colors.accent} />
+                <Text style={[styles.inlineAddButtonText, { color: activeTheme.colors.accent }]}>New loan</Text>
               </TouchableOpacity>
             </View>
 
@@ -1097,10 +1121,10 @@ export function LoansScreen() {
                 />
               ))
             ) : !lentError ? (
-              <View style={styles.placeholderCard}>
-                <Ionicons name="document-text-outline" size={36} color="#cbd5e1" />
-                <Text style={styles.placeholderTitle}>No active loans</Text>
-                <Text style={styles.placeholderText}>
+              <View style={[styles.placeholderCard, { backgroundColor: activeTheme.colors.surface, borderColor: activeTheme.colors.surfaceBorder }]}>
+                <Ionicons name="document-text-outline" size={36} color={activeTheme.colors.subtleText} />
+                <Text style={[styles.placeholderTitle, { color: activeTheme.colors.text }]}>No active loans</Text>
+                <Text style={[styles.placeholderText, { color: activeTheme.colors.mutedText }]}>
                   Add your first loan to start tracking due dates and repayments.
                 </Text>
               </View>
@@ -1114,13 +1138,13 @@ export function LoansScreen() {
                   activeOpacity={0.8}
                 >
                   <View>
-                    <Text style={styles.sectionHint}>History</Text>
-                    <Text style={styles.sectionTitle}>Repaid loans ({repaidLoans.length})</Text>
+                    <Text style={[styles.sectionHint, { color: activeTheme.colors.mutedText }]}>History</Text>
+                    <Text style={[styles.sectionTitle, { color: activeTheme.colors.text }]}>Repaid loans ({repaidLoans.length})</Text>
                   </View>
                   <Ionicons
                     name={repaidExpanded ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#64748b"
+                    color={activeTheme.colors.mutedText}
                   />
                 </TouchableOpacity>
 

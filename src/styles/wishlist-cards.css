@@ -1,0 +1,251 @@
+/* ─────────────────────────────────────────────────────────────
+   Wishlist card tokens — Obsidian Wealth skin
+   All hard-coded hex/rgba values mirror the mission-control
+   CSS variables defined in theme.css.
+   ─────────────────────────────────────────────────────────────── */
+
+/* ── Card shell ──────────────────────────────────────────────── */
+.wl-card {
+  background-color: #111114;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.wl-card:hover {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.wl-card-ready {
+  border-color: rgba(94, 189, 151, 0.28) !important;
+}
+
+/* ── Image placeholder area ──────────────────────────────────── */
+.wl-image-area {
+  background-color: #18181c;
+}
+
+/* Image-overlay badge for purchased / ready states */
+.wl-image-badge-state {
+  color: #5ebd97;
+  background: rgba(94, 189, 151, 0.15);
+  border: 1px solid rgba(94, 189, 151, 0.28);
+}
+
+/* ── Priority badges ─────────────────────────────────────────── */
+.wl-dot-high   { background-color: #c96b6b; }
+.wl-dot-medium { background-color: #d4874a; }
+.wl-dot-low    { background-color: #5ebd97; }
+
+.wl-badge-high {
+  color: #c96b6b;
+  background: rgba(201, 107, 107, 0.12);
+  border: 1px solid rgba(201, 107, 107, 0.22);
+}
+.wl-badge-medium {
+  color: #d4874a;
+  background: rgba(212, 135, 74, 0.12);
+  border: 1px solid rgba(212, 135, 74, 0.22);
+}
+.wl-badge-low {
+  color: #5ebd97;
+  background: rgba(94, 189, 151, 0.12);
+  border: 1px solid rgba(94, 189, 151, 0.22);
+}
+
+/* ── Category tag ────────────────────────────────────────────── */
+.wl-tag-category {
+  color: #6b6862;
+  background-color: #202026;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* ── Metadata-status tags ────────────────────────────────────── */
+.wl-tag-fresh {
+  color: #5ba3c9;
+  background: rgba(91, 163, 201, 0.10);
+  border: 1px solid rgba(91, 163, 201, 0.20);
+}
+.wl-tag-stale {
+  color: #c9a84c;
+  background: rgba(201, 168, 76, 0.10);
+  border: 1px solid rgba(201, 168, 76, 0.20);
+}
+.wl-tag-unknown {
+  color: #6b6862;
+  background-color: #202026;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* ── Price-trend tags ────────────────────────────────────────── */
+.wl-trend-up {
+  color: #c96b6b;
+  background: rgba(201, 107, 107, 0.12);
+  border: 1px solid rgba(201, 107, 107, 0.22);
+}
+.wl-trend-down {
+  color: #5ebd97;
+  background: rgba(94, 189, 151, 0.12);
+  border: 1px solid rgba(94, 189, 151, 0.22);
+}
+.wl-trend-flat,
+.wl-trend-unknown {
+  color: #6b6862;
+  background-color: #202026;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* ── Savings progress ────────────────────────────────────────── */
+.wl-progress-track {
+  background-color: #202026;
+}
+/* in-progress: sky with glow */
+.wl-progress-bar {
+  background-color: #5ba3c9;
+  box-shadow: 0 0 8px rgba(91, 163, 201, 0.4);
+}
+/* exactly met / purchased: sage */
+.wl-progress-bar-complete {
+  background-color: #5ebd97;
+  box-shadow: none;
+}
+/* overfunded: gold */
+.wl-progress-bar-over {
+  background-color: #c9a84c;
+  box-shadow: none;
+}
+.wl-progress-text {
+  color: rgba(255, 255, 255, 0.40);
+}
+
+/* ── Notes section ───────────────────────────────────────────── */
+.wl-notes {
+  background-color: #202026;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+.wl-notes-label {
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.wl-notes-body {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.72rem;
+  white-space: pre-line;
+  word-break: break-word;
+}
+.wl-notes-toggle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #5ba3c9;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.wl-notes-toggle:hover {
+  color: #7bbbd9;
+}
+
+/* ── Icon action buttons ─────────────────────────────────────── */
+.wl-icon-action {
+  background-color: #202026;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.48);
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.wl-icon-action:hover:not(:disabled) {
+  background-color: #2a2a32;
+  border-color: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.72);
+}
+.wl-icon-action:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+/* primary tone (deposit) */
+.wl-icon-action-primary {
+  color: #5ba3c9;
+  background: rgba(91, 163, 201, 0.10);
+  border-color: rgba(91, 163, 201, 0.22);
+}
+.wl-icon-action-primary:hover:not(:disabled) {
+  background: rgba(91, 163, 201, 0.20);
+}
+/* positive tone (mark purchased / restore) */
+.wl-icon-action-positive {
+  color: #5ebd97;
+  background: rgba(94, 189, 151, 0.10);
+  border-color: rgba(94, 189, 151, 0.22);
+}
+.wl-icon-action-positive:hover:not(:disabled) {
+  background: rgba(94, 189, 151, 0.20);
+}
+/* danger tone (delete) */
+.wl-icon-action-danger {
+  color: #c96b6b;
+  background: rgba(201, 107, 107, 0.10);
+  border-color: rgba(201, 107, 107, 0.22);
+}
+.wl-icon-action-danger:hover:not(:disabled) {
+  background: rgba(201, 107, 107, 0.20);
+}
+
+/* ── Dropdown (overflow actions) ─────────────────────────────── */
+.wl-dropdown-trigger {
+  background-color: #202026;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.48);
+}
+.wl-dropdown-trigger:hover {
+  background-color: #2a2a32;
+  border-color: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.72);
+}
+.wl-dropdown-menu {
+  background-color: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.64);
+}
+.wl-dropdown-edit {
+  color: #5ba3c9;
+  border-radius: 0.375rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.wl-dropdown-edit:hover {
+  background: rgba(91, 163, 201, 0.10);
+}
+.wl-dropdown-delete {
+  color: #c96b6b;
+  border-radius: 0.375rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.wl-dropdown-delete:hover {
+  background: rgba(201, 107, 107, 0.10);
+}
+
+/* ── Purchased state text ────────────────────────────────────── */
+.wl-text-purchased {
+  color: #5ebd97;
+}
+
+/* ── Refresh error text ──────────────────────────────────────── */
+.wl-text-error {
+  color: #c96b6b;
+}

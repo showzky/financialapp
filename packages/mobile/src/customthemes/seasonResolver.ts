@@ -35,10 +35,6 @@ export function resolveSeasonalTheme(date = new Date()): CustomThemeId {
   const easterStart = addDays(easterSunday, -7)
   const easterEnd = addDays(easterSunday, 1)
 
-  if (isWithinRange(date, new Date(year, 11, 1), new Date(year, 11, 31))) {
-    return 'christmas'
-  }
-
   if (isWithinRange(date, easterStart, easterEnd)) {
     return 'easter'
   }
@@ -53,5 +49,5 @@ export function resolveSeasonalTheme(date = new Date()): CustomThemeId {
     return 'summer'
   }
 
-  return 'default'
+  return 'winter'
 }

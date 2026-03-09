@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 
 export type ScreenHeroTheme = {
+  gradient: [string, string]
   eyebrow: string
   title: string
   subtitle: string
@@ -26,7 +27,7 @@ export function ScreenHero({
   theme,
 }: ScreenHeroProps) {
   return (
-    <LinearGradient colors={['#0f172a', '#1e3a5f']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+    <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
       <View style={styles.topRow}>
         <View style={styles.copy}>
           {eyebrow ? <Text style={[styles.eyebrow, { color: theme.eyebrow }]}>{eyebrow}</Text> : null}

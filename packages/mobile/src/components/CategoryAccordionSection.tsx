@@ -1,7 +1,7 @@
-// @ts-nocheck
 import React from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useScreenPalette } from '../customthemes'
 
 type Props = {
   title: string
@@ -24,8 +24,18 @@ export function CategoryAccordionSection({
   onToggle,
   children,
 }: Props) {
+  const { activeTheme } = useScreenPalette()
+
   return (
-    <View style={styles.group}>
+    <View
+      style={[
+        styles.group,
+        {
+          backgroundColor: activeTheme.colors.surfaceAlt,
+          borderColor: activeTheme.colors.surfaceBorder,
+        },
+      ]}
+    >
       <TouchableOpacity
         style={styles.header}
         onPress={onToggle}
@@ -36,15 +46,23 @@ export function CategoryAccordionSection({
         <View style={styles.headerLeft}>
           <View style={styles.titleRow}>
             <View style={[styles.dot, { backgroundColor: accentColor }]} />
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: activeTheme.colors.text }]}>{title}</Text>
           </View>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+          <Text style={[styles.subtitle, { color: activeTheme.colors.mutedText }]}>{subtitle}</Text>
         </View>
 
         <View style={styles.headerRight}>
           <Text style={[styles.total, { color: accentColor }]}>{totalLabel}</Text>
-          <View style={styles.chevronWrap}>
-            <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color="#6b7280" />
+          <View
+            style={[
+              styles.chevronWrap,
+              {
+                borderColor: activeTheme.colors.surfaceBorder,
+                backgroundColor: activeTheme.colors.surface,
+              },
+            ]}
+          >
+            <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={activeTheme.colors.mutedText} />
           </View>
         </View>
       </TouchableOpacity>
@@ -58,8 +76,17 @@ export function CategoryAccordionSection({
           accessibilityLabel={`${title} preview`}
         >
           {previewLabels.map((label, index) => (
-            <View key={`${label}-${index}`} style={styles.previewChip}>
-              <Text style={styles.previewText}>{label}</Text>
+            <View
+              key={`${label}-${index}`}
+              style={[
+                styles.previewChip,
+                {
+                  borderColor: activeTheme.colors.surfaceBorder,
+                  backgroundColor: activeTheme.colors.surface,
+                },
+              ]}
+            >
+              <Text style={[styles.previewText, { color: activeTheme.colors.mutedText }]}>{label}</Text>
             </View>
           ))}
         </TouchableOpacity>

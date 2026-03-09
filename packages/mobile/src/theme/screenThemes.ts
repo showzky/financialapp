@@ -12,6 +12,7 @@ export const screenThemes: Record<'home' | 'wishlist' | 'indicators' | 'settings
   home: {
     screenBackground: '#f3f6fb',
     hero: {
+      gradient: ['#0f172a', '#1e3a5f'],
       eyebrow: '#93c5fd',
       title: '#f8fafc',
       subtitle: '#cbd5e1',
@@ -23,6 +24,7 @@ export const screenThemes: Record<'home' | 'wishlist' | 'indicators' | 'settings
   wishlist: {
     screenBackground: '#f8fafc',
     hero: {
+      gradient: ['#0f172a', '#1e3a5f'],
       eyebrow: '#93c5fd',
       title: '#f8fafc',
       subtitle: '#cbd5e1',
@@ -34,6 +36,7 @@ export const screenThemes: Record<'home' | 'wishlist' | 'indicators' | 'settings
   indicators: {
     screenBackground: '#f3f5fb',
     hero: {
+      gradient: ['#0f172a', '#1e3a5f'],
       eyebrow: '#c7d2fe',
       title: '#f8fafc',
       subtitle: '#dbe4f0',
@@ -45,6 +48,7 @@ export const screenThemes: Record<'home' | 'wishlist' | 'indicators' | 'settings
   settings: {
     screenBackground: '#f4f7f5',
     hero: {
+      gradient: ['#0f172a', '#1e3a5f'],
       eyebrow: '#93c5fd',
       title: '#f8fafc',
       subtitle: '#cbd5e1',

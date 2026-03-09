@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react'
 import { ActivityIndicator, View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
@@ -99,7 +98,7 @@ function RootNavigator() {
 }
 
 function AppShell() {
-  const { activeTheme } = useCustomTheme()
+  const { activeTheme, isHydrated } = useCustomTheme()
   const [fontsLoaded] = useFonts({
     ...Ionicons.font,
     DMSerifDisplay_400Regular,
@@ -110,7 +109,7 @@ function AppShell() {
     DMSans_800ExtraBold,
   })
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !isHydrated) {
     return (
       <View
         style={{

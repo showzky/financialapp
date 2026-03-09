@@ -17,23 +17,23 @@ type WishlistItemCardProps = {
 
 const priorityVisuals = {
   High: {
-    dotClassName: 'bg-red-500',
-    badgeClassName: 'bg-red-50 text-red-700 border border-red-100',
+    dotClassName: 'wl-dot-high',
+    badgeClassName: 'wl-badge-high',
   },
   Medium: {
-    dotClassName: 'bg-amber-500',
-    badgeClassName: 'bg-amber-50 text-amber-700 border border-amber-100',
+    dotClassName: 'wl-dot-medium',
+    badgeClassName: 'wl-badge-medium',
   },
   Low: {
-    dotClassName: 'bg-emerald-500',
-    badgeClassName: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+    dotClassName: 'wl-dot-low',
+    badgeClassName: 'wl-badge-low',
   },
 } as const
 
 const metadataStatusVisuals = {
-  fresh: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-  stale: 'bg-amber-50 text-amber-700 border border-amber-100',
-  unknown: 'bg-slate-100 text-slate-700 border border-slate-200',
+  fresh: 'wl-tag-fresh',
+  stale: 'wl-tag-stale',
+  unknown: 'wl-tag-unknown',
 } as const
 
 const metadataStatusLabel = {
@@ -43,10 +43,10 @@ const metadataStatusLabel = {
 } as const
 
 const trendVisuals = {
-  up: 'bg-red-50 text-red-700 border border-red-100',
-  down: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-  flat: 'bg-slate-100 text-slate-700 border border-slate-200',
-  unknown: 'bg-slate-100 text-slate-700 border border-slate-200',
+  up: 'wl-trend-up',
+  down: 'wl-trend-down',
+  flat: 'wl-trend-flat',
+  unknown: 'wl-trend-unknown',
 } as const
 
 const trendLabel = {
@@ -76,13 +76,13 @@ const IconAction = ({
   children,
 }: IconActionProps) => {
   const toneClassMap = {
-    default: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
-    primary: 'border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100',
-    positive: 'border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
-    danger: 'border-red-100 bg-red-50 text-red-700 hover:bg-red-100',
+    default: 'wl-icon-action',
+    primary: 'wl-icon-action wl-icon-action-primary',
+    positive: 'wl-icon-action wl-icon-action-positive',
+    danger: 'wl-icon-action wl-icon-action-danger',
   } as const
 
-  const buttonClassName = `grid h-8 w-8 place-items-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${toneClassMap[tone]} disabled:cursor-not-allowed disabled:opacity-50`
+  const buttonClassName = `grid h-8 w-8 place-items-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${toneClassMap[tone]}`
 
   if (href) {
     return (
@@ -130,7 +130,7 @@ const ImageSection = ({
   imageBadgeLabel,
   badgeClassName,
 }: ImageSectionProps) => (
-  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-100">
+  <div className="wl-image-area relative aspect-[4/3] w-full overflow-hidden rounded-xl">
     {imageUrl ? (
       <img
         src={imageUrl}
@@ -157,7 +157,7 @@ const ImageSection = ({
 
     <span
       className={`absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${
-        isPurchased || isReadyToBuy ? 'bg-emerald-100 text-emerald-700' : badgeClassName
+        isPurchased || isReadyToBuy ? 'wl-image-badge-state' : badgeClassName
       }`}
     >
       {imageBadgeLabel}
@@ -190,7 +190,7 @@ const MetadataRow = ({
       {priority}
     </span>
 
-    <span className="inline-flex max-w-[42%] items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-700">
+    <span className="wl-tag-category inline-flex max-w-[42%] items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold">
       <span className="truncate">{categoryLabel}</span>
     </span>
 
@@ -208,6 +208,7 @@ type SavingsProgressProps = {
   savedAmount: number
   roundedProgressPercent: number
   isReadyToBuy: boolean
+  isOverfunded: boolean
   progressPercent: number
   formatWishlistPrice: (price: number | null) => string
 }
@@ -217,18 +218,25 @@ const SavingsProgress = ({
   savedAmount,
   roundedProgressPercent,
   isReadyToBuy,
+  isOverfunded,
   progressPercent,
   formatWishlistPrice,
 }: SavingsProgressProps) =>
   hasTargetPrice ? (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-[0.72rem] font-medium text-slate-600">
+      <div className="wl-progress-text flex items-center justify-between text-[0.72rem] font-medium">
         <p className="truncate">Saved {formatWishlistPrice(savedAmount)}</p>
         <p>{roundedProgressPercent}%</p>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+      <div className="wl-progress-track h-1.5 w-full overflow-hidden rounded-full">
         <div
-          className={`h-full rounded-full transition-all ${isReadyToBuy ? 'bg-emerald-500' : 'bg-blue-500'}`}
+          className={`h-full rounded-full transition-all ${
+            isOverfunded
+              ? 'wl-progress-bar-over'
+              : isReadyToBuy
+                ? 'wl-progress-bar-complete'
+                : 'wl-progress-bar'
+          }`}
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -257,17 +265,11 @@ const NotesSection = ({
   }
 
   return (
-    <div className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-2">
-      <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">Notes</p>
-      <p className="whitespace-pre-line break-words text-[0.72rem] text-slate-700">
-        {displayedNotes}
-      </p>
+    <div className="wl-notes space-y-1">
+      <p className="wl-notes-label">Notes</p>
+      <p className="wl-notes-body">{displayedNotes}</p>
       {shouldTruncateNotes ? (
-        <button
-          type="button"
-          onClick={onToggleExpanded}
-          className="text-[0.72rem] font-semibold text-blue-700 hover:text-blue-800"
-        >
+        <button type="button" onClick={onToggleExpanded} className="wl-notes-toggle">
           {isNotesExpanded ? 'Show less' : 'Show more'}
         </button>
       ) : null}
@@ -413,7 +415,7 @@ const ActionsRow = ({
 
     {!isPurchased ? (
       <details className="relative">
-        <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+        <summary className="wl-dropdown-trigger grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20">
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -426,18 +428,18 @@ const ActionsRow = ({
           </svg>
         </summary>
 
-        <div className="absolute right-0 z-50 mt-2 min-w-[8rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-md">
+        <div className="wl-dropdown-menu absolute right-0 z-50 mt-2 min-w-[8rem] rounded-lg p-1.5">
           <button
             type="button"
             onClick={() => onVisitEdit(item)}
-            className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-blue-700 transition hover:bg-blue-50"
+            className="wl-dropdown-edit transition"
           >
             Edit
           </button>
           <button
             type="button"
             onClick={() => onDelete(itemId)}
-            className="mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-red-700 transition hover:bg-red-50"
+            className="wl-dropdown-delete transition"
           >
             Delete
           </button>
@@ -476,6 +478,7 @@ export const WishlistItemCard = ({
     : 0
   const roundedProgressPercent = Math.round(progressPercent)
   const isReadyToBuy = hasTargetPrice && item.savedAmount >= targetPrice
+  const isOverfunded = hasTargetPrice && item.savedAmount > (targetPrice ?? 0)
   const remainingAmountToTarget = hasTargetPrice
     ? Math.max(0, targetPrice - item.savedAmount)
     : null
@@ -494,10 +497,8 @@ export const WishlistItemCard = ({
 
   return (
     <article
-      className={`group relative flex h-full min-h-[320px] max-h-[450px] flex-col rounded-2xl border p-3 shadow-sm transition hover:z-30 focus-within:z-30 md:min-h-[400px] md:max-h-[550px] md:p-4 md:hover:scale-[1.02] md:hover:shadow-md ${
-        isReadyToBuy || isPurchased
-          ? 'border-emerald-200 bg-emerald-50/40'
-          : 'border-slate-200 bg-white'
+      className={`wl-card group relative flex h-full min-h-[320px] max-h-[450px] flex-col rounded-2xl p-3 transition hover:z-30 focus-within:z-30 md:min-h-[400px] md:max-h-[550px] md:p-4 md:hover:scale-[1.02] ${
+        isReadyToBuy || isPurchased ? 'wl-card-ready' : ''
       }`}
     >
       <ImageSection
@@ -546,6 +547,7 @@ export const WishlistItemCard = ({
           savedAmount={item.savedAmount}
           roundedProgressPercent={roundedProgressPercent}
           isReadyToBuy={isReadyToBuy}
+          isOverfunded={isOverfunded}
           progressPercent={progressPercent}
           formatWishlistPrice={formatWishlistPrice}
         />
@@ -562,7 +564,7 @@ export const WishlistItemCard = ({
         </p>
 
         {isPurchased ? (
-          <p className="text-[0.72rem] font-medium text-emerald-700">
+          <p className="wl-text-purchased text-[0.72rem] font-medium">
             Purchased{purchasedAtLabel ? ` · ${purchasedAtLabel}` : ''}
             {item.purchasedAmount !== null ? ` · ${formatWishlistPrice(item.purchasedAmount)}` : ''}
           </p>
@@ -580,7 +582,7 @@ export const WishlistItemCard = ({
           </p>
         ) : null}
 
-        {refreshError ? <p className="text-[0.72rem] text-red-600">{refreshError}</p> : null}
+        {refreshError ? <p className="wl-text-error text-[0.72rem]">{refreshError}</p> : null}
 
         <ActionsRow
           isPurchased={isPurchased}

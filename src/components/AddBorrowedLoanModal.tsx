@@ -86,16 +86,25 @@ export const AddBorrowedLoanModal = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2a44]/25 p-4 backdrop-blur-sm">
-      <div className="neo-card w-full max-w-md p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-text-primary">Add personal loan</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md">
+      <div
+        className="w-full max-w-md rounded-[20px] border border-[rgba(255,255,255,0.08)] bg-[#111114] p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add personal loan"
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#c9a84c]">Loans</p>
+            <h2 className="text-xl font-semibold text-text-primary">Add personal loan</h2>
+          </div>
           <button
             type="button"
             onClick={handleClose}
-            className="neo-card neo-pressable px-3 py-1 text-sm font-semibold text-text-muted"
+            aria-label="Close add personal loan modal"
+            className="rounded-lg border border-[rgba(255,255,255,0.10)] p-2 text-text-muted transition hover:border-[rgba(255,255,255,0.20)] hover:text-text-primary"
           >
-            Close
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
@@ -110,10 +119,10 @@ export const AddBorrowedLoanModal = ({
               value={formState.lender}
               onChange={(event) => setFormState((current) => ({ ...current, lender: event.target.value }))}
               placeholder="Storebrand, DNB, family member..."
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
               autoFocus
             />
-            {hasTriedSubmit && lender.length === 0 ? <p className="text-xs text-red-500">Lender is required.</p> : null}
+            {hasTriedSubmit && lender.length === 0 ? <p className="text-xs text-[#c96b6b]">Lender is required.</p> : null}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -129,9 +138,9 @@ export const AddBorrowedLoanModal = ({
                 value={formState.originalAmount}
                 onChange={(event) => setFormState((current) => ({ ...current, originalAmount: event.target.value }))}
                 placeholder="0.00"
-                className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
               />
-              {hasTriedSubmit && !isOriginalAmountValid ? <p className="text-xs text-red-500">Enter a valid original amount.</p> : null}
+              {hasTriedSubmit && !isOriginalAmountValid ? <p className="text-xs text-[#c96b6b]">Enter a valid original amount.</p> : null}
             </div>
             <div className="space-y-2">
               <label htmlFor="borrowed-loan-current-balance" className="text-sm font-medium text-text-muted">
@@ -145,9 +154,9 @@ export const AddBorrowedLoanModal = ({
                 value={formState.currentBalance}
                 onChange={(event) => setFormState((current) => ({ ...current, currentBalance: event.target.value }))}
                 placeholder="0.00"
-                className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
               />
-              {hasTriedSubmit && !isCurrentBalanceValid ? <p className="text-xs text-red-500">Enter a valid current balance.</p> : null}
+              {hasTriedSubmit && !isCurrentBalanceValid ? <p className="text-xs text-[#c96b6b]">Enter a valid current balance.</p> : null}
             </div>
           </div>
 
@@ -164,13 +173,13 @@ export const AddBorrowedLoanModal = ({
               value={formState.interestRate}
               onChange={(event) => setFormState((current) => ({ ...current, interestRate: event.target.value }))}
               placeholder="6"
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
             />
-            {hasTriedSubmit && !isInterestRateValid ? <p className="text-xs text-red-500">Enter an interest rate between 0 and 100.</p> : null}
+            {hasTriedSubmit && !isInterestRateValid ? <p className="text-xs text-[#c96b6b]">Enter an interest rate between 0 and 100.</p> : null}
           </div>
 
           {hasTriedSubmit && !isBalanceRangeValid ? (
-            <p className="text-xs text-red-500">Current balance cannot exceed the original amount.</p>
+            <p className="text-xs text-[#c96b6b]">Current balance cannot exceed the original amount.</p>
           ) : null}
 
           <div className="space-y-2">
@@ -182,7 +191,7 @@ export const AddBorrowedLoanModal = ({
               type="date"
               value={formState.payoffDate}
               onChange={(event) => setFormState((current) => ({ ...current, payoffDate: event.target.value }))}
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
             />
           </div>
 
@@ -196,16 +205,16 @@ export const AddBorrowedLoanModal = ({
               onChange={(event) => setFormState((current) => ({ ...current, notes: event.target.value }))}
               placeholder="Optional context about terms or repayment plan"
               rows={3}
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
             />
           </div>
 
-          {submitError ? <p className="text-sm text-red-500">{submitError}</p> : null}
+          {submitError ? <p className="text-sm text-[#c96b6b]">{submitError}</p> : null}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="neo-card neo-pressable w-full px-4 py-3 text-sm font-semibold text-text-primary disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex w-full items-center justify-center rounded-[10px] border border-[#c9a84c] bg-[#c9a84c] px-4 py-3 text-sm font-semibold text-[#0a0a0b] transition hover:bg-[#e2c06a] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isSubmitting ? 'Saving…' : 'Add personal loan'}
           </button>

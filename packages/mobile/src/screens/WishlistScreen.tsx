@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   View,
@@ -16,7 +15,7 @@ import { WishlistItemSheet } from '../components/WishlistItemSheet'
 import { WishlistPurchaseSheet } from '../components/WishlistPurchaseSheet'
 import { WishlistDepositSheet } from '../components/WishlistDepositSheet'
 import { getWishlistProgressSnapshot } from '../shared'
-import { screenThemes } from '../theme/screenThemes'
+import { useScreenPalette } from '../customthemes'
 
 type WishlistStatusFilter = 'active' | 'purchased'
 
@@ -46,7 +45,7 @@ const getCategoryTone = (category?: string | null) => {
 }
 
 export function WishlistScreen() {
-  const theme = screenThemes.wishlist
+  const { activeTheme } = useScreenPalette()
   const [items, setItems] = useState<WishlistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -223,20 +222,26 @@ export function WishlistScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}> 
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Loading wishlist...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: activeTheme.colors.screenBackground }]}>
+        <ActivityIndicator size="large" color={activeTheme.colors.accent} />
+        <Text style={[styles.loadingText, { color: activeTheme.colors.mutedText }]}>Loading wishlist...</Text>
       </View>
     )
   }
 
   if (error && items.length === 0) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}> 
+      <View style={[styles.centerContainer, { backgroundColor: activeTheme.colors.screenBackground }]}>
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => void loadWishlist()}>
-          <Text style={styles.retryText}>Retry</Text>
+        <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{error}</Text>
+        <TouchableOpacity
+          style={[
+            styles.retryButton,
+            { backgroundColor: activeTheme.colors.accentSoft, borderColor: activeTheme.colors.accentLine },
+          ]}
+          onPress={() => void loadWishlist()}
+        >
+          <Text style={[styles.retryText, { color: activeTheme.colors.accent }]}>Retry</Text>
         </TouchableOpacity>
       </View>
     )
@@ -244,7 +249,7 @@ export function WishlistScreen() {
 
   return (
     <>
-      <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+      <ScrollView style={[styles.container, { backgroundColor: activeTheme.colors.screenBackground }]}>
         <ScreenHero
           eyebrow="Collection"
           title="Wishlist"
@@ -253,37 +258,42 @@ export function WishlistScreen() {
               ? `${filteredItems.length} active item${filteredItems.length === 1 ? '' : 's'}`
               : `${filteredItems.length} purchased item${filteredItems.length === 1 ? '' : 's'}`
           }
-          theme={theme.hero}
+          theme={{
+            gradient: activeTheme.colors.heroGradient,
+            eyebrow: activeTheme.colors.heroEyebrow,
+            title: activeTheme.colors.heroTitle,
+            subtitle: activeTheme.colors.heroSubtitle,
+          }}
           actions={
             <TouchableOpacity
               style={[
                 styles.heroAction,
                 {
-                  backgroundColor: theme.actionSurface,
-                  borderColor: theme.actionBorder,
+                  backgroundColor: activeTheme.colors.heroActionSurface,
+                  borderColor: activeTheme.colors.heroActionBorder,
                 },
               ]}
               activeOpacity={0.85}
               onPress={openAddItemSheet}
             >
-              <Ionicons name="add" size={18} color={theme.actionText} />
+              <Ionicons name="add" size={18} color={activeTheme.colors.heroActionText} />
             </TouchableOpacity>
           }
         >
           <View style={styles.heroStatsRow}>
-            <View style={styles.heroStatCard}>
-              <Text style={styles.heroStatValue}>{selectedStatus === 'active' ? activeCount : purchasedCount}</Text>
-              <Text style={styles.heroStatLabel}>{selectedStatus === 'active' ? 'Active list' : 'Purchased archive'}</Text>
+            <View style={[styles.heroStatCard, { backgroundColor: activeTheme.colors.heroCardSurface, borderColor: activeTheme.colors.heroCardBorder }]}>
+              <Text style={[styles.heroStatValue, { color: activeTheme.colors.heroTitle }]}>{selectedStatus === 'active' ? activeCount : purchasedCount}</Text>
+              <Text style={[styles.heroStatLabel, { color: activeTheme.colors.heroSubtitle }]}>{selectedStatus === 'active' ? 'Active list' : 'Purchased archive'}</Text>
             </View>
-            <View style={styles.heroStatCard}>
-              <Text style={styles.heroStatValue}>{selectedStatus === 'active' ? purchasedCount : activeCount}</Text>
-              <Text style={styles.heroStatLabel}>{selectedStatus === 'active' ? 'Purchased archive' : 'Active list'}</Text>
+            <View style={[styles.heroStatCard, { backgroundColor: activeTheme.colors.heroCardSurface, borderColor: activeTheme.colors.heroCardBorder }]}>
+              <Text style={[styles.heroStatValue, { color: activeTheme.colors.heroTitle }]}>{selectedStatus === 'active' ? purchasedCount : activeCount}</Text>
+              <Text style={[styles.heroStatLabel, { color: activeTheme.colors.heroSubtitle }]}>{selectedStatus === 'active' ? 'Purchased archive' : 'Active list'}</Text>
             </View>
-            <View style={styles.heroStatCard}>
-              <Text style={styles.heroStatValue}>
+            <View style={[styles.heroStatCard, { backgroundColor: activeTheme.colors.heroCardSurface, borderColor: activeTheme.colors.heroCardBorder }]}>
+              <Text style={[styles.heroStatValue, { color: activeTheme.colors.heroTitle }]}>
                 {formatNok(selectedStatus === 'active' ? activeRemainingTotal : purchasedTotal)}
               </Text>
-              <Text style={styles.heroStatLabel}>{selectedStatus === 'active' ? 'Remaining' : 'Purchased total'}</Text>
+              <Text style={[styles.heroStatLabel, { color: activeTheme.colors.heroSubtitle }]}>{selectedStatus === 'active' ? 'Remaining' : 'Purchased total'}</Text>
             </View>
           </View>
         </ScreenHero>
@@ -291,21 +301,53 @@ export function WishlistScreen() {
         <View style={styles.content}>
           <View style={styles.segmentedControl}>
             <TouchableOpacity
-              style={[styles.segmentButton, selectedStatus === 'active' && styles.segmentButtonActive]}
+              style={[
+                styles.segmentButton,
+                {
+                  backgroundColor: activeTheme.colors.surface,
+                  borderColor: activeTheme.colors.surfaceBorder,
+                },
+                selectedStatus === 'active' && {
+                  backgroundColor: activeTheme.colors.accentSoft,
+                  borderColor: activeTheme.colors.accentLine,
+                },
+              ]}
               onPress={() => setSelectedStatus('active')}
               activeOpacity={0.85}
             >
-              <Text style={[styles.segmentButtonText, selectedStatus === 'active' && styles.segmentButtonTextActive]}>
+              <Text
+                style={[
+                  styles.segmentButtonText,
+                  { color: activeTheme.colors.mutedText },
+                  selectedStatus === 'active' && { color: activeTheme.colors.accent },
+                ]}
+              >
                 Active ({activeCount})
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.segmentButton, selectedStatus === 'purchased' && styles.segmentButtonActive]}
+              style={[
+                styles.segmentButton,
+                {
+                  backgroundColor: activeTheme.colors.surface,
+                  borderColor: activeTheme.colors.surfaceBorder,
+                },
+                selectedStatus === 'purchased' && {
+                  backgroundColor: activeTheme.colors.accentSoft,
+                  borderColor: activeTheme.colors.accentLine,
+                },
+              ]}
               onPress={() => setSelectedStatus('purchased')}
               activeOpacity={0.85}
             >
-              <Text style={[styles.segmentButtonText, selectedStatus === 'purchased' && styles.segmentButtonTextActive]}>
+              <Text
+                style={[
+                  styles.segmentButtonText,
+                  { color: activeTheme.colors.mutedText },
+                  selectedStatus === 'purchased' && { color: activeTheme.colors.accent },
+                ]}
+              >
                 Purchased ({purchasedCount})
               </Text>
             </TouchableOpacity>
@@ -322,11 +364,27 @@ export function WishlistScreen() {
               return (
                 <TouchableOpacity
                   key={category}
-                  style={[styles.filterChip, isActive && styles.filterChipActive]}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: activeTheme.colors.surface,
+                      borderColor: activeTheme.colors.surfaceBorder,
+                    },
+                    isActive && {
+                      backgroundColor: activeTheme.colors.accentSoft,
+                      borderColor: activeTheme.colors.accentLine,
+                    },
+                  ]}
                   onPress={() => setSelectedCategory(category)}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      { color: activeTheme.colors.mutedText },
+                      isActive && { color: activeTheme.colors.accent },
+                    ]}
+                  >
                     {category}
                   </Text>
                 </TouchableOpacity>
@@ -334,20 +392,20 @@ export function WishlistScreen() {
             })}
           </ScrollView>
 
-          <Text style={styles.resultsMeta}>
+          <Text style={[styles.resultsMeta, { color: activeTheme.colors.mutedText }]}>
             {filteredItems.length} item{filteredItems.length === 1 ? '' : 's'} in {selectedStatus === 'active' ? 'active' : 'purchased'} view
           </Text>
 
-          {error ? <Text style={styles.inlineErrorText}>{error}</Text> : null}
+          {error ? <Text style={[styles.inlineErrorText, { color: activeTheme.colors.danger }]}>{error}</Text> : null}
 
           {filteredItems.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons
                 name={selectedStatus === 'active' ? 'heart-outline' : 'archive-outline'}
                 size={48}
-                color="#d1d5db"
+                color={activeTheme.colors.subtleText}
               />
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, { color: activeTheme.colors.mutedText }]}>
                 {selectedStatus === 'active'
                   ? 'No active wishlist items in this category'
                   : 'No purchased items in this category'}
@@ -362,7 +420,17 @@ export function WishlistScreen() {
                 const actionLabel = item.purchased ? 'Restore' : progress.isReadyToBuy ? 'Purchase' : 'Add Funds'
 
                 return (
-                  <View key={item.id} style={[styles.itemCard, item.purchased && styles.itemCardPurchased]}>
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.itemCard,
+                      item.purchased && styles.itemCardPurchased,
+                      {
+                        backgroundColor: item.purchased ? activeTheme.colors.surfaceAlt : activeTheme.colors.surface,
+                        borderColor: activeTheme.colors.surfaceBorder,
+                      },
+                    ]}
+                  >
                     <View style={styles.itemTopRow}>
                       <View style={styles.itemMediaWrap}>
                         {item.imageUrl ? (
@@ -373,7 +441,7 @@ export function WishlistScreen() {
                           />
                         ) : (
                           <View style={styles.placeholderMedia}>
-                            <Ionicons name="image-outline" size={26} color="#cbd5e1" />
+                            <Ionicons name="image-outline" size={26} color={activeTheme.colors.subtleText} />
                           </View>
                         )}
                       </View>
@@ -381,33 +449,53 @@ export function WishlistScreen() {
                       <View style={styles.itemMain}>
                         <View style={styles.itemHeaderRow}>
                           {item.category ? (
-                            <View style={[styles.categoryBadge, { backgroundColor: tone.backgroundColor }]}> 
+                            <View style={[styles.categoryBadge, { backgroundColor: tone.backgroundColor }]}>
                               <Text style={[styles.categoryText, { color: tone.textColor }]}>{item.category}</Text>
                             </View>
                           ) : null}
 
-                          <View style={[styles.statusPill, item.purchased ? styles.statusPillPurchased : styles.statusPillActive]}>
-                            <Text style={[styles.statusPillText, item.purchased ? styles.statusPillTextPurchased : styles.statusPillTextActive]}>
+                          <View
+                            style={[
+                              styles.statusPill,
+                              {
+                                backgroundColor: item.purchased
+                                  ? activeTheme.colors.secondarySoft
+                                  : `${activeTheme.colors.danger}1A`,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.statusPillText,
+                                { color: item.purchased ? activeTheme.colors.secondary : activeTheme.colors.danger },
+                              ]}
+                            >
                               {item.purchased ? 'Purchased' : item.priority}
                             </Text>
                           </View>
                         </View>
 
-                        <Text style={[styles.itemTitle, item.purchased && styles.itemPurchasedText]}>
+                        <Text style={[styles.itemTitle, { color: activeTheme.colors.text }, item.purchased && styles.itemPurchasedText]}>
                           {item.title}
                         </Text>
 
                         {item.price ? (
-                          <Text style={[styles.priceValue, item.purchased && styles.itemPurchasedPrice]}>
+                          <Text style={[styles.priceValue, { color: activeTheme.colors.secondary }, item.purchased && styles.itemPurchasedPrice]}>
                             {formatNok(item.price)}
                           </Text>
                         ) : (
-                          <Text style={styles.mutedValue}>No price yet</Text>
+                          <Text style={[styles.mutedValue, { color: activeTheme.colors.subtleText }]}>No price yet</Text>
                         )}
                       </View>
 
                       <TouchableOpacity
-                        style={[styles.statusButton, item.purchased && styles.statusButtonPurchased]}
+                        style={[
+                          styles.statusButton,
+                          {
+                            backgroundColor: item.purchased ? activeTheme.colors.secondarySoft : activeTheme.colors.accentSoft,
+                            borderColor: item.purchased ? activeTheme.colors.secondaryLine : activeTheme.colors.accentLine,
+                          },
+                        ]}
                         onPress={() =>
                           void (item.purchased
                             ? handleRestorePurchased(item)
@@ -419,12 +507,12 @@ export function WishlistScreen() {
                         disabled={isPending}
                       >
                         {isPending ? (
-                          <ActivityIndicator size="small" color={item.purchased ? '#16a34a' : '#2563eb'} />
+                          <ActivityIndicator size="small" color={item.purchased ? activeTheme.colors.secondary : activeTheme.colors.accent} />
                         ) : (
                           <Ionicons
                             name={item.purchased ? 'arrow-undo-outline' : progress.isReadyToBuy ? 'cart-outline' : 'add'}
                             size={18}
-                            color={item.purchased ? '#16a34a' : '#2563eb'}
+                            color={item.purchased ? activeTheme.colors.secondary : activeTheme.colors.accent}
                           />
                         )}
                       </TouchableOpacity>
@@ -435,45 +523,50 @@ export function WishlistScreen() {
                         {progress.hasTargetPrice ? (
                           <>
                             <View style={styles.progressMetaRow}>
-                              <Text style={styles.progressMetaText}>Saved {formatNok(progress.savedAmount)}</Text>
-                              <Text style={styles.progressMetaText}>{progress.roundedProgressPercent}%</Text>
+                              <Text style={[styles.progressMetaText, { color: activeTheme.colors.text }]}>Saved {formatNok(progress.savedAmount)}</Text>
+                              <Text style={[styles.progressMetaText, { color: activeTheme.colors.text }]}>{progress.roundedProgressPercent}%</Text>
                             </View>
-                            <View style={styles.progressTrack}>
+                            <View style={[styles.progressTrack, { backgroundColor: activeTheme.colors.surfaceBorderStrong }]}>
                               <View
                                 style={[
                                   styles.progressFill,
-                                  progress.isReadyToBuy && styles.progressFillReady,
-                                  { width: `${progress.progressPercent}%` },
+                                  { width: `${progress.progressPercent}%`, backgroundColor: progress.isReadyToBuy ? activeTheme.colors.secondary : activeTheme.colors.accent },
                                 ]}
                               />
                             </View>
-                            <Text style={styles.progressHint}>
+                            <Text style={[styles.progressHint, { color: activeTheme.colors.mutedText }]}>
                               {progress.isReadyToBuy
                                 ? 'Ready to mark as purchased.'
                                 : `Add ${formatNok(progress.remainingAmountToTarget ?? 0)} more to mark purchased.`}
                             </Text>
                           </>
                         ) : (
-                          <Text style={styles.progressHint}>Set a target price to track savings progress.</Text>
+                          <Text style={[styles.progressHint, { color: activeTheme.colors.mutedText }]}>Set a target price to track savings progress.</Text>
                         )}
                       </View>
-                    ) : item.purchasedAmount !== null ? (
+                    ) : typeof item.purchasedAmount === 'number' ? (
                       <View style={styles.progressWrap}>
-                        <Text style={styles.progressHint}>Purchased for {formatNok(item.purchasedAmount)}</Text>
+                        <Text style={[styles.progressHint, { color: activeTheme.colors.mutedText }]}>Purchased for {formatNok(item.purchasedAmount)}</Text>
                       </View>
                     ) : null}
 
-                    <View style={styles.itemFooter}>
+                    <View style={[styles.itemFooter, { borderTopColor: activeTheme.colors.surfaceBorder }]}>
                       <View style={styles.noteRow}>
-                        <Ionicons name="ellipse" size={8} color="#c4b5fd" />
-                        <Text style={styles.notesText} numberOfLines={2}>
+                        <Ionicons name="ellipse" size={8} color={activeTheme.colors.tertiary} />
+                        <Text style={[styles.notesText, { color: activeTheme.colors.mutedText }]} numberOfLines={2}>
                           {item.notes?.trim() || (item.purchased ? 'Purchased item' : 'No notes yet')}
                         </Text>
                       </View>
 
                       <View style={styles.itemActionsRow}>
                         <TouchableOpacity
-                          style={styles.secondaryActionButton}
+                          style={[
+                            styles.secondaryActionButton,
+                            {
+                              borderColor: activeTheme.colors.surfaceBorder,
+                              backgroundColor: activeTheme.colors.surface,
+                            },
+                          ]}
                           activeOpacity={0.85}
                           onPress={() =>
                             void (item.purchased
@@ -484,17 +577,23 @@ export function WishlistScreen() {
                           }
                           disabled={isPending}
                         >
-                          <Text style={styles.secondaryActionText}>{actionLabel}</Text>
+                          <Text style={[styles.secondaryActionText, { color: activeTheme.colors.text }]}>{actionLabel}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={styles.editButton}
+                          style={[
+                            styles.editButton,
+                            {
+                              borderColor: activeTheme.colors.surfaceBorder,
+                              backgroundColor: activeTheme.colors.surface,
+                            },
+                          ]}
                           activeOpacity={0.85}
                           onPress={() => openEditItemSheet(item)}
                           disabled={isPending}
                         >
-                          <Ionicons name="pencil" size={14} color="#f97316" />
-                          <Text style={styles.editText}>Edit</Text>
+                          <Ionicons name="pencil" size={14} color={activeTheme.colors.accent} />
+                          <Text style={[styles.editText, { color: activeTheme.colors.mutedText }]}>Edit</Text>
                         </TouchableOpacity>
                       </View>
                     </View>

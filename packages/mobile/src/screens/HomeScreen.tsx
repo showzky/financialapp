@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
@@ -13,7 +12,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { dashboardApi, type DashboardData, type CategoryWithSpent } from '../services/dashboardApi'
-import { useCustomTheme } from '../customthemes'
+import { useScreenPalette } from '../customthemes'
 import { usePeriod } from '../context/PeriodContext'
 import { MonthPickerModal } from '../components/MonthPickerModal'
 import { CategoryCard } from '../components/CategoryCard'
@@ -22,7 +21,6 @@ import { CategoryDetailModal } from '../components/CategoryDetailModal'
 import { AddExpenseModal } from '../components/AddExpenseModal'
 import { SetIncomeModal } from '../components/SetIncomeModal' // ADDED THIS
 import { ScreenHero } from '../components/ScreenHero'
-import { screenThemes } from '../theme/screenThemes'
 import { inferEssentialBucket, inferPocketMoneyRole } from '../utils/pocketMoney'
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -32,14 +30,9 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 type PocketBucketKey = 'bills' | 'food' | 'fuel' | 'savings' | 'pocket' | 'other'
 
 export function HomeScreen() {
-  const theme = screenThemes.home
   const {
     activeTheme,
-    resolvedThemeId,
-    source,
-    clearManualTheme,
-    cycleTheme,
-  } = useCustomTheme()
+  } = useScreenPalette()
   const { selectedMonth, setSelectedMonth } = usePeriod()
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -233,25 +226,30 @@ export function HomeScreen() {
         eyebrow="Overview"
         title={'Financial\nOverview'}
         subtitle="Track income, allocations, and monthly momentum from one place."
-        theme={theme.hero}
+        theme={{
+          gradient: activeTheme.colors.heroGradient,
+          eyebrow: activeTheme.colors.heroEyebrow,
+          title: activeTheme.colors.heroTitle,
+          subtitle: activeTheme.colors.heroSubtitle,
+        }}
         actions={
           <View
             style={[
               styles.monthSwitcher,
               {
-                backgroundColor: theme.actionSurface,
-                borderColor: theme.actionBorder,
+                backgroundColor: activeTheme.colors.heroActionSurface,
+                borderColor: activeTheme.colors.heroActionBorder,
               },
             ]}
           >
             <TouchableOpacity style={styles.monthSwitchButton} onPress={() => handleShiftMonth(-1)} activeOpacity={0.8}>
-              <Text style={[styles.monthSwitchGlyph, { color: theme.actionText }]}>{'<'}</Text>
+              <Text style={[styles.monthSwitchGlyph, { color: activeTheme.colors.heroActionText }]}>{'<'}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setMonthPickerVisible(true)} activeOpacity={0.85}>
-              <Text style={[styles.monthSwitchLabel, { color: theme.actionText }]}>{selectedMonthName}</Text>
+              <Text style={[styles.monthSwitchLabel, { color: activeTheme.colors.heroActionText }]}>{selectedMonthName}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.monthSwitchButton} onPress={() => handleShiftMonth(1)} activeOpacity={0.8}>
-              <Text style={[styles.monthSwitchGlyph, { color: theme.actionText }]}>{'>'}</Text>
+              <Text style={[styles.monthSwitchGlyph, { color: activeTheme.colors.heroActionText }]}>{'>'}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -264,81 +262,42 @@ export function HomeScreen() {
           ].map((item) => (
             <View key={item.label} style={styles.heroMetricCard}>
               <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={16} color={item.accent} />
-              <Text style={styles.heroMetricValue}>{item.value.toLocaleString('nb-NO')}</Text>
-              <Text style={styles.heroMetricLabel}>{item.label}</Text>
+              <Text style={[styles.heroMetricValue, { color: activeTheme.colors.heroTitle }]}>{item.value.toLocaleString('nb-NO')}</Text>
+              <Text style={[styles.heroMetricLabel, { color: activeTheme.colors.heroSubtitle }]}>{item.label}</Text>
             </View>
           ))}
         </View>
 
         <View style={styles.heroProgressSection}>
           <View style={styles.heroProgressMeta}>
-            <Text style={styles.heroProgressHint}>
+            <Text style={[styles.heroProgressHint, { color: activeTheme.colors.heroSubtitle }]}>
               {allocationBalance < 0
                 ? `NOK ${Math.abs(allocationBalance).toLocaleString('nb-NO')} over-allocated`
                 : `NOK ${allocationBalance.toLocaleString('nb-NO')} left to allocate`}
             </Text>
-            <Text style={[styles.heroProgressHint, styles.heroProgressHintRight]}>
+            <Text style={[styles.heroProgressHint, styles.heroProgressHintRight, { color: activeTheme.colors.accent2 }]}>
               {dashboard.totalSpent.toLocaleString('nb-NO')} / {dashboard.totalAllocated.toLocaleString('nb-NO')}
             </Text>
           </View>
-          <View style={styles.heroProgressTrack}>
-            <View style={[styles.heroProgressFill, { width: `${allocationProgress}%` }]} />
+          <View style={[styles.heroProgressTrack, { backgroundColor: activeTheme.colors.progressTrack }]}>
+            <View style={[styles.heroProgressFill, { width: `${allocationProgress}%`, backgroundColor: activeTheme.colors.accent }]} />
           </View>
         </View>
       </ScreenHero>
 
       <View style={styles.dashboardBody}>
-        <View
-          style={[
-            styles.themePreviewCard,
-            {
-              backgroundColor: activeTheme.colors.surface,
-              borderColor: activeTheme.colors.surfaceBorder,
-            },
-          ]}
-        >
-          <View style={styles.themePreviewCopy}>
-            <Text style={[styles.themePreviewEyebrow, { color: activeTheme.colors.accent }]}>Theme engine preview</Text>
-            <Text style={[styles.themePreviewTitle, { color: activeTheme.colors.text }]}>{activeTheme.label}</Text>
-            <Text style={[styles.themePreviewMeta, { color: activeTheme.colors.mutedText }]}>
-              {source === 'manual'
-                ? `Manual override active. Auto season is ${resolvedThemeId}.`
-                : `Automatic season match is ${resolvedThemeId}.`}
-            </Text>
-          </View>
-          <View style={styles.themePreviewActions}>
-            <TouchableOpacity
-              style={[styles.themePreviewButton, { backgroundColor: activeTheme.colors.accentSoft }]}
-              activeOpacity={0.85}
-              onPress={cycleTheme}
-            >
-              <Text style={[styles.themePreviewButtonText, { color: activeTheme.colors.accent }]}>
-                Cycle theme
-              </Text>
-            </TouchableOpacity>
-            {source === 'manual' ? (
-              <TouchableOpacity
-                style={[
-                  styles.themePreviewButton,
-                  styles.themePreviewSecondaryButton,
-                  { borderColor: activeTheme.colors.surfaceBorder },
-                ]}
-                activeOpacity={0.85}
-                onPress={clearManualTheme}
-              >
-                <Text style={[styles.themePreviewSecondaryText, { color: activeTheme.colors.text }]}>
-                  Back to auto
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        </View>
-
         {pocketMoneySummary ? (
           <View
             style={[
               styles.pocketMoneyCard,
               pocketMoneySummary.pocketMoneyLeft < 0 && styles.pocketMoneyCardWarning,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor:
+                  pocketMoneySummary.pocketMoneyLeft < 0
+                    ? activeTheme.colors.danger
+                    : activeTheme.colors.surfaceBorder,
+              },
             ]}
           >
             <View style={styles.pocketMoneyHeader}>
@@ -367,7 +326,7 @@ export function HomeScreen() {
                 <Ionicons
                   name={pocketMoneySummary.pocketMoneyLeft < 0 ? 'alert-circle-outline' : 'wallet-outline'}
                   size={20}
-                  color={pocketMoneySummary.pocketMoneyLeft < 0 ? '#b91c1c' : '#2563eb'}
+                  color={pocketMoneySummary.pocketMoneyLeft < 0 ? activeTheme.colors.danger : activeTheme.colors.accent}
                 />
               </View>
             </View>

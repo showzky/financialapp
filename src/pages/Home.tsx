@@ -6,7 +6,7 @@ import { BudgetCategoryCard } from '@/components/BudgetCategoryCard'
 import { RecurringAutomationToast } from '@/components/RecurringAutomationToast'
 import { SettingsDrawer } from '@/components/SettingsDrawer'
 import { UpdateIncomeModal } from '@/components/UpdateIncomeModal'
-import type { BudgetCategory, BudgetCategoryType } from '@/types/budget'
+import type { BudgetCategoryType } from '@/types/budget'
 import type { LoanSummary } from '@/types/loan'
 import { useBudgets } from '@/hooks/useBudgets'
 import { useRecurringAutomation } from '@/hooks/useRecurringAutomation'
@@ -14,62 +14,6 @@ import { loanApi } from '@/services/loanApi'
 import { themePresets } from '@/styles/themePresets'
 import { formatCurrency } from '@/utils/currency'
 import { useTheme } from '@/context/ThemeContext'
-
-const findCategoryByKeywords = (categories: BudgetCategory[], keywords: string[]) =>
-  categories.find((category) => {
-    const name = category.name.toLowerCase()
-    return keywords.some((keyword) => name.includes(keyword))
-  })
-
-const getBudgetPressure = (category?: BudgetCategory) => {
-  if (!category || category.type !== 'budget' || category.allocated <= 0) {
-    return {
-      title: 'No pressure',
-      toneClass: 'bg-[rgba(var(--accent-rgb),0.12)] text-accent',
-      meta: 'No active category pressure yet',
-      rate: 0,
-      categoryName: 'Telemetry pending',
-      left: 0,
-      spent: 0,
-    }
-  }
-
-  const rate = Math.min(category.spent / Math.max(category.allocated, 1), 1)
-
-  if (rate >= 0.8) {
-    return {
-      title: 'High pressure',
-      toneClass: 'bg-red-500/10 text-red-300',
-      meta: `${Math.round(rate * 100)}% used`,
-      rate,
-      categoryName: category.name,
-      left: Math.max(category.allocated - category.spent, 0),
-      spent: category.spent,
-    }
-  }
-
-  if (rate >= 0.45) {
-    return {
-      title: 'Watch',
-      toneClass: 'bg-amber-400/10 text-amber-200',
-      meta: `${Math.round(rate * 100)}% used`,
-      rate,
-      categoryName: category.name,
-      left: Math.max(category.allocated - category.spent, 0),
-      spent: category.spent,
-    }
-  }
-
-  return {
-    title: 'Low',
-    toneClass: 'bg-emerald-400/10 text-emerald-200',
-    meta: `${Math.round(rate * 100)}% used`,
-    rate,
-    categoryName: category.name,
-    left: Math.max(category.allocated - category.spent, 0),
-    spent: category.spent,
-  }
-}
 
 export const Home = () => {
   const {
@@ -113,118 +57,7 @@ export const Home = () => {
   )
   const freeCash = Math.max(state.income - totals.allocated, 0)
   const fixedCommitted = fixedCategories.reduce((sum, category) => sum + category.allocated, 0)
-  const averageDailySafeSpend = Math.round(freeCash / 30)
   const allocationRate = state.income > 0 ? Math.round((totals.allocated / state.income) * 100) : 0
-
-  const budgetPressure = useMemo(() => {
-    const priorityCategory =
-      findCategoryByKeywords(budgetCategories, ['food', 'mat', 'fuel', 'drivstoff', 'fun']) ??
-      [...budgetCategories].sort((left, right) => {
-        const leftRate = left.allocated === 0 ? 0 : left.spent / left.allocated
-        const rightRate = right.allocated === 0 ? 0 : right.spent / right.allocated
-        return rightRate - leftRate
-      })[0]
-
-    return getBudgetPressure(priorityCategory)
-  }, [budgetCategories])
-
-  const pocketHealth = useMemo(() => {
-    if (freeCash >= Math.max(state.income * 0.18, 2500)) {
-      return {
-        title: 'Stable',
-        toneClass: 'bg-emerald-400/10 text-emerald-200',
-        meta: `Safe daily spend: ${formatCurrency(averageDailySafeSpend, currencySymbol)}`,
-      }
-    }
-
-    if (freeCash >= Math.max(state.income * 0.08, 1000)) {
-      return {
-        title: 'Watch',
-        toneClass: 'bg-amber-400/10 text-amber-200',
-        meta: `Buffer remaining: ${formatCurrency(freeCash, currencySymbol)}`,
-      }
-    }
-
-    return {
-      title: 'Tight',
-      toneClass: 'bg-red-500/10 text-red-300',
-      meta: `Only ${formatCurrency(freeCash, currencySymbol)} unassigned`,
-    }
-  }, [averageDailySafeSpend, currencySymbol, freeCash, state.income])
-
-  const fixedLoad = useMemo(() => {
-    const fixedRate = state.income > 0 ? fixedCommitted / state.income : 0
-
-    if (fixedRate >= 0.45) {
-      return {
-        title: 'Heavy',
-        toneClass: 'bg-red-500/10 text-red-300',
-        meta: `${Math.round(fixedRate * 100)}% of income committed`,
-      }
-    }
-
-    if (fixedRate >= 0.25) {
-      return {
-        title: 'Watch',
-        toneClass: 'bg-amber-400/10 text-amber-200',
-        meta: `${Math.round(fixedRate * 100)}% of income committed`,
-      }
-    }
-
-    return {
-      title: 'Light',
-      toneClass: 'bg-[rgba(var(--accent-rgb),0.12)] text-accent',
-      meta: `${Math.round(fixedRate * 100)}% of income committed`,
-    }
-  }, [fixedCommitted, state.income])
-
-  const loanRisk = useMemo(() => {
-    if ((loanSummary?.overdueCount ?? 0) > 0) {
-      return {
-        title: 'High',
-        toneClass: 'bg-red-500/10 text-red-300',
-        meta: `${loanSummary?.overdueCount ?? 0} overdue right now`,
-      }
-    }
-
-    if ((loanSummary?.dueSoonCount ?? 0) > 0) {
-      return {
-        title: 'Medium',
-        toneClass: 'bg-amber-400/10 text-amber-200',
-        meta: `${loanSummary?.dueSoonCount ?? 0} due soon this cycle`,
-      }
-    }
-
-    return {
-      title: isLoanSummaryLoading ? 'Loading' : 'Low',
-      toneClass: 'bg-emerald-400/10 text-emerald-200',
-      meta: isLoanSummaryLoading ? 'Checking active loans' : 'No urgent loan follow-up',
-    }
-  }, [isLoanSummaryLoading, loanSummary])
-
-  const telemetryRows = useMemo(
-    () =>
-      [...budgetCategories]
-        .sort((left, right) => {
-          const leftRate = left.allocated === 0 ? 0 : left.spent / left.allocated
-          const rightRate = right.allocated === 0 ? 0 : right.spent / right.allocated
-          return rightRate - leftRate
-        })
-        .slice(0, 3)
-        .map((category) => {
-          const pressure = getBudgetPressure(category)
-          return {
-            id: category.id,
-            name: category.name,
-            spent: category.spent,
-            left: Math.max(category.allocated - category.spent, 0),
-            rate: pressure.rate,
-            title: pressure.title,
-            toneClass: pressure.toneClass,
-          }
-        }),
-    [budgetCategories],
-  )
 
   const getOrderedIdsFromRef = (container: HTMLElement | null) =>
     container
@@ -429,7 +262,7 @@ export const Home = () => {
       </div>
 
       {/* ── METRIC STRIP ── */}
-      <div className="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {/* Income */}
         <button
           type="button"
@@ -459,16 +292,28 @@ export const Home = () => {
           <p className="text-[12px] text-[#6b6862]">{allocationRate}% of income assigned</p>
         </div>
 
-        {/* Free to Assign */}
+        {/* Bills Account */}
+        <div className="rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-[22px_24px] transition hover:-translate-y-px hover:border-[rgba(255,255,255,0.10)]">
+          <p className="mb-3.5 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6b6862]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#c9a84c] shadow-[0_0_8px_rgba(201,168,76,0.6)]" />
+            Bills Account
+          </p>
+          <p className="font-italiana mb-2 text-[42px] leading-none tracking-[-0.01em] text-[#e2c06a]">
+            {formatCurrency(fixedCommitted, currencySymbol)}
+          </p>
+          <p className="text-[12px] text-[#6b6862]">Transfer this to cover fixed costs</p>
+        </div>
+
+        {/* Pocket Money */}
         <div className="rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-[22px_24px] transition hover:-translate-y-px hover:border-[rgba(255,255,255,0.10)]">
           <p className="mb-3.5 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6b6862]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#5ebd97] shadow-[0_0_8px_rgba(94,189,151,0.6)]" />
-            Free to Assign
+            Pocket Money
           </p>
           <p className="font-italiana mb-2 text-[42px] leading-none tracking-[-0.01em] text-[#5ebd97]">
             {formatCurrency(freeCash, currencySymbol)}
           </p>
-          <p className="text-[12px] font-medium text-[#5ebd97]">Before savings goals</p>
+          <p className="text-[12px] font-medium text-[#5ebd97]">Income left after all assigned categories</p>
         </div>
       </div>
 

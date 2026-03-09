@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react'
 import {
   View,
@@ -11,7 +10,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHero } from '../components/ScreenHero'
-import { screenThemes } from '../theme/screenThemes'
+import { useScreenPalette } from '../customthemes'
 
 interface Subscription {
   id: string
@@ -23,12 +22,11 @@ interface Subscription {
 }
 
 export function IndicatorsScreen() {
-  const theme = screenThemes.indicators
+  const { activeTheme } = useScreenPalette()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock subscriptions data - in production, fetch from API
     setTimeout(() => {
       setSubscriptions([
         {
@@ -62,52 +60,63 @@ export function IndicatorsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.screenBackground }]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={[styles.centerContainer, { backgroundColor: activeTheme.colors.screenBackground }]}>
+        <ActivityIndicator size="large" color={activeTheme.colors.accent} />
       </View>
     )
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+    <ScrollView style={[styles.container, { backgroundColor: activeTheme.colors.screenBackground }]}>
       <ScreenHero
         eyebrow="Overview"
         title="Subscriptions"
         subtitle="See recurring services, monthly weight, and annual drag at a glance."
-        theme={theme.hero}
+        theme={{
+          gradient: activeTheme.colors.heroGradient,
+          eyebrow: activeTheme.colors.heroEyebrow,
+          title: activeTheme.colors.heroTitle,
+          subtitle: activeTheme.colors.heroSubtitle,
+        }}
       />
 
-      {/* Monthly Overview */}
-      <View style={styles.overviewCard}>
+      <View
+        style={[
+          styles.overviewCard,
+          {
+            backgroundColor: activeTheme.colors.surface,
+            borderColor: activeTheme.colors.surfaceBorder,
+          },
+        ]}
+      >
         <View style={styles.overviewItem}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="calendar" size={24} color="#10b981" />
+          <View style={[styles.iconContainer, { backgroundColor: activeTheme.colors.secondarySoft }]}>
+            <Ionicons name="calendar" size={24} color={activeTheme.colors.secondary} />
           </View>
           <View>
-            <Text style={styles.overviewLabel}>Monthly Cost</Text>
-            <Text style={styles.overviewAmount}>NOK {monthlyTotal.toLocaleString()}</Text>
+            <Text style={[styles.overviewLabel, { color: activeTheme.colors.mutedText }]}>Monthly Cost</Text>
+            <Text style={[styles.overviewAmount, { color: activeTheme.colors.text }]}>NOK {monthlyTotal.toLocaleString()}</Text>
           </View>
         </View>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: activeTheme.colors.surfaceBorder }]} />
         <View style={styles.overviewItem}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="trending-up" size={24} color="#f59e0b" />
+          <View style={[styles.iconContainer, { backgroundColor: activeTheme.colors.accentSoft }]}>
+            <Ionicons name="trending-up" size={24} color={activeTheme.colors.accent} />
           </View>
           <View>
-            <Text style={styles.overviewLabel}>Annual Cost</Text>
-            <Text style={styles.overviewAmount}>
+            <Text style={[styles.overviewLabel, { color: activeTheme.colors.mutedText }]}>Annual Cost</Text>
+            <Text style={[styles.overviewAmount, { color: activeTheme.colors.text }]}>
               NOK {((monthlyTotal + yearlyBreakdown) * 12).toLocaleString()}
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Active Subscriptions */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Active Subscriptions</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
+          <Text style={[styles.sectionTitle, { color: activeTheme.colors.text }]}>Active Subscriptions</Text>
+          <View style={[styles.badge, { backgroundColor: activeTheme.colors.accentSoft }]}>
+            <Text style={[styles.badgeText, { color: activeTheme.colors.accent }]}>
               {subscriptions.filter((s) => s.isActive).length}
             </Text>
           </View>
@@ -115,7 +124,7 @@ export function IndicatorsScreen() {
 
         {subscriptions.filter((s) => s.isActive).length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No active subscriptions</Text>
+            <Text style={[styles.emptyText, { color: activeTheme.colors.mutedText }]}>No active subscriptions</Text>
           </View>
         ) : (
           <FlatList
@@ -123,35 +132,51 @@ export function IndicatorsScreen() {
             data={subscriptions.filter((s) => s.isActive)}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.subscriptionCard}>
+              <TouchableOpacity
+                style={[
+                  styles.subscriptionCard,
+                  {
+                    backgroundColor: activeTheme.colors.surface,
+                    borderColor: activeTheme.colors.surfaceBorder,
+                  },
+                ]}
+              >
                 <View style={styles.subHeader}>
-                  <Text style={styles.subName}>{item.name}</Text>
-                  <View style={styles.activeBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={styles.activeText}>Active</Text>
+                  <Text style={[styles.subName, { color: activeTheme.colors.text }]}>{item.name}</Text>
+                  <View style={[styles.activeBadge, { backgroundColor: activeTheme.colors.secondarySoft }]}>
+                    <Ionicons name="checkmark-circle" size={16} color={activeTheme.colors.secondary} />
+                    <Text style={[styles.activeText, { color: activeTheme.colors.secondary }]}>Active</Text>
                   </View>
                 </View>
 
-                <View style={styles.subDetails}>
+                <View style={[styles.subDetails, { borderBottomColor: activeTheme.colors.surfaceBorder }]}>
                   <View style={styles.subDetail}>
-                    <Text style={styles.detailLabel}>Cost</Text>
-                    <Text style={styles.detailValue}>NOK {item.cost.toLocaleString()}</Text>
+                    <Text style={[styles.detailLabel, { color: activeTheme.colors.subtleText }]}>Cost</Text>
+                    <Text style={[styles.detailValue, { color: activeTheme.colors.text }]}>NOK {item.cost.toLocaleString()}</Text>
                   </View>
                   <View style={styles.subDetail}>
-                    <Text style={styles.detailLabel}>Frequency</Text>
-                    <Text style={styles.detailValue}>
+                    <Text style={[styles.detailLabel, { color: activeTheme.colors.subtleText }]}>Frequency</Text>
+                    <Text style={[styles.detailValue, { color: activeTheme.colors.text }]}>
                       {item.frequency.charAt(0).toUpperCase() + item.frequency.slice(1)}
                     </Text>
                   </View>
                   <View style={styles.subDetail}>
-                    <Text style={styles.detailLabel}>Next Billing</Text>
-                    <Text style={styles.detailValue}>{item.nextBillingDate}</Text>
+                    <Text style={[styles.detailLabel, { color: activeTheme.colors.subtleText }]}>Next Billing</Text>
+                    <Text style={[styles.detailValue, { color: activeTheme.colors.text }]}>{item.nextBillingDate}</Text>
                   </View>
                 </View>
 
-                <TouchableOpacity style={styles.actionButton}>
-                  <Text style={styles.actionText}>Manage</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#3b82f6" />
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: activeTheme.colors.accentSoft,
+                      borderColor: activeTheme.colors.accentLine,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.actionText, { color: activeTheme.colors.accent }]}>Manage</Text>
+                  <Ionicons name="chevron-forward" size={16} color={activeTheme.colors.accent} />
                 </TouchableOpacity>
               </TouchableOpacity>
             )}
@@ -159,27 +184,49 @@ export function IndicatorsScreen() {
         )}
       </View>
 
-      {/* Financial Summary */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Financial Impact</Text>
+        <Text style={[styles.sectionTitle, { color: activeTheme.colors.text }]}>Financial Impact</Text>
         <View style={styles.summaryGrid}>
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryBoxLabel}>This Month</Text>
-            <Text style={styles.summaryBoxValue}>NOK {monthlyTotal.toLocaleString()}</Text>
+          <View
+            style={[
+              styles.summaryBox,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor: activeTheme.colors.surfaceBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.summaryBoxLabel, { color: activeTheme.colors.mutedText }]}>This Month</Text>
+            <Text style={[styles.summaryBoxValue, { color: activeTheme.colors.text }]}>NOK {monthlyTotal.toLocaleString()}</Text>
           </View>
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryBoxLabel}>This Year</Text>
-            <Text style={styles.summaryBoxValue}>
+          <View
+            style={[
+              styles.summaryBox,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor: activeTheme.colors.surfaceBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.summaryBoxLabel, { color: activeTheme.colors.mutedText }]}>This Year</Text>
+            <Text style={[styles.summaryBoxValue, { color: activeTheme.colors.text }]}>
               NOK {((monthlyTotal + yearlyBreakdown) * 12).toLocaleString()}
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Add Subscription Button */}
-      <TouchableOpacity style={styles.addButton}>
-        <Ionicons name="add" size={20} color="#fff" />
-        <Text style={styles.addButtonText}>Add Subscription</Text>
+      <TouchableOpacity
+        style={[
+          styles.addButton,
+          {
+            backgroundColor: activeTheme.colors.accentSoft,
+            borderColor: activeTheme.colors.accentLine,
+          },
+        ]}
+      >
+        <Ionicons name="add" size={20} color={activeTheme.colors.accent} />
+        <Text style={[styles.addButtonText, { color: activeTheme.colors.accent }]}>Add Subscription</Text>
       </TouchableOpacity>
 
       <View style={{ height: 32 }} />
@@ -190,7 +237,6 @@ export function IndicatorsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
   },
   centerContainer: {
     flex: 1,
@@ -199,12 +245,10 @@ const styles = StyleSheet.create({
   },
   overviewCard: {
     marginHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   overviewItem: {
     flexDirection: 'row',
@@ -216,25 +260,21 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   divider: {
     height: 1,
-    backgroundColor: '#f3f4f6',
   },
   overviewLabel: {
     fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
+    fontFamily: 'DMSans_600SemiBold',
   },
   overviewAmount: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
     marginTop: 4,
+    fontFamily: 'DMSerifDisplay_400Regular',
   },
   section: {
     paddingHorizontal: 16,
@@ -248,19 +288,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontFamily: 'DMSans_700Bold',
   },
   badge: {
-    backgroundColor: '#3b82f6',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 999,
   },
   badgeText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
   },
   emptyState: {
     paddingVertical: 32,
@@ -268,41 +305,37 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#9ca3af',
+    fontFamily: 'DMSans_500Medium',
   },
   subscriptionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   subHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    gap: 12,
   },
   subName: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
     flex: 1,
+    fontFamily: 'DMSans_700Bold',
   },
   activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ecfdf5',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 999,
+    gap: 4,
   },
   activeText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#10b981',
-    marginLeft: 4,
+    fontFamily: 'DMSans_700Bold',
   },
   subDetails: {
     flexDirection: 'row',
@@ -310,7 +343,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   subDetail: {
     flex: 1,
@@ -318,30 +350,25 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 11,
-    color: '#9ca3af',
-    fontWeight: '600',
+    fontFamily: 'DMSans_600SemiBold',
   },
   detailValue: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#111827',
     marginTop: 4,
+    fontFamily: 'DMSans_700Bold',
   },
   actionButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 10,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0f2fe',
+    gap: 4,
   },
   actionText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
-    marginRight: 4,
+    fontFamily: 'DMSans_700Bold',
   },
   summaryGrid: {
     flexDirection: 'row',
@@ -350,38 +377,33 @@ const styles = StyleSheet.create({
   },
   summaryBox: {
     flex: 1,
-    backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     alignItems: 'center',
   },
   summaryBoxLabel: {
     fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
+    fontFamily: 'DMSans_600SemiBold',
   },
   summaryBoxValue: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
     marginTop: 8,
+    fontFamily: 'DMSerifDisplay_400Regular',
   },
   addButton: {
     marginHorizontal: 16,
-    backgroundColor: '#3b82f6',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 14,
     marginBottom: 16,
+    borderWidth: 1,
+    gap: 6,
   },
   addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
   },
 })

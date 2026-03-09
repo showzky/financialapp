@@ -10,6 +10,10 @@ export interface StatCardProps {
   value: string | number
   icon: ReactNode
   helper?: string
+  valueClassName?: string
+  className?: string
+  iconClassName?: string
+  helperClassName?: string
   trend?: {
     value: string
     direction: 'up' | 'down'
@@ -22,6 +26,10 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   icon,
   helper,
+  valueClassName,
+  className,
+  iconClassName,
+  helperClassName,
   trend,
   onClick,
 }) => {
@@ -32,6 +40,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         glass-panel group relative flex flex-col gap-1 p-3 transition-all duration-200 
         md:p-4
         ${onClick ? 'cursor-pointer hover:bg-white/10 active:scale-95' : ''}
+        ${className ?? ''}
       `}
     >
       {/* Label Row */}
@@ -39,10 +48,10 @@ export const StatCard: React.FC<StatCardProps> = ({
 
       {/* Value + Icon Row */}
       <div className="flex items-center justify-between gap-3">
-        <h3 className="truncate text-2xl font-bold tracking-tight text-text-primary md:text-3xl">
+        <h3 className={`truncate text-2xl font-bold tracking-tight md:text-3xl ${valueClassName ?? 'text-text-primary'}`}>
           {value}
         </h3>
-        <div className="shrink-0 text-text-muted transition-colors group-hover:text-accent">
+        <div className={`shrink-0 text-text-muted transition-colors group-hover:text-accent ${iconClassName ?? ''}`}>
           <div className="h-6 w-6">{icon}</div>
         </div>
       </div>
@@ -50,7 +59,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       {/* Footer Row: Helper + Trend */}
       {(helper || trend) && (
         <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-1">
-          {helper && <span className="truncate text-sm text-text-muted">{helper}</span>}
+          {helper && <span className={`truncate text-sm text-text-muted ${helperClassName ?? ''}`}>{helper}</span>}
           {trend && (
             <span
               className={`flex items-center text-sm font-bold ${

@@ -20,10 +20,10 @@ const ThemeModeButtons = () => {
           type="button"
           onClick={() => setTheme(opt)}
           aria-label={`Set color mode to ${opt}`}
-          className={`rounded-neo border px-2 py-1 text-sm font-medium transition ${
+          className={`rounded-[8px] border px-2 py-1.5 text-sm font-medium transition ${
             theme === opt
-              ? 'ring-2 ring-accent/90 text-text-primary focus-visible:ring-offset-2 focus-visible:ring-accent/90'
-              : 'text-text-muted focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-accent/60'
+              ? 'border-[rgba(201,168,76,0.4)] bg-[#18181c] text-[#e2c06a] ring-1 ring-[#c9a84c]'
+              : 'border-[rgba(255,255,255,0.055)] bg-[#111114] text-[#a09d98] hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]'
           }`}
           aria-pressed={theme === opt}
         >
@@ -113,15 +113,15 @@ export const SettingsDrawer = ({
           <button
             type="button"
             onClick={onClose}
-            className="neo-card neo-pressable px-3 py-1 text-sm font-semibold text-text-muted"
+            className="rounded-[10px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] px-3 py-1.5 text-sm font-medium text-[#a09d98] transition hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]"
           >
             Close
           </button>
         </div>
 
         <div className="settings-drawer-content space-y-4">
-          <section className="neo-card space-y-3 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-text-muted">
+          <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
               Appearance
             </h3>
 
@@ -143,17 +143,17 @@ export const SettingsDrawer = ({
                           }
                         }}
                         aria-label={`${theme.name} theme preset`}
-                        className={`relative rounded-neo border border-transparent bg-surface px-3 py-2 text-left shadow-neo-sm transition ${
+                        className={`relative w-full rounded-[10px] border px-3 py-2.5 text-left transition ${
                           isActive
-                            ? 'ring-2 ring-accent/90 text-text-primary focus-visible:ring-offset-2 focus-visible:ring-accent/90'
-                            : 'text-text-muted focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-accent/60'
+                            ? 'border-[rgba(201,168,76,0.4)] bg-[#111114] ring-1 ring-[#c9a84c]'
+                            : 'border-[rgba(255,255,255,0.055)] bg-[#111114] hover:border-[rgba(255,255,255,0.10)]'
                         }`}
                         aria-pressed={isActive}
                       >
-                        <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
+                        <span className={`block text-xs font-semibold uppercase tracking-[0.14em] ${isActive ? 'text-[#e2c06a]' : 'text-[#d4d0ca]'}`}>
                           {theme.name}
                         </span>
-                        <span className="mt-1 block text-[11px] leading-4 opacity-85">
+                        <span className="mt-1 block text-[11px] leading-4 text-[#6b6862]">
                           {theme.description}
                         </span>
                         <span className="mt-2 flex items-center gap-1.5" aria-hidden="true">
@@ -206,8 +206,8 @@ export const SettingsDrawer = ({
             </div>
           </section>
 
-          <section className="neo-card space-y-3 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-text-muted">
+          <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
               Regional
             </h3>
 
@@ -219,7 +219,7 @@ export const SettingsDrawer = ({
                 id="currency-setting"
                 value={currencySymbol}
                 onChange={(event) => onCurrencyChange(event.target.value as CurrencySymbol)}
-                className="w-full rounded-neo border border-transparent bg-surface px-3 py-2 text-sm text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full rounded-[8px] border border-[rgba(255,255,255,0.055)] bg-[#111114] px-3 py-2 text-sm text-[#d4d0ca] outline-none transition hover:border-[rgba(255,255,255,0.10)] focus:border-[rgba(201,168,76,0.4)] focus:ring-1 focus:ring-[#c9a84c]"
               >
                 <option value="KR">KR</option>
                 <option value="$">$</option>
@@ -228,8 +228,8 @@ export const SettingsDrawer = ({
             </div>
           </section>
 
-          <section className="neo-card space-y-3 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-text-muted">
+          <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
               Layout Defaults
             </h3>
 
@@ -239,14 +239,14 @@ export const SettingsDrawer = ({
                 <button
                   type="button"
                   onClick={() => onDefaultCategoryTypeChange('budget')}
-                  className={`settings-toggle ${defaultCategoryType === 'budget' ? 'is-on' : ''}`}
+                  className={`rounded-[8px] border px-3 py-1.5 text-sm font-medium transition ${defaultCategoryType === 'budget' ? 'border-[rgba(201,168,76,0.4)] bg-[#111114] text-[#e2c06a] ring-1 ring-[#c9a84c]' : 'border-[rgba(255,255,255,0.055)] bg-[#111114] text-[#a09d98] hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]'}`}
                 >
                   Budget
                 </button>
                 <button
                   type="button"
                   onClick={() => onDefaultCategoryTypeChange('fixed')}
-                  className={`settings-toggle ${defaultCategoryType === 'fixed' ? 'is-on' : ''}`}
+                  className={`rounded-[8px] border px-3 py-1.5 text-sm font-medium transition ${defaultCategoryType === 'fixed' ? 'border-[rgba(201,168,76,0.4)] bg-[#111114] text-[#e2c06a] ring-1 ring-[#c9a84c]' : 'border-[rgba(255,255,255,0.055)] bg-[#111114] text-[#a09d98] hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]'}`}
                 >
                   Fixed
                 </button>
@@ -258,47 +258,47 @@ export const SettingsDrawer = ({
               <button
                 type="button"
                 onClick={() => onEditModeChange(!isEditing)}
-                className={`settings-toggle w-full ${isEditing ? 'is-on' : ''}`}
+                className={`w-full rounded-[8px] border px-3 py-1.5 text-sm font-medium transition ${isEditing ? 'border-[rgba(201,168,76,0.4)] bg-[#111114] text-[#e2c06a] ring-1 ring-[#c9a84c]' : 'border-[rgba(255,255,255,0.055)] bg-[#111114] text-[#a09d98] hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]'}`}
               >
                 {isEditing ? 'Editing enabled' : 'Editing disabled'}
               </button>
             </div>
           </section>
 
-          <section className="neo-card space-y-3 p-4">
+          <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
             {/* ADD THIS: compact shortcut badges for near-term loan follow-up */}
-            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-text-muted">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
               Loan Shortcut
             </h3>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-surface-strong px-2.5 py-1 text-xs font-semibold text-amber-700">
+              <span className="inline-flex items-center rounded-full border border-[rgba(201,168,76,0.22)] bg-[rgba(201,168,76,0.08)] px-2.5 py-1 text-xs font-semibold text-[#e2c06a]">
                 Due soon {loanShortcut?.dueSoonCount ?? 0}
               </span>
-              <span className="inline-flex items-center rounded-full bg-surface-strong px-2.5 py-1 text-xs font-semibold text-red-700">
+              <span className="inline-flex items-center rounded-full border border-[rgba(201,107,107,0.22)] bg-[rgba(201,107,107,0.08)] px-2.5 py-1 text-xs font-semibold text-[#c96b6b]">
                 Overdue {loanShortcut?.overdueCount ?? 0}
               </span>
             </div>
             <Link
               to="/loans"
               onClick={onClose}
-              className="settings-action inline-flex items-center justify-center"
+              className="inline-flex w-full items-center justify-center rounded-[8px] border border-[rgba(91,163,201,0.30)] bg-[rgba(91,163,201,0.08)] px-3 py-1.5 text-sm font-medium text-[#5ba3c9] transition hover:border-[rgba(91,163,201,0.50)] hover:bg-[rgba(91,163,201,0.14)]"
             >
               Open loans
             </Link>
           </section>
 
-          <section className="neo-card space-y-3 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-text-muted">
+          <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
               Data Management
             </h3>
             <div className="grid gap-2">
-              <button type="button" onClick={onExportData} className="settings-action">
+              <button type="button" onClick={onExportData} className="w-full rounded-[8px] border border-[rgba(255,255,255,0.055)] bg-[#111114] px-3 py-1.5 text-sm font-medium text-[#a09d98] transition hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]">
                 Export data
               </button>
               <button
                 type="button"
                 onClick={handleResetClick}
-                className="settings-action text-rose-600"
+                className="w-full rounded-[8px] border border-[rgba(201,107,107,0.25)] bg-[rgba(201,107,107,0.06)] px-3 py-1.5 text-sm font-medium text-[#c96b6b] transition hover:bg-[rgba(201,107,107,0.12)]"
               >
                 Reset dashboard
               </button>

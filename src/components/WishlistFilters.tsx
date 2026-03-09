@@ -21,18 +21,18 @@ type ActiveFilterChip = {
 }
 
 const priorityToneMap: Record<string, string> = {
-  High: 'border-transparent bg-red-500 text-white shadow-sm hover:bg-red-500/90 focus-visible:ring-red-400',
+  High: 'border-[rgba(201,107,107,0.28)] bg-[rgba(201,107,107,0.14)] text-[#c96b6b] shadow-sm hover:bg-[rgba(201,107,107,0.2)] focus-visible:ring-[rgba(201,107,107,0.45)]',
   Medium:
-    'border-transparent bg-amber-500 text-white shadow-sm hover:bg-amber-500/90 focus-visible:ring-amber-400',
-  Low: 'border-transparent bg-emerald-500 text-white shadow-sm hover:bg-emerald-500/90 focus-visible:ring-emerald-400',
+    'border-[rgba(201,168,76,0.28)] bg-[rgba(201,168,76,0.14)] text-[#e2c06a] shadow-sm hover:bg-[rgba(201,168,76,0.2)] focus-visible:ring-[rgba(201,168,76,0.45)]',
+  Low: 'border-[rgba(94,189,151,0.28)] bg-[rgba(94,189,151,0.14)] text-[#5ebd97] shadow-sm hover:bg-[rgba(94,189,151,0.2)] focus-visible:ring-[rgba(94,189,151,0.45)]',
 }
 
 // ADD THIS: chip tone map to keep category and priority pills visually consistent
 const chipToneMap: Record<string, string> = {
-  category: 'bg-indigo-50 text-indigo-700 border border-indigo-100',
-  High: 'bg-red-100 text-red-700 border border-red-200',
-  Medium: 'bg-amber-100 text-amber-700 border border-amber-200',
-  Low: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  category: 'border border-[rgba(91,163,201,0.22)] bg-[rgba(91,163,201,0.1)] text-[#5ba3c9]',
+  High: 'border border-[rgba(201,107,107,0.22)] bg-[rgba(201,107,107,0.12)] text-[#c96b6b]',
+  Medium: 'border border-[rgba(201,168,76,0.22)] bg-[rgba(201,168,76,0.12)] text-[#e2c06a]',
+  Low: 'border border-[rgba(94,189,151,0.22)] bg-[rgba(94,189,151,0.12)] text-[#5ebd97]',
 }
 
 // ADD THIS: toggle button with animated chevron and hover/focus polish
@@ -50,7 +50,7 @@ const FilterToggle = ({
     onClick={onToggle}
     aria-expanded={isOpen}
     aria-controls="wishlist-filter-panel"
-    className="glass-panel flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
+    className="flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.10)] bg-[#202026] px-5 py-2 text-sm font-semibold text-[#f0ede8] transition-all hover:border-[rgba(201,168,76,0.24)] hover:text-[#e2c06a]"
   >
     <span>Filters{activeCount > 0 ? ` (${activeCount})` : ''}</span>
     <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}>
@@ -86,7 +86,7 @@ const FilterChip = ({
       type="button"
       onClick={onRemove}
       aria-label={`Remove ${label} filter`}
-      className="h-4 w-4 rounded-full border border-current text-xs leading-none transition hover:bg-white"
+      className="h-4 w-4 rounded-full border border-current text-xs leading-none transition hover:bg-[rgba(255,255,255,0.12)]"
     >
       ×
     </button>
@@ -118,9 +118,9 @@ const FilterGroup = ({
         const baseClasses =
           'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
         const selectedCategoryClasses =
-          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:ring-primary'
+          'border-[rgba(201,168,76,0.28)] bg-[rgba(201,168,76,0.14)] text-[#f5d98a] shadow-sm hover:bg-[rgba(201,168,76,0.2)] focus-visible:ring-[rgba(201,168,76,0.45)]'
         const unselectedClasses =
-          'glass-panel text-text-primary hover:bg-white/5 focus-visible:ring-accent/40'
+          'border border-[rgba(255,255,255,0.08)] bg-[#18181c] text-[#b8b4ae] hover:border-[rgba(255,255,255,0.14)] hover:text-[#f0ede8] focus-visible:ring-[rgba(201,168,76,0.3)]'
         const prioritySelected = variant === 'priority' && priorityToneMap[option]
         const optionClasses = `${baseClasses} ${isSelected ? (prioritySelected ?? selectedCategoryClasses) : unselectedClasses}`
 
@@ -204,7 +204,7 @@ export const WishlistFilters = ({
 
   // ADD THIS: modern collapsible filter layout with chips, grouped pills, and helper actions
   return (
-    <section className="mx-auto mt-6 w-full max-w-6xl rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm">
+    <section className="mx-auto mt-6 w-full max-w-6xl rounded-[30px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <FilterToggle
           isOpen={isExpanded}
@@ -247,7 +247,7 @@ export const WishlistFilters = ({
               <button
                 type="button"
                 onClick={onClearFilters}
-                className="text-xs font-semibold text-slate-500 transition hover:text-slate-900"
+                className="text-xs font-semibold text-[#6b6862] transition hover:text-[#e2c06a]"
               >
                 Clear all
               </button>
@@ -287,11 +287,11 @@ export const WishlistFilters = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+        <div className="flex items-center justify-end gap-3 border-t border-[rgba(255,255,255,0.055)] pt-4">
           <button
             type="button"
             onClick={onClearFilters}
-            className="text-sm font-semibold uppercase tracking-tight text-red-600 transition hover:text-red-700"
+            className="text-sm font-semibold uppercase tracking-tight text-[#c96b6b] transition hover:text-[#ddb1b1]"
           >
             Clear filters
           </button>

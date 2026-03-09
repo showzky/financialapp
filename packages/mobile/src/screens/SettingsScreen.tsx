@@ -1,14 +1,12 @@
-// @ts-nocheck
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../auth/AuthContext'
 import { useNotifications } from '../context/NotificationContext'
 import { ScreenHero } from '../components/ScreenHero'
-import { screenThemes } from '../theme/screenThemes'
+import { customThemeOrder, customThemeRegistry, useScreenPalette } from '../customthemes'
 
 export function SettingsScreen() {
-  const theme = screenThemes.settings
   const { signOut } = useAuth()
   const {
     disablePushNotifications,
@@ -19,9 +17,17 @@ export function SettingsScreen() {
     preferences,
     setTopicEnabled,
   } = useNotifications()
+  const {
+    activeTheme,
+    activeThemeId,
+    manualThemeId,
+    resolvedThemeId,
+    source,
+    selectTheme,
+    clearManualTheme,
+  } = useScreenPalette()
   const [darkMode, setDarkMode] = useState(false)
 
-  // ADDED THIS
   const handleNotificationsToggle = (nextValue: boolean) => {
     if (!nextValue) {
       void disablePushNotifications()
@@ -38,7 +44,6 @@ export function SettingsScreen() {
     })
   }
 
-  // ADDED THIS
   const handleTopicToggle = (topic: 'loans' | 'wishlist' | 'vacations') => (nextValue: boolean) => {
     if (!preferences.enabled && nextValue) {
       Alert.alert('Enable push notifications first', 'Turn on push notifications before enabling topics.')
@@ -84,226 +89,227 @@ export function SettingsScreen() {
     ])
   }
 
+  const renderLinkRow = (
+    icon: keyof typeof Ionicons.glyphMap,
+    label: string,
+    description: string,
+    options?: { danger?: boolean; onPress?: () => void },
+  ) => (
+    <TouchableOpacity
+      style={[
+        styles.settingItem,
+        {
+          backgroundColor: activeTheme.colors.surface,
+          borderColor: activeTheme.colors.surfaceBorder,
+        },
+      ]}
+      onPress={options?.onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.settingLeft}>
+        <View
+          style={[
+            styles.iconBadge,
+            { backgroundColor: options?.danger ? `${activeTheme.colors.danger}1A` : activeTheme.colors.accentSoft },
+          ]}
+        >
+          <Ionicons
+            name={icon}
+            size={18}
+            color={options?.danger ? activeTheme.colors.danger : activeTheme.colors.accent}
+          />
+        </View>
+        <View style={styles.settingTextContainer}>
+          <Text style={[styles.settingLabel, { color: options?.danger ? activeTheme.colors.danger : activeTheme.colors.text }]}>
+            {label}
+          </Text>
+          <Text style={[styles.settingDesc, { color: activeTheme.colors.mutedText }]}>{description}</Text>
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={activeTheme.colors.subtleText} />
+    </TouchableOpacity>
+  )
+
+  const renderToggleRow = (
+    icon: keyof typeof Ionicons.glyphMap,
+    label: string,
+    description: string,
+    value: boolean,
+    onValueChange: (value: boolean) => void,
+    disabled?: boolean,
+  ) => (
+    <View
+      style={[
+        styles.settingItem,
+        {
+          backgroundColor: activeTheme.colors.surface,
+          borderColor: activeTheme.colors.surfaceBorder,
+        },
+      ]}
+    >
+      <View style={styles.settingLeft}>
+        <View style={[styles.iconBadge, { backgroundColor: activeTheme.colors.accentSoft }]}>
+          <Ionicons name={icon} size={18} color={activeTheme.colors.accent} />
+        </View>
+        <View style={styles.settingTextContainer}>
+          <Text style={[styles.settingLabel, { color: activeTheme.colors.text }]}>{label}</Text>
+          <Text style={[styles.settingDesc, { color: activeTheme.colors.mutedText }]}>{description}</Text>
+        </View>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: activeTheme.colors.surfaceBorderStrong, true: activeTheme.colors.secondaryLine }}
+        thumbColor={value ? activeTheme.colors.secondary : activeTheme.colors.surfaceAlt}
+        disabled={disabled}
+      />
+    </View>
+  )
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.screenBackground }]}>
+    <ScrollView style={[styles.container, { backgroundColor: activeTheme.colors.screenBackground }]}>
       <ScreenHero
         eyebrow="Preferences"
         title="Settings"
-        subtitle="Control reminders, account preferences, and the app behavior in one place."
-        theme={theme.hero}
+        subtitle="Control reminders, themes, and app behavior in one place."
+        theme={{
+          gradient: activeTheme.colors.heroGradient,
+          eyebrow: activeTheme.colors.heroEyebrow,
+          title: activeTheme.colors.heroTitle,
+          subtitle: activeTheme.colors.heroSubtitle,
+        }}
       />
 
-      {/* Account Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        <View style={styles.sectionContent}>
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="person" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Profile Information</Text>
-                <Text style={styles.settingDesc}>Edit your profile details</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+        <Text style={[styles.sectionTitle, { color: activeTheme.colors.mutedText }]}>Theme</Text>
 
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="key" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Password</Text>
-                <Text style={styles.settingDesc}>Change your password</Text>
-              </View>
+        <TouchableOpacity
+          style={[
+            styles.autoCard,
+            {
+              backgroundColor: activeTheme.colors.surface,
+              borderColor: source === 'auto' ? activeTheme.colors.accentLine : activeTheme.colors.surfaceBorder,
+            },
+          ]}
+          activeOpacity={0.85}
+          onPress={clearManualTheme}
+        >
+          <View style={styles.autoCardHeader}>
+            <View>
+              <Text style={[styles.autoCardLabel, { color: activeTheme.colors.text }]}>Automatic seasonal mode</Text>
+              <Text style={[styles.autoCardDescription, { color: activeTheme.colors.mutedText }]}>
+                Currently matching {customThemeRegistry[resolvedThemeId].label}.
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+            <View
+              style={[
+                styles.activeBadge,
+                {
+                  backgroundColor: source === 'auto' ? activeTheme.colors.accentSoft : activeTheme.colors.surfaceAlt,
+                  borderColor: source === 'auto' ? activeTheme.colors.accentLine : activeTheme.colors.surfaceBorder,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.activeBadgeText,
+                  { color: source === 'auto' ? activeTheme.colors.accent : activeTheme.colors.mutedText },
+                ]}
+              >
+                {source === 'auto' ? 'Active' : 'Auto'}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.settingItem, styles.lastItem]}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="lock" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Privacy & Security</Text>
-                <Text style={styles.settingDesc}>Manage your privacy settings</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+        <View style={styles.themeGrid}>
+          {customThemeOrder.map((themeId) => {
+            const option = customThemeRegistry[themeId]
+            const isActive = activeThemeId === themeId && source === 'manual'
+
+            return (
+              <TouchableOpacity
+                key={themeId}
+                style={[
+                  styles.themeCard,
+                  {
+                    backgroundColor: option.colors.surface,
+                    borderColor: isActive ? option.colors.accentLine : option.colors.surfaceBorder,
+                  },
+                ]}
+                activeOpacity={0.88}
+                onPress={() => selectTheme(themeId)}
+              >
+                <View style={styles.themeCardTop}>
+                  <Text style={[styles.themeCardTitle, { color: option.colors.text }]}>{option.label}</Text>
+                  {isActive ? (
+                    <View style={[styles.activeBadge, { backgroundColor: option.colors.accentSoft, borderColor: option.colors.accentLine }]}>
+                      <Text style={[styles.activeBadgeText, { color: option.colors.accent }]}>Selected</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={[styles.themeCardDesc, { color: option.colors.mutedText }]} numberOfLines={2}>
+                  {option.description}
+                </Text>
+                <View style={styles.swatchRow}>
+                  {option.swatches.map((swatch) => (
+                    <View key={`${themeId}-${swatch}`} style={[styles.swatch, { backgroundColor: swatch }]} />
+                  ))}
+                </View>
+              </TouchableOpacity>
+            )
+          })}
         </View>
-      </View>
 
-      {/* Notifications Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notifications</Text>
-        <View style={styles.sectionContent}>
-          <View style={styles.toggleItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="notifications" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Push Notifications</Text>
-                <Text style={styles.settingDesc}>{pushNotificationDescription}</Text>
-              </View>
-            </View>
-            <Switch
-              value={preferences.enabled}
-              onValueChange={handleNotificationsToggle}
-              trackColor={{ false: '#e5e7eb', true: '#86efac' }}
-              thumbColor={preferences.enabled ? '#22c55e' : '#d1d5db'}
-              disabled={!isReady}
-            />
-          </View>
-
-          <View style={styles.toggleItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="alert-circle" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Loan Notifications</Text>
-                <Text style={styles.settingDesc}>Due soon, overdue, and repaid updates</Text>
-              </View>
-            </View>
-            <Switch
-              value={preferences.topics.loans}
-              onValueChange={handleTopicToggle('loans')}
-              trackColor={{ false: '#e5e7eb', true: '#86efac' }}
-              thumbColor={preferences.topics.loans ? '#22c55e' : '#d1d5db'}
-              disabled={!preferences.enabled}
-            />
-          </View>
-
-          <View style={styles.toggleItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="heart" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Wishlist Notifications</Text>
-                <Text style={styles.settingDesc}>Future wishlist reminders and alerts</Text>
-              </View>
-            </View>
-            <Switch
-              value={preferences.topics.wishlist}
-              onValueChange={handleTopicToggle('wishlist')}
-              trackColor={{ false: '#e5e7eb', true: '#86efac' }}
-              thumbColor={preferences.topics.wishlist ? '#22c55e' : '#d1d5db'}
-              disabled={!preferences.enabled}
-            />
-          </View>
-
-          <View style={[styles.toggleItem, styles.lastItem]}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="airplane" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Vacation Reminders</Text>
-                <Text style={styles.settingDesc}>Future travel countdown reminders</Text>
-              </View>
-            </View>
-            <Switch
-              value={preferences.topics.vacations}
-              onValueChange={handleTopicToggle('vacations')}
-              trackColor={{ false: '#e5e7eb', true: '#86efac' }}
-              thumbColor={preferences.topics.vacations ? '#22c55e' : '#d1d5db'}
-              disabled={!preferences.enabled}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Display Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Display</Text>
-        <View style={styles.sectionContent}>
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="language" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Language</Text>
-                <Text style={styles.settingDesc}>English (US)</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <View style={[styles.toggleItem, styles.lastItem]}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="moon" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Dark Mode</Text>
-                <Text style={styles.settingDesc}>Coming soon</Text>
-              </View>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              disabled={true}
-              trackColor={{ false: '#e5e7eb', true: '#86efac' }}
-              thumbColor={'#d1d5db'}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* App Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App</Text>
-        <View style={styles.sectionContent}>
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="information-circle" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>About</Text>
-                <Text style={styles.settingDesc}>v1.0.0</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="document-text" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Terms of Service</Text>
-                <Text style={styles.settingDesc}>Read our terms</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.settingItem, styles.lastItem]}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="shield-checkmark" size={20} color="#3b82f6" />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Privacy Policy</Text>
-                <Text style={styles.settingDesc}>Read our privacy policy</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Danger Zone */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, styles.dangerTitle]}>Danger Zone</Text>
-        <View style={styles.sectionContent}>
-          <TouchableOpacity style={[styles.settingItem, styles.lastItem]} onPress={handleLogout}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="log-out" size={20} color="#ef4444" />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingLabel, styles.dangerText]}>Logout</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
+        {manualThemeId ? (
           <TouchableOpacity
-            style={[styles.settingItem, styles.lastItem]}
-            onPress={handleDeleteAccount}
+            style={[
+              styles.resetButton,
+              {
+                backgroundColor: activeTheme.colors.accentSoft,
+                borderColor: activeTheme.colors.accentLine,
+              },
+            ]}
+            activeOpacity={0.85}
+            onPress={clearManualTheme}
           >
-            <View style={styles.settingLeft}>
-              <Ionicons name="trash" size={20} color="#ef4444" />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingLabel, styles.dangerText]}>Delete Account</Text>
-              </View>
-            </View>
+            <Text style={[styles.resetButtonText, { color: activeTheme.colors.accent }]}>Back to auto</Text>
           </TouchableOpacity>
-        </View>
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: activeTheme.colors.mutedText }]}>Account</Text>
+        {renderLinkRow('person', 'Profile Information', 'Edit your profile details')}
+        {renderLinkRow('key', 'Password', 'Change your password')}
+        {renderLinkRow('lock-closed', 'Privacy & Security', 'Manage your privacy settings')}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: activeTheme.colors.mutedText }]}>Notifications</Text>
+        {renderToggleRow('notifications', 'Push Notifications', pushNotificationDescription, preferences.enabled, handleNotificationsToggle, !isReady)}
+        {renderToggleRow('alert-circle', 'Loan Notifications', 'Due soon, overdue, and repaid updates', preferences.topics.loans, handleTopicToggle('loans'), !preferences.enabled)}
+        {renderToggleRow('heart', 'Wishlist Notifications', 'Future wishlist reminders and alerts', preferences.topics.wishlist, handleTopicToggle('wishlist'), !preferences.enabled)}
+        {renderToggleRow('airplane', 'Vacation Reminders', 'Future travel countdown reminders', preferences.topics.vacations, handleTopicToggle('vacations'), !preferences.enabled)}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: activeTheme.colors.mutedText }]}>Display</Text>
+        {renderLinkRow('language', 'Language', 'English (US)')}
+        {renderToggleRow('moon', 'Dark Mode', 'Coming soon', darkMode, setDarkMode, true)}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: activeTheme.colors.mutedText }]}>App</Text>
+        {renderLinkRow('information-circle', 'About', 'v1.0.0')}
+        {renderLinkRow('document-text', 'Terms of Service', 'Read our terms')}
+        {renderLinkRow('shield-checkmark', 'Privacy Policy', 'Read our privacy policy')}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: activeTheme.colors.danger }]}>Danger Zone</Text>
+        {renderLinkRow('log-out', 'Logout', 'Sign out of this device', { danger: true, onPress: handleLogout })}
+        {renderLinkRow('trash', 'Delete Account', 'This action cannot be undone', { danger: true, onPress: handleDeleteAccount })}
       </View>
 
       <View style={{ height: 32 }} />
@@ -314,47 +320,103 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
   },
   section: {
+    paddingHorizontal: 16,
     marginBottom: 24,
+    gap: 10,
   },
   sectionTitle: {
-    paddingHorizontal: 16,
     fontSize: 13,
     fontWeight: '700',
-    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    paddingHorizontal: 2,
+  },
+  autoCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+  },
+  autoCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  autoCardLabel: {
+    fontSize: 16,
+    fontFamily: 'DMSans_700Bold',
+  },
+  autoCardDescription: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'DMSans_500Medium',
+  },
+  activeBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  activeBadgeText: {
+    fontSize: 11,
+    fontFamily: 'DMSans_700Bold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
   },
-  dangerTitle: {
-    color: '#ef4444',
+  themeGrid: {
+    gap: 10,
   },
-  sectionContent: {
-    backgroundColor: '#fff',
-    overflow: 'hidden',
+  themeCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    gap: 10,
+  },
+  themeCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  themeCardTitle: {
+    fontSize: 20,
+    fontFamily: 'DMSerifDisplay_400Regular',
+  },
+  themeCardDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'DMSans_500Medium',
+  },
+  swatchRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  swatch: {
+    height: 8,
+    flex: 1,
+    borderRadius: 999,
+  },
+  resetButton: {
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resetButtonText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
   },
   settingItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  toggleItem: {
-    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
     paddingVertical: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  lastItem: {
-    borderBottomWidth: 0,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -362,21 +424,25 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
+  iconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   settingTextContainer: {
     marginLeft: 12,
     flex: 1,
   },
   settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  dangerText: {
-    color: '#ef4444',
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
   },
   settingDesc: {
-    fontSize: 13,
-    color: '#9ca3af',
     marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'DMSans_500Medium',
   },
 })

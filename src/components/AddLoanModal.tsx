@@ -76,16 +76,25 @@ export const AddLoanModal = ({ isOpen, onClose, onSubmit }: AddLoanModalProps) =
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2a44]/25 p-4 backdrop-blur-sm">
-      <div className="neo-card w-full max-w-md p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-text-primary">Add loan</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md">
+      <div
+        className="w-full max-w-md rounded-[20px] border border-[rgba(255,255,255,0.08)] bg-[#111114] p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add loan"
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#c9a84c]">Loans</p>
+            <h2 className="text-xl font-semibold text-text-primary">Add loan</h2>
+          </div>
           <button
             type="button"
             onClick={handleClose}
-            className="neo-card neo-pressable px-3 py-1 text-sm font-semibold text-text-muted"
+            aria-label="Close add loan modal"
+            className="rounded-lg border border-[rgba(255,255,255,0.10)] p-2 text-text-muted transition hover:border-[rgba(255,255,255,0.20)] hover:text-text-primary"
           >
-            Close
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
@@ -102,11 +111,11 @@ export const AddLoanModal = ({ isOpen, onClose, onSubmit }: AddLoanModalProps) =
                 setFormState((current) => ({ ...current, recipient: event.target.value }))
               }
               placeholder="Name of recipient"
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
               autoFocus
             />
             {hasTriedSubmit && recipient.length === 0 ? (
-              <p className="text-xs text-red-500">Recipient is required.</p>
+              <p className="text-xs text-[#c96b6b]">Recipient is required.</p>
             ) : null}
           </div>
 
@@ -124,10 +133,10 @@ export const AddLoanModal = ({ isOpen, onClose, onSubmit }: AddLoanModalProps) =
                 setFormState((current) => ({ ...current, amount: event.target.value }))
               }
               placeholder="0.00"
-              className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
             />
             {hasTriedSubmit && !isAmountValid ? (
-              <p className="text-xs text-red-500">Enter a valid amount.</p>
+              <p className="text-xs text-[#c96b6b]">Enter a valid amount.</p>
             ) : null}
           </div>
 
@@ -143,7 +152,7 @@ export const AddLoanModal = ({ isOpen, onClose, onSubmit }: AddLoanModalProps) =
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, dateGiven: event.target.value }))
                 }
-                className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
               />
             </div>
 
@@ -161,23 +170,23 @@ export const AddLoanModal = ({ isOpen, onClose, onSubmit }: AddLoanModalProps) =
                     expectedRepaymentDate: event.target.value,
                   }))
                 }
-                className="w-full rounded-neo border border-transparent bg-surface px-4 py-3 text-text-primary shadow-neo-inset outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-3 text-text-primary outline-none focus:border-[rgba(91,163,201,0.5)]"
               />
             </div>
           </div>
 
           {hasTriedSubmit && !isDateRangeValid ? (
-            <p className="text-xs text-red-500">
+            <p className="text-xs text-[#c96b6b]">
               Expected repayment date must be on or after date given.
             </p>
           ) : null}
 
-          {submitError ? <p className="text-sm text-red-500">{submitError}</p> : null}
+          {submitError ? <p className="text-sm text-[#c96b6b]">{submitError}</p> : null}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="neo-card neo-pressable w-full px-4 py-3 text-sm font-semibold text-text-primary disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex w-full items-center justify-center rounded-[10px] border border-[#c9a84c] bg-[#c9a84c] px-4 py-3 text-sm font-semibold text-[#0a0a0b] transition hover:bg-[#e2c06a] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isSubmitting ? 'Saving…' : 'Add loan'}
           </button>

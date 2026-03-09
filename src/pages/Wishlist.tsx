@@ -565,16 +565,16 @@ export const Wishlist = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] px-4 py-8 md:px-8 lg:px-12">
-      <section className="mx-auto flex w-full max-w-6xl items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-surface shadow-neo-inset">
+    <div className="min-h-[calc(100vh-8rem)] px-3 py-6 md:px-8 md:py-8 lg:px-12">
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-[#c9a84c]">
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
-              className="h-5 w-5"
+              className="h-3.5 w-3.5"
               fill="none"
-              stroke="var(--color-accent-strong)"
+              stroke="currentColor"
               strokeWidth="1.8"
             >
               <path
@@ -583,31 +583,37 @@ export const Wishlist = () => {
                 strokeLinejoin="round"
               />
             </svg>
+            <span>Personal Tracker</span>
           </div>
-
           <div className="space-y-1">
-            <h1 className="text-4xl font-semibold leading-tight text-text-primary">My Wishlist</h1>
-            <p className="text-base text-text-muted">Start adding your favorite items</p>
+            <h1 className="font-italiana text-[clamp(44px,6vw,64px)] leading-none tracking-[-0.02em] text-[#f0ede8]">
+              My Wishlist
+            </h1>
+            <p className="text-[15px] text-[#6b6862]">Start adding your favorite items</p>
           </div>
         </div>
 
         {isAddModalOpen ? (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/35 p-3 sm:p-4">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[rgba(0,0,0,0.7)] p-3 backdrop-blur-md sm:p-4">
             <div className="grid min-h-full place-items-start sm:place-items-center">
-              <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-xl sm:p-5">
+              <div className="relative w-full max-w-lg overflow-hidden rounded-[22px] border border-[rgba(255,255,255,0.10)] bg-[#111114] p-4 shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:p-5">
+                <div className="pointer-events-none absolute left-8 right-8 top-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent opacity-50" />
                 <div className="mb-4 flex items-start justify-between">
                   <div>
-                    <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c9a84c]/75">
+                      Wishlist
+                    </p>
+                    <h2 className="font-italiana text-[32px] leading-none tracking-[-0.01em] text-[#f0ede8]">
                       {editingProductId ? 'Edit Product' : 'Add New Product'}
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500 sm:mt-2">
+                    <p className="mt-2 text-sm text-[#6b6862]">
                       Add a product to your wishlist by entering the URL and a title.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={closeAddProductModal}
-                    className="text-xl leading-none text-slate-500 hover:text-slate-800"
+                    className="mt-1 flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] text-base leading-none text-[#6b6862] transition-all duration-200 hover:border-[rgba(255,255,255,0.18)] hover:bg-[#202026] hover:text-[#f0ede8]"
                     aria-label="Close modal"
                   >
                     ×
@@ -617,7 +623,7 @@ export const Wishlist = () => {
                 <div className="space-y-2">
                   <label
                     htmlFor="wishlist-product-title"
-                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                   >
                     Product Title
                   </label>
@@ -627,17 +633,17 @@ export const Wishlist = () => {
                     placeholder="e.g., Wireless Headphones"
                     value={productForm.title}
                     onChange={(e) => updateProductForm({ title: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 placeholder:text-[#6b6862] focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   />
                   {hasTriedSubmit && normalizedTitle === '' ? (
-                    <p className="text-sm text-red-600">Product title is required.</p>
+                    <p className="text-sm text-[#c96b6b]">Product title is required.</p>
                   ) : null}
                 </div>
 
                 <div className="mt-4 space-y-2">
                   <label
                     htmlFor="wishlist-product-price"
-                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                   >
                     Price
                   </label>
@@ -648,10 +654,10 @@ export const Wishlist = () => {
                     placeholder="e.g., 99.99"
                     value={productForm.price}
                     onChange={(e) => updateProductForm({ price: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 placeholder:text-[#6b6862] focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   />
                   {hasTriedSubmit && !hasValidPriceFormat ? (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-[#c96b6b]">
                       Price must be a valid non-negative number.
                     </p>
                   ) : null}
@@ -660,7 +666,7 @@ export const Wishlist = () => {
                 <div className="mt-4 space-y-2">
                   <label
                     htmlFor="wishlist-product-url"
-                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                   >
                     Product URL
                   </label>
@@ -673,19 +679,19 @@ export const Wishlist = () => {
                     onBlur={() => {
                       void handleAutoFillFromUrl()
                     }}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 placeholder:text-[#6b6862] focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[#6b6862]">
                     {isPreviewLoading
                       ? 'Fetching title, image, and price from this URL...'
                       : 'Auto-fetch runs when you leave this URL field.'}
                   </p>
-                  {previewError ? <p className="text-sm text-red-600">{previewError}</p> : null}
+                  {previewError ? <p className="text-sm text-[#c96b6b]">{previewError}</p> : null}
                   {hasTriedSubmit && !isUrlPresent ? (
-                    <p className="text-sm text-red-600">Product URL is required.</p>
+                    <p className="text-sm text-[#c96b6b]">Product URL is required.</p>
                   ) : null}
                   {hasTriedSubmit && isUrlPresent && !hasValidUrlFormat ? (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-[#c96b6b]">
                       Enter a valid URL starting with http:// or https://.
                     </p>
                   ) : null}
@@ -694,7 +700,7 @@ export const Wishlist = () => {
                 <div className="mt-4 space-y-2">
                   <label
                     htmlFor="wishlist-product-image-url"
-                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                   >
                     Image URL (optional)
                   </label>
@@ -704,10 +710,10 @@ export const Wishlist = () => {
                     placeholder="e.g., https://example.com/image.jpg"
                     value={productForm.imageUrl}
                     onChange={(e) => updateProductForm({ imageUrl: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 placeholder:text-[#6b6862] focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   />
                   {hasTriedSubmit && isImageUrlPresent && !hasValidImageUrlFormat ? (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-[#c96b6b]">
                       Image URL must start with http:// or https://.
                     </p>
                   ) : null}
@@ -716,7 +722,7 @@ export const Wishlist = () => {
                 <div className="mt-4 space-y-2">
                   <label
                     htmlFor="wishlist-category"
-                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                   >
                     Category (optional)
                   </label>
@@ -724,7 +730,7 @@ export const Wishlist = () => {
                     id="wishlist-category"
                     value={productForm.category}
                     onChange={(e) => updateProductForm({ category: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   >
                     <option value="">Select a category</option>
                     <option value="Electronics">Electronics</option>
@@ -738,7 +744,7 @@ export const Wishlist = () => {
                 <div className="mt-4 space-y-2">
                   <label
                     htmlFor="wishlist-priority"
-                    className="text-base font-semibold text-slate-900 sm:text-lg"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                   >
                     Priority
                   </label>
@@ -748,7 +754,7 @@ export const Wishlist = () => {
                     onChange={(e) =>
                       updateProductForm({ priority: normalizeWishlistPriority(e.target.value) })
                     }
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   >
                     {wishlistPriorityOptions.map((priorityOption) => (
                       <option key={priorityOption} value={priorityOption}>
@@ -762,11 +768,11 @@ export const Wishlist = () => {
                   <div className="flex items-center justify-between gap-2">
                     <label
                       htmlFor="wishlist-notes"
-                      className="text-base font-semibold text-slate-900 sm:text-lg"
+                      className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                     >
                       Notes (optional)
                     </label>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-[#6b6862]">
                       {notesLength}/{notesCharacterLimit}
                     </span>
                   </div>
@@ -777,13 +783,13 @@ export const Wishlist = () => {
                     value={productForm.notes}
                     onChange={(e) => updateProductForm({ notes: e.target.value })}
                     maxLength={notesCharacterLimit}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 placeholder:text-[#6b6862] focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   />
                 </div>
 
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
                   {addProductError ? (
-                    <p className="w-full text-sm text-red-600 sm:mr-auto sm:w-auto">
+                    <p className="w-full text-sm text-[#c96b6b] sm:mr-auto sm:w-auto">
                       {addProductError}
                     </p>
                   ) : null}
@@ -791,7 +797,7 @@ export const Wishlist = () => {
                   <button
                     type="button"
                     onClick={closeAddProductModal}
-                    className="w-full rounded-xl bg-slate-200 px-6 py-3 text-base font-semibold text-slate-700 hover:bg-slate-300 sm:w-auto"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-6 py-3 text-base font-semibold text-[#b8b4ae] transition hover:border-[rgba(255,255,255,0.18)] hover:bg-[#202026] hover:text-[#f0ede8] sm:w-auto"
                   >
                     Cancel
                   </button>
@@ -834,7 +840,7 @@ export const Wishlist = () => {
                         setWishlistError(errorMessage)
                       }
                     }}
-                    className="w-full rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 sm:w-auto"
+                    className="w-full rounded-[12px] border border-[#c9a84c] bg-[#c9a84c] px-6 py-3 text-base font-semibold text-[#0a0a0b] transition hover:-translate-y-px hover:border-[#e2c06a] hover:bg-[#e2c06a] hover:shadow-[0_8px_24px_rgba(201,168,76,0.2)] sm:w-auto"
                   >
                     {editingProductId ? 'Save Changes' : 'Add to Wishlist'}
                   </button>
@@ -847,28 +853,30 @@ export const Wishlist = () => {
         {wishlistError ? <p className="text-sm text-red-600">{wishlistError}</p> : null}
 
         {isDepositModalOpen && selectedDepositItem ? (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/35 p-3 sm:p-4">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[rgba(0,0,0,0.7)] p-3 backdrop-blur-md sm:p-4">
             <div className="grid min-h-full place-items-start sm:place-items-center">
-              <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl sm:p-5">
+              <div className="relative w-full max-w-md overflow-hidden rounded-[22px] border border-[rgba(255,255,255,0.10)] bg-[#111114] p-4 shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:p-5">
+                <div className="pointer-events-none absolute left-8 right-8 top-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent opacity-50" />
                 <div className="mb-4 flex items-start justify-between">
                   <div>
-                    <h2 className="text-2xl font-semibold text-slate-900">Deposit Funds</h2>
-                    <p className="mt-1 text-sm text-slate-500">Add money toward this product.</p>
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c9a84c]/75">Wishlist</p>
+                    <h2 className="font-italiana text-[32px] leading-none tracking-[-0.01em] text-[#f0ede8]">Deposit Funds</h2>
+                    <p className="mt-2 text-sm text-[#6b6862]">Add money toward this product.</p>
                   </div>
                   <button
                     type="button"
                     onClick={closeDepositModal}
-                    className="text-xl leading-none text-slate-500 hover:text-slate-800"
+                    className="mt-1 flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] text-base leading-none text-[#6b6862] transition-all duration-200 hover:border-[rgba(255,255,255,0.18)] hover:bg-[#202026] hover:text-[#f0ede8]"
                     aria-label="Close deposit modal"
                   >
                     ×
                   </button>
                 </div>
 
-                <div className="space-y-1 rounded-xl bg-slate-100 px-4 py-3">
-                  <p className="text-sm text-slate-500">Product</p>
-                  <p className="font-semibold text-slate-900">{selectedDepositItem.title}</p>
-                  <p className="text-sm text-slate-600">
+                <div className="space-y-1 rounded-[12px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]">Product</p>
+                  <p className="font-semibold text-[#f0ede8]">{selectedDepositItem.title}</p>
+                  <p className="text-sm text-[#b8b4ae]">
                     Target: {formatWishlistPrice(selectedDepositItem.price)} · Saved:{' '}
                     {formatWishlistPrice(selectedDepositItem.savedAmount)}
                   </p>
@@ -877,7 +885,7 @@ export const Wishlist = () => {
                 <div className="mt-4 space-y-2">
                   <label
                     htmlFor="wishlist-deposit-amount"
-                    className="text-base font-semibold text-slate-900"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]"
                   >
                     Deposit Amount
                   </label>
@@ -888,10 +896,10 @@ export const Wishlist = () => {
                     placeholder="e.g., 250"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-base text-slate-700 outline-none focus:border-slate-500"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 placeholder:text-[#6b6862] focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
                   />
                   {hasTriedDepositSubmit && !hasValidDepositAmount ? (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-[#c96b6b]">
                       Enter a valid deposit amount greater than 0.
                     </p>
                   ) : null}
@@ -901,14 +909,14 @@ export const Wishlist = () => {
                   <button
                     type="button"
                     onClick={closeDepositModal}
-                    className="w-full rounded-xl bg-slate-200 px-6 py-3 text-base font-semibold text-slate-700 hover:bg-slate-300 sm:w-auto"
+                    className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-6 py-3 text-base font-semibold text-[#b8b4ae] transition hover:border-[rgba(255,255,255,0.18)] hover:bg-[#202026] hover:text-[#f0ede8] sm:w-auto"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleAddFunds}
-                    className="w-full rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 sm:w-auto"
+                    className="w-full rounded-[12px] border border-[#c9a84c] bg-[#c9a84c] px-6 py-3 text-base font-semibold text-[#0a0a0b] transition hover:-translate-y-px hover:border-[#e2c06a] hover:bg-[#e2c06a] hover:shadow-[0_8px_24px_rgba(201,168,76,0.2)] sm:w-auto"
                   >
                     Add Funds
                   </button>
@@ -924,21 +932,21 @@ export const Wishlist = () => {
             resetAddProductForm()
             setIsAddModalOpen(true)
           }}
-          className="rounded-neo bg-surface px-5 py-3 text-sm font-semibold text-text-primary shadow-neo-sm transition hover:text-accent-strong"
+          className="inline-flex h-fit items-center rounded-[12px] border border-[#c9a84c] bg-[#d6b24e] px-6 py-3 text-sm font-semibold text-[#0a0a0b] shadow-[0_12px_30px_rgba(0,0,0,0.28)] transition hover:border-[#e2c06a] hover:bg-[#e2c06a]"
         >
           + Add Product
         </button>
       </section>
 
       {!isWishlistLoading && wishlistItems.length > 0 ? (
-        <section className="mx-auto mt-5 flex w-full max-w-6xl items-center gap-2">
+        <section className="mx-auto mt-3 flex w-full max-w-6xl items-center gap-2">
           <button
             type="button"
             onClick={() => setSelectedWishlistStatus(activeWishlistLabel)}
-            className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+            className={`rounded-full border px-5 py-2 text-sm font-semibold transition ${
               selectedWishlistStatus === activeWishlistLabel
-                ? 'border-transparent bg-accent-strong text-white'
-                : 'border-slate-300 bg-surface text-text-primary hover:border-slate-400'
+                ? 'border-[#d6b24e] bg-[#d6b24e] text-[#0a0a0b]'
+                : 'border-[rgba(255,255,255,0.16)] bg-transparent text-[#6b6862] hover:border-[rgba(255,255,255,0.24)] hover:text-[#b8b4ae]'
             }`}
             aria-pressed={selectedWishlistStatus === activeWishlistLabel}
           >
@@ -948,10 +956,10 @@ export const Wishlist = () => {
           <button
             type="button"
             onClick={() => setSelectedWishlistStatus(purchasedWishlistLabel)}
-            className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+            className={`rounded-full border px-5 py-2 text-sm font-semibold transition ${
               selectedWishlistStatus === purchasedWishlistLabel
-                ? 'border-transparent bg-accent-strong text-white'
-                : 'border-slate-300 bg-surface text-text-primary hover:border-slate-400'
+                ? 'border-[#d6b24e] bg-[#d6b24e] text-[#0a0a0b]'
+                : 'border-[rgba(255,255,255,0.16)] bg-transparent text-[#6b6862] hover:border-[rgba(255,255,255,0.24)] hover:text-[#b8b4ae]'
             }`}
             aria-pressed={selectedWishlistStatus === purchasedWishlistLabel}
           >
@@ -985,6 +993,9 @@ export const Wishlist = () => {
               value={String(filteredWishlistItems.length)}
               icon={<Package />}
               helper={`Total ${itemsInSelectedStatus.length} active`}
+              className="border border-[var(--glass-border)] bg-[var(--color-surface)] shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
+              iconClassName="text-text-muted group-hover:text-[var(--color-accent)]"
+              helperClassName="text-text-muted"
             />
 
             <StatCard
@@ -992,6 +1003,10 @@ export const Wishlist = () => {
               value={formatWishlistAmount(totalTargetAmount)}
               icon={<Target />}
               helper={`${filteredItemsMissingPriceCount} without price`}
+              className="border border-[var(--glass-border)] bg-[var(--color-surface)] shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
+              iconClassName="text-text-muted group-hover:text-[var(--color-warning)]"
+              helperClassName="text-text-muted"
+              valueClassName="text-[var(--color-warning)]"
             />
 
             <StatCard
@@ -999,6 +1014,10 @@ export const Wishlist = () => {
               value={formatWishlistAmount(totalSavedAmount)}
               icon={<DollarSign />}
               helper={`${summaryProgressPercent}% of target`}
+              className="border border-[var(--glass-border)] bg-[var(--color-surface)] shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
+              iconClassName="text-text-muted group-hover:text-[var(--color-success)]"
+              helperClassName="text-text-muted"
+              valueClassName="text-[var(--color-success)]"
             />
 
             <StatCard
@@ -1006,6 +1025,9 @@ export const Wishlist = () => {
               value={String(readyToBuyCount)}
               icon={<CheckCircle2 />}
               helper={`${filteredItemsWithTargetPrice.length} priced items`}
+              className="border border-[var(--glass-border)] bg-[var(--color-surface)] shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
+              iconClassName="text-text-muted group-hover:text-text-primary"
+              helperClassName="text-text-muted"
             />
           </section>
         ) : null

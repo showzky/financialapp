@@ -322,7 +322,7 @@ export const Loans = () => {
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-text-muted">Loan area</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#c9a84c]">Loan area</p>
             <h1 className="text-3xl font-semibold text-text-primary">Loans</h1>
             <p className="text-sm text-text-muted">Track both money you owe and money you have lent out.</p>
           </div>
@@ -333,22 +333,22 @@ export const Loans = () => {
               tab === 'mine' ? setIsAddBorrowedLoanModalOpen(true) : setIsAddLoanModalOpen(true)
             }
             aria-label={tab === 'mine' ? 'Add new personal loan' : 'Add new lent loan'}
-            className="inline-flex items-center justify-center rounded-xl border border-primary/50 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="inline-flex items-center justify-center rounded-[10px] border border-[#c9a84c] bg-[#c9a84c] px-5 py-2.5 text-sm font-semibold text-[#0a0a0b] transition-all hover:bg-[#e2c06a] focus-visible:outline-none"
           >
             {tab === 'mine' ? '+ Add personal loan' : '+ Add loan'}
           </button>
         </header>
 
         <section className="grid gap-4 md:grid-cols-2">
-          <div className={`glass-panel rounded-3xl p-5 ${tab === 'mine' ? 'border border-primary/30' : ''}`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-text-muted">My loans</p>
+          <div className={`rounded-[16px] border bg-[#111114] p-5 transition ${tab === 'mine' ? 'border-[rgba(94,189,151,0.35)]' : 'border-[rgba(255,255,255,0.055)]'}`}>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#c9a84c]">My loans</p>
             <h2 className="mt-2 text-2xl font-semibold text-text-primary">
               {formatCurrency(borrowedOutstandingTotal, 'KR')}
             </h2>
             <p className="mt-1 text-sm text-text-muted">{activeBorrowedCount} active personal loan(s)</p>
           </div>
-          <div className={`glass-panel rounded-3xl p-5 ${tab === 'lent' ? 'border border-primary/30' : ''}`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-text-muted">Lent out</p>
+          <div className={`rounded-[16px] border bg-[#111114] p-5 transition ${tab === 'lent' ? 'border-[rgba(201,168,76,0.35)]' : 'border-[rgba(255,255,255,0.055)]'}`}>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#c9a84c]">Lent out</p>
             <h2 className="mt-2 text-2xl font-semibold text-text-primary">
               {formatCurrency(outstandingTotal, 'KR')}
             </h2>
@@ -356,12 +356,12 @@ export const Loans = () => {
           </div>
         </section>
 
-        <section className="glass-panel flex w-full max-w-md gap-2 rounded-full p-1.5">
+        <section className="flex w-full max-w-md gap-1 rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-1.5">
           <button
             type="button"
             onClick={() => setTab('mine')}
-            className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-              tab === 'mine' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-text-muted hover:bg-white/5'
+            className={`flex-1 rounded-[10px] px-4 py-2 text-sm font-semibold transition ${
+              tab === 'mine' ? 'bg-[#c9a84c] text-[#0a0a0b]' : 'text-text-muted hover:bg-white/5'
             }`}
           >
             My loans
@@ -369,8 +369,8 @@ export const Loans = () => {
           <button
             type="button"
             onClick={() => setTab('lent')}
-            className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-              tab === 'lent' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-text-muted hover:bg-white/5'
+            className={`flex-1 rounded-[10px] px-4 py-2 text-sm font-semibold transition ${
+              tab === 'lent' ? 'bg-[#c9a84c] text-[#0a0a0b]' : 'text-text-muted hover:bg-white/5'
             }`}
           >
             Lent
@@ -389,7 +389,7 @@ export const Loans = () => {
             aria-label={searchPlaceholder}
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            className="glass-panel w-full bg-white/5 py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted/70 focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full rounded-[10px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted/70 outline-none focus:border-[rgba(255,255,255,0.10)]"
           />
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -427,10 +427,10 @@ export const Loans = () => {
                   key={filterKey}
                   type="button"
                   onClick={() => setBorrowedFilter(filterKey)}
-                  className={`glass-panel px-3 py-2 text-xs font-semibold transition-all ${
+                  className={`rounded-[8px] border px-3 py-2 text-xs font-semibold transition-all ${
                     borrowedFilter === filterKey
-                      ? 'border-primary/40 bg-primary/20 text-text-primary'
-                      : 'text-text-muted hover:bg-white/5'
+                      ? 'border-[rgba(201,168,76,0.45)] bg-[rgba(201,168,76,0.08)] text-[#c9a84c]'
+                      : 'border-[rgba(255,255,255,0.055)] bg-transparent text-text-muted hover:border-[rgba(255,255,255,0.10)]'
                   }`}
                 >
                   {borrowedFilterLabels[filterKey]}
@@ -441,10 +441,10 @@ export const Loans = () => {
                   key={filterKey}
                   type="button"
                   onClick={() => setFilter(filterKey)}
-                  className={`glass-panel px-3 py-2 text-xs font-semibold transition-all ${
+                  className={`rounded-[8px] border px-3 py-2 text-xs font-semibold transition-all ${
                     filter === filterKey
-                      ? 'border-primary/40 bg-primary/20 text-text-primary'
-                      : 'text-text-muted hover:bg-white/5'
+                      ? 'border-[rgba(201,168,76,0.45)] bg-[rgba(201,168,76,0.08)] text-[#c9a84c]'
+                      : 'border-[rgba(255,255,255,0.055)] bg-transparent text-text-muted hover:border-[rgba(255,255,255,0.10)]'
                   }`}
                 >
                   {filterLabels[filterKey]}
@@ -452,7 +452,7 @@ export const Loans = () => {
               ))}
         </section>
 
-        {error ? <div className="glass-panel p-3 text-sm text-error">{error}</div> : null}
+        {error ? <div className="rounded-[10px] border border-[rgba(201,107,107,0.22)] bg-[rgba(201,107,107,0.08)] p-3 text-sm text-[#c96b6b]">{error}</div> : null}
 
         {successMessage && (
           <RecurringAutomationToast
@@ -462,7 +462,7 @@ export const Loans = () => {
         )}
 
         {isLoading ? (
-          <div className="glass-panel p-6 text-sm text-text-muted">Loading loans...</div>
+          <div className="rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-6 text-sm text-text-muted">Loading loans...</div>
         ) : tab === 'mine' ? (
           <BorrowedLoanTable
             loans={filteredBorrowedLoans}

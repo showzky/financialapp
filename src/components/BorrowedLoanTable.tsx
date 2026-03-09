@@ -22,10 +22,10 @@ type BorrowedLoanTableProps = {
 }
 
 const statusClasses: Record<BorrowedLoan['status'], string> = {
-  active: 'bg-surface-strong text-text-primary',
-  due_soon: 'bg-warning/10 text-warning',
-  overdue: 'bg-error/10 text-error',
-  paid_off: 'bg-success/10 text-success',
+  active: 'bg-[#202026] text-[#6b6862]',
+  due_soon: 'bg-[rgba(220,160,50,0.12)] text-[#dca032] border border-[rgba(220,160,50,0.22)]',
+  overdue: 'bg-[rgba(201,107,107,0.12)] text-[#c96b6b] border border-[rgba(201,107,107,0.22)]',
+  paid_off: 'bg-[rgba(94,189,151,0.12)] text-[#5ebd97] border border-[rgba(94,189,151,0.22)]',
 }
 
 const editButtonClass =
@@ -49,11 +49,11 @@ export const BorrowedLoanTable = ({
   const paidOffScrollable = paidOffLoans.length >= 5
 
   if (loans.length === 0) {
-    return <div className="glass-panel p-6 text-sm text-text-muted">{emptyMessage}</div>
+    return <div className="rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-6 text-sm text-text-muted">{emptyMessage}</div>
   }
 
   return (
-    <div className="glass-panel overflow-hidden">
+    <div className="rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] overflow-hidden">
       <div className="hidden grid-cols-[1.4fr_1fr_1fr_1fr_auto] gap-3 border-b border-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted md:grid">
         <span>Lender</span>
         <span>Current balance</span>
@@ -116,7 +116,7 @@ export const BorrowedLoanTable = ({
                     type="button"
                     disabled={isMarking}
                     onClick={() => onMarkPaidOff(loan.id)}
-                    className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-[8px] border border-[rgba(255,255,255,0.055)] bg-[#202026] px-3 py-2 text-xs font-semibold text-text-muted transition hover:border-[rgba(255,255,255,0.10)] hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isMarking ? 'Saving...' : 'Mark paid off'}
                   </button>
@@ -132,7 +132,7 @@ export const BorrowedLoanTable = ({
               <button
                 type="button"
                 onClick={() => setShowPaidOff((current) => !current)}
-                className="glass-panel flex w-full items-center justify-between rounded-full px-4 py-2 text-sm font-semibold text-text-primary transition-transform duration-200 hover:scale-[1.01] focus:outline-none"
+                className="flex w-full items-center justify-between rounded-[10px] border border-[rgba(255,255,255,0.055)] bg-[#202026] px-4 py-2 text-sm font-semibold text-text-muted transition hover:border-[rgba(255,255,255,0.10)] hover:text-text-primary focus:outline-none"
               >
                 <span>Paid off loans ({paidOffLoans.length})</span>
                 <span
@@ -214,7 +214,7 @@ export const BorrowedLoanTable = ({
                               type="button"
                               disabled={isDeleting}
                               onClick={() => onDelete(loan.id)}
-                              className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="rounded-[8px] border border-[rgba(201,107,107,0.20)] bg-[rgba(201,107,107,0.08)] px-3 py-2 text-xs font-semibold text-[#c96b6b] transition hover:bg-[rgba(201,107,107,0.15)] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {isDeleting ? 'Deleting...' : 'Delete'}
                             </button>

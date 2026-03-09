@@ -1,8 +1,8 @@
-// @ts-nocheck
 import React from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { getBarColor } from '../utils/budgetColors'
+import { useScreenPalette } from '../customthemes'
 import type { CategoryWithSpent } from '../services/dashboardApi'
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
 }
 
 export function CategoryCard({ category, onPress }: Props) {
+  const { activeTheme } = useScreenPalette()
   const safeSpent = Math.max(0, category.monthSpent)
   const rawPct = category.allocated > 0 ? (safeSpent / category.allocated) * 100 : 0
   const clampedPct = Math.min(rawPct, 100)
@@ -20,7 +21,15 @@ export function CategoryCard({ category, onPress }: Props) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-      <View style={styles.cardInner}>
+      <View
+        style={[
+          styles.cardInner,
+          {
+            backgroundColor: activeTheme.colors.surface,
+            borderColor: activeTheme.colors.surfaceBorder,
+          },
+        ]}
+      >
         {/* Header row */}
         <View style={styles.headerRow}>
           <View style={[styles.iconWrap, { backgroundColor: isBudget ? (isOver ? '#fef2f2' : '#f5f3ff') : '#fef3c7' }]}>
@@ -30,7 +39,7 @@ export function CategoryCard({ category, onPress }: Props) {
               color={isBudget ? (isOver ? '#ef4444' : '#8b5cf6') : '#ca8a04'}
             />
           </View>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, { color: activeTheme.colors.text }]} numberOfLines={1}>
             {category.name}
           </Text>
           {/* Type Badge */}
@@ -55,17 +64,17 @@ export function CategoryCard({ category, onPress }: Props) {
               <View style={[styles.barFill, { width: `${clampedPct}%`, backgroundColor: barColor }]} />
             </View>
             <View style={styles.amountRow}>
-              <Text style={[styles.spent, { color: barColor }]}>
-                {safeSpent.toLocaleString()}
-              </Text>
-              <Text style={styles.allocated}>/ {category.allocated.toLocaleString()}</Text>
-            </View>
-          </>
+            <Text style={[styles.spent, { color: barColor }]}>
+              {safeSpent.toLocaleString()}
+            </Text>
+            <Text style={[styles.allocated, { color: activeTheme.colors.subtleText }]}>/ {category.allocated.toLocaleString()}</Text>
+          </View>
+        </>
         ) : (
           /* Fixed Category: Just show monthly amount */
           <View style={styles.fixedAmountRow}>
-            <Text style={styles.fixedLabel}>Fixed cost</Text>
-            <Text style={styles.fixedAmount}>{category.allocated.toLocaleString()}</Text>
+            <Text style={[styles.fixedLabel, { color: activeTheme.colors.mutedText }]}>Fixed cost</Text>
+            <Text style={[styles.fixedAmount, { color: activeTheme.colors.accent }]}>{category.allocated.toLocaleString()}</Text>
           </View>
         )}
       </View>

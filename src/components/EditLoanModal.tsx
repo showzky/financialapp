@@ -114,21 +114,18 @@ export const EditLoanModal = ({ isOpen, loan, onClose, onSubmit }: EditLoanModal
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4 backdrop-blur-md">
-      <div className="w-full max-w-lg rounded-[22px] bg-gradient-to-br from-white/20 to-transparent p-[1px] shadow-[0_0_35px_rgba(var(--accent-rgb),0.2)]">
-        <div className="rounded-[21px] border border-white/10 bg-surface p-6">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-md">
+      <div className="w-full max-w-lg rounded-[20px] border border-[rgba(255,255,255,0.08)] bg-[#111114] p-6">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-text-muted">Edit loan</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#c9a84c]">Edit loan</p>
               <h2 className="text-xl font-semibold text-text-primary">Update details</h2>
             </div>
             <button
               type="button"
               onClick={handleClose}
               aria-label="Close edit loan modal"
-              className="rounded-lg border border-white/15 p-2 text-text-muted transition hover:border-white/30 hover:text-text-primary"
-            >
-              <X className="h-4 w-4" />
+              className="rounded-lg border border-[rgba(255,255,255,0.10)] p-2 text-text-muted transition hover:border-[rgba(255,255,255,0.20)] hover:text-text-primary"
             </button>
           </div>
 
@@ -229,12 +226,11 @@ export const EditLoanModal = ({ isOpen, loan, onClose, onSubmit }: EditLoanModal
             <button
               type="submit"
               disabled={!hasChanges || isSubmitting}
-              className="btn-shimmer relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-accent via-accent-strong to-accent px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_0_18px_rgba(var(--accent-rgb),0.32)] transition disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-[10px] border border-[#c9a84c] bg-[#c9a84c] px-4 py-3 text-sm font-semibold text-[#0a0a0b] transition hover:bg-[#e2c06a] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
-        </div>
       </div>
     </div>
   )

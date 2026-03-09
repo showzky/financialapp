@@ -20,6 +20,13 @@ export const AppLayout = () => {
         : 'bg-transparent text-[#6b6862] hover:bg-[#18181c] hover:text-[#b8b4ae]'
     }`
 
+  const flowLinkClass = (isActive: boolean) =>
+    `inline-flex items-center rounded-[10px] border px-4 py-2 text-[13px] font-medium tracking-[0.01em] transition-all duration-[180ms] ${
+      isActive
+        ? 'border-[#c9a84c] bg-[rgba(201,168,76,0.14)] text-[#f5d98a]'
+        : 'border-[rgba(201,168,76,0.18)] bg-[rgba(201,168,76,0.04)] text-[#c9a84c] hover:border-[rgba(201,168,76,0.32)] hover:bg-[rgba(201,168,76,0.10)] hover:text-[#f5d98a]'
+    }`
+
   const dropdownItemClass = (isActive: boolean) =>
     `block w-full rounded-[10px] px-3 py-2 text-[13px] font-medium tracking-[0.01em] text-left transition-all duration-[180ms] ${
       isActive
@@ -55,6 +62,9 @@ export const AppLayout = () => {
           <div className="flex flex-1 flex-wrap items-center justify-center gap-0.5">
             <NavLink to="/" end className={({ isActive }) => navLinkClass(isActive)}>
               Dashboard
+            </NavLink>
+            <NavLink to="/flow" className={({ isActive }) => flowLinkClass(isActive)}>
+              Flow
             </NavLink>
             <NavLink to="/history" className={({ isActive }) => navLinkClass(isActive)}>
               Monthly Records
@@ -140,4 +150,3 @@ export const AppLayout = () => {
     </div>
   )
 }
-
