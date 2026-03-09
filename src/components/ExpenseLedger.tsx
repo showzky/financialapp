@@ -63,19 +63,15 @@ export const ExpenseLedger: React.FC<ExpenseLedgerProps> = ({
   }
 
   return (
-    <div className="hud-glass-card">
-      <div className="flex items-center gap-2 mb-6">
-        <span className="hud-status-dot" />
-        <h3 className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
-          Expense Ledger
-        </h3>
+    <div className="obsidian-panel p-5 sm:p-6 lg:p-8">
+      <div className="mb-6 flex items-center gap-2">
+        <span className="obsidian-dot" />
+        <h3 className="obsidian-kicker m-0">Expense Ledger</h3>
       </div>
 
-      <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="custom-scrollbar max-h-[500px] space-y-2 overflow-y-auto pr-2">
         {expenses.length === 0 ? (
-          <div className="text-center text-[var(--color-text-muted)] py-4">
-            No expenses recorded
-          </div>
+          <div className="py-4 text-center text-[#b8b4ae]">No expenses recorded</div>
         ) : (
           <ul role="list" className="space-y-2">
             {expenses.map((expense) => {
@@ -90,28 +86,28 @@ export const ExpenseLedger: React.FC<ExpenseLedgerProps> = ({
               return (
                 <li
                   key={expense.id}
-                  className="flex items-center justify-between p-3 bg-white/5 rounded-lg transition-colors hover:bg-white/10 group/row"
+                  className="obsidian-subpanel group/row flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:border-[rgba(255,255,255,0.1)]"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <span
-                      className={`w-3 h-3 rounded-full ${colorClass} shadow-[0_0_8px_rgba(0,0,0,0.3)]`}
+                      className={`h-3 w-3 rounded-full ${colorClass} shadow-[0_0_8px_rgba(0,0,0,0.3)]`}
                       aria-hidden="true"
                     />
-                    <div>
-                      <div className="text-sm font-medium text-[var(--color-text-primary)]">{label}</div>
-                      <div className="text-xs text-[var(--color-text-muted)]">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-[#f0ede8]">{label}</div>
+                      <div className="truncate text-xs text-[#b8b4ae]">
                         {cleanDescription(expense.description)}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 opacity-80 group-hover/row:opacity-100 transition-opacity">
-                    <span className="hud-monospaced text-sm text-[var(--color-text-primary)]">
+                  <div className="flex items-center gap-2 opacity-90 transition-opacity group-hover/row:opacity-100">
+                    <span className="obsidian-metric text-sm text-[#f0ede8]">
                       KR {Math.floor(expense.amount / 100)}
                     </span>
                     <button
                       type="button"
                       onClick={() => onEditExpense(expense)}
-                      className="text-xs px-2 py-1 bg-[var(--color-accent)]/20 text-[var(--color-accent)] rounded hover:bg-[var(--color-accent)]/40 transition-colors"
+                      className="obsidian-button px-3 py-2 text-xs font-semibold"
                       aria-label={`Edit expense ${expense.id}`}
                     >
                       Edit
@@ -119,10 +115,10 @@ export const ExpenseLedger: React.FC<ExpenseLedgerProps> = ({
                     <button
                       type="button"
                       onClick={() => handleDelete(expense.id)}
-                      className="text-xs px-2 py-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40 transition-colors"
+                      className="obsidian-button obsidian-button--danger px-3 py-2 text-xs font-semibold"
                       aria-label={`Delete expense ${expense.id}`}
                     >
-                      🗑️
+                      Delete
                     </button>
                   </div>
                 </li>

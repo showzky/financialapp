@@ -45,7 +45,7 @@ const getDaysAway = (target: Date): number => {
   return Math.max(0, Math.round((targetDay - today) / millisPerDay))
 }
 
-const iconClassName = 'h-4 w-4 text-[var(--color-text-muted)]'
+const iconClassName = 'h-4 w-4 text-[#b8b4ae]'
 
 const CardIconSpend = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconClassName}>
@@ -63,7 +63,11 @@ const CardIconActive = () => (
 
 const CardIconBilling = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconClassName}>
-    <path d="M7 3.5v3M17 3.5v3M4 8.5h16M5.5 6.5h13a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Z" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M7 3.5v3M17 3.5v3M4 8.5h16M5.5 6.5h13a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 )
 
@@ -149,12 +153,10 @@ export const SubscriptionSummaryCards: React.FC<SubscriptionSummaryCardsProps> =
       return <div className="h-10 w-32 animate-pulse rounded bg-white/10" aria-hidden="true" />
     }
     if (hasLoadError) {
-      return <span className="hud-monospaced text-4xl font-semibold text-[var(--color-text-primary)]">—</span>
+      return <span className="obsidian-metric text-4xl font-semibold">—</span>
     }
-    return <span className="hud-monospaced text-4xl font-semibold text-[var(--color-text-primary)]">{value}</span>
+    return <span className="obsidian-metric text-4xl font-semibold">{value}</span>
   }
-
-  const helperTextClass = hasLoadError ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text-muted)]'
 
   return (
     <section aria-labelledby="subscription-overview-heading">
@@ -162,35 +164,35 @@ export const SubscriptionSummaryCards: React.FC<SubscriptionSummaryCardsProps> =
         Subscription overview
       </h2>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <article className="hud-glass-card">
+        <article className="obsidian-card">
           <div className="mb-4 flex items-center gap-2">
             <CardIconSpend />
-            <p className="text-[0.8rem] text-[var(--color-text-muted)]">Total Monthly Spend</p>
+            <p className="text-[0.8rem] text-[#b8b4ae]">Total Monthly Spend</p>
           </div>
           <div className="mb-3">{renderValue(currencyFormatter.format(monthlySpendCents / 100))}</div>
-          <p aria-live="polite" className={`text-sm ${helperTextClass}`}>
+          <p aria-live="polite" className="text-sm text-[#b8b4ae]">
             {hasLoadError ? 'data unavailable' : 'from active subscriptions'}
           </p>
         </article>
 
-        <article className="hud-glass-card">
+        <article className="obsidian-card">
           <div className="mb-4 flex items-center gap-2">
             <CardIconActive />
-            <p className="text-[0.8rem] text-[var(--color-text-muted)]">Active Services</p>
+            <p className="text-[0.8rem] text-[#b8b4ae]">Active Services</p>
           </div>
           <div className="mb-3">{renderValue(`${activeServices} / ${totalServices}`)}</div>
-          <p aria-live="polite" className={`text-sm ${helperTextClass}`}>
+          <p aria-live="polite" className="text-sm text-[#b8b4ae]">
             {hasLoadError ? 'data unavailable' : `${utilization}% services active`}
           </p>
         </article>
 
-        <article className="hud-glass-card">
+        <article className="obsidian-card">
           <div className="mb-4 flex items-center gap-2">
             <CardIconBilling />
-            <p className="text-[0.8rem] text-[var(--color-text-muted)]">Next Billing</p>
+            <p className="text-[0.8rem] text-[#b8b4ae]">Next Billing</p>
           </div>
           <div className="mb-3">{renderValue(nextBillingLabel)}</div>
-          <p aria-live="polite" className={`text-sm ${helperTextClass}`}>
+          <p aria-live="polite" className="text-sm text-[#b8b4ae]">
             {hasLoadError ? 'data unavailable' : nextBillingDaysLabel}
           </p>
         </article>

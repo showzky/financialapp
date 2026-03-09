@@ -250,22 +250,22 @@ export const VacationDash: React.FC = () => {
 
       <div className="vacation-hud-grid relative z-10 mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
         {hudAlert ? (
-          <div className="glass-panel border border-red-400/30 px-4 py-3 text-sm text-red-200">
+          <div className="obsidian-subpanel border border-[rgba(201,107,107,0.28)] bg-[rgba(201,107,107,0.08)] px-4 py-3 text-sm text-[#f1c3c3]">
             {hudAlert}
           </div>
         ) : null}
         {/* Top Row Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Ferie Tank / Savings */}
-          <div className="hud-glass-card group">
-            <div className="flex items-center gap-2 mb-6">
-              <span className="hud-status-dot" />
-              <h3 className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
+          <div className="obsidian-card group">
+            <div className="mb-6 flex items-center gap-2">
+              <span className="obsidian-dot" />
+              <h3 className="obsidian-kicker m-0">
                 Ferie Tank / Savings
               </h3>
             </div>
 
-            <div className="relative text-center flex flex-col items-center">
+            <div className="relative flex flex-col items-center text-center">
               <svg className="hud-chart-svg" viewBox="0 0 100 100">
                 <circle className="hud-chart-circle hud-chart-bg" cx="50" cy="50" r="45" />
                 <circle
@@ -280,8 +280,10 @@ export const VacationDash: React.FC = () => {
                 />
               </svg>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <span className="hud-label">Total Saved</span>
-                <span className="hud-value hud-monospaced">
+                <span className="mb-1 block text-[0.62rem] uppercase tracking-[0.14em] text-[#6b6862]">
+                  Total Saved
+                </span>
+                <span className="obsidian-metric block text-[1.9rem]">
                   <span className="hud-currency">KR</span>
                   {(summary.totalBudget / 100).toFixed(0)}
                 </span>
@@ -291,7 +293,7 @@ export const VacationDash: React.FC = () => {
             <div className="mt-4 flex justify-center">
               <button
                 onClick={() => setIsAddFundsOpen(true)}
-                className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
+                className="obsidian-button obsidian-button--gold px-4 py-2 text-sm font-semibold"
               >
                 Add Funds
               </button>
@@ -299,26 +301,30 @@ export const VacationDash: React.FC = () => {
           </div>
 
           {/* Daily Allowance */}
-          <div className="hud-glass-card">
-            <div className="flex items-center gap-2 mb-6">
-              <span className="hud-status-dot animate-pulse-slow bg-[var(--color-accent)]" />
-              <h3 className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
+          <div className="obsidian-card">
+            <div className="mb-6 flex items-center gap-2">
+              <span className="obsidian-dot animate-pulse-slow bg-[#5ba3c9]" />
+              <h3 className="obsidian-kicker m-0">
                 Daily Allowance
               </h3>
             </div>
 
             <div className="space-y-6">
               <div>
-                <span className="hud-label">Projected Daily</span>
-                <span className="hud-value hud-monospaced hud-glow">
+                <span className="mb-1 block text-[0.62rem] uppercase tracking-[0.14em] text-[#6b6862]">
+                  Projected Daily
+                </span>
+                <span className="obsidian-metric block text-[2rem] [text-shadow:0_0_18px_rgba(91,163,201,0.22)]">
                   <span className="hud-currency">KR</span>
                   {Math.floor(summary.dailyAllowance / 100)}
                 </span>
               </div>
 
-              <div className="flex justify-between mt-6 pt-4 border-t border-white/10">
+              <div className="mt-6 flex justify-between border-t border-[rgba(255,255,255,0.08)] pt-4">
                 <div className="flex flex-col">
-                  <span className="hud-label">Days</span>
+                  <span className="mb-1 block text-[0.62rem] uppercase tracking-[0.14em] text-[#6b6862]">
+                    Days
+                  </span>
                   <div className="flex items-center">
                     {isEditingDays ? (
                       <input
@@ -332,12 +338,12 @@ export const VacationDash: React.FC = () => {
                           }
                         }}
                         onBlur={() => setIsEditingDays(false)}
-                        className="glass-panel bg-[var(--glass-bg)] border border-[var(--glass-border)] w-16 px-2 py-1 text-sm text-[var(--color-text-primary)] focus:outline-none appearance-none"
+                        className="obsidian-field w-16 px-2 py-1 text-sm appearance-none"
                         style={{ MozAppearance: 'textfield' }}
                       />
                     ) : (
                       <>
-                        <span className="text-xl hud-monospaced text-white">
+                        <span className="obsidian-metric text-xl text-[#f0ede8]">
                           {summary.daysRemaining}
                         </span>
                         <button
@@ -345,7 +351,7 @@ export const VacationDash: React.FC = () => {
                             setCustomDaysRemaining(summary.daysRemaining)
                             setIsEditingDays(true)
                           }}
-                          className="ml-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                          className="ml-2 text-[#6b6862] transition-colors hover:text-[#f0ede8]"
                           aria-label="Edit days remaining"
                         >
                           <svg
@@ -368,8 +374,10 @@ export const VacationDash: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-col text-right">
-                  <span className="hud-label">Health</span>
-                  <span className="text-[0.8rem] hud-monospaced text-green-400">NOMINAL</span>
+                  <span className="mb-1 block text-[0.62rem] uppercase tracking-[0.14em] text-[#6b6862]">
+                    Health
+                  </span>
+                  <span className="obsidian-metric text-[0.8rem] text-[#5ebd97]">NOMINAL</span>
                 </div>
               </div>
             </div>
@@ -384,10 +392,10 @@ export const VacationDash: React.FC = () => {
         {/* Expense sensors & Ledger Grid */}
         <div className="grid grid-cols-1 gap-6">
           {/* Expense Sensors (Internal chart data) */}
-          <div className="hud-glass-card">
-            <div className="flex items-center gap-2 mb-6">
-              <span className="hud-status-dot" />
-              <h3 className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
+          <div className="obsidian-panel p-6">
+            <div className="mb-6 flex items-center gap-2">
+              <span className="obsidian-dot" />
+              <h3 className="obsidian-kicker m-0">
                 Expense Sensors
               </h3>
             </div>
@@ -417,7 +425,7 @@ export const VacationDash: React.FC = () => {
 
                 <div className="space-y-2">
                   {activeTooltipSegment ? (
-                    <div className="glass-panel rounded-neo px-3 py-2 text-[0.7rem] text-[var(--color-text-primary)]">
+                    <div className="obsidian-pill px-3 py-2 text-[0.7rem] text-[#f0ede8]">
                       {`${formatCategoryLabel(activeTooltipSegment.cat)}: ${(
                         activeTooltipSegment.percentage * 100
                       ).toFixed(1)}% / KR ${Math.floor(activeTooltipSegment.total / 100)}`}
@@ -426,7 +434,7 @@ export const VacationDash: React.FC = () => {
                   {chartData.map((seg) => (
                     <div
                       key={seg.cat}
-                      className="flex items-center gap-2 text-[0.7rem] text-[var(--color-text-muted)]"
+                      className="flex items-center gap-2 text-[0.7rem] text-[#b8b4ae]"
                       onMouseEnter={() => setHoveredCategory(seg.cat)}
                       onMouseLeave={() => setHoveredCategory(null)}
                     >
@@ -443,7 +451,7 @@ export const VacationDash: React.FC = () => {
             <div className="mt-6 flex justify-center">
               <button
                 onClick={() => setIsAddExpenseOpen(true)}
-                className="glass-panel px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-all hover:bg-white/10"
+                className="obsidian-button obsidian-button--gold px-4 py-2 text-sm font-semibold"
               >
                 Add Expense
               </button>

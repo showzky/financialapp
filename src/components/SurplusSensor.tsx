@@ -6,17 +6,19 @@ type SurplusSensorProps = {
 
 export const SurplusSensor: React.FC<SurplusSensorProps> = ({ totalPocketMoney }) => {
   return (
-    <div className="hud-glass-card">
-      <div className="flex items-center gap-2 mb-6">
-        <span className="hud-status-dot animate-pulse-slow bg-green-400" />
-        <h3 className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
+    <div className="obsidian-card h-full">
+      <div className="mb-6 flex items-center gap-2">
+        <span className="obsidian-dot animate-pulse-slow bg-[#5ebd97]" />
+        <h3 className="obsidian-kicker m-0">
           Surplus Sensor
         </h3>
       </div>
 
       <div className="text-center">
-        <span className="hud-label block">Total Pocket Money</span>
-        <span className="hud-value hud-monospaced hud-glow text-[2rem] text-white">
+        <span className="mb-2 block text-[0.65rem] uppercase tracking-[0.14em] text-[#6b6862]">
+          Total Pocket Money
+        </span>
+        <span className="obsidian-metric block text-[2rem] text-[#f0ede8] [text-shadow:0_0_14px_rgba(94,189,151,0.18)]">
           <span className="hud-currency">KR</span>
           {Math.floor(totalPocketMoney / 100)}
         </span>

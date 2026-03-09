@@ -66,9 +66,9 @@ type InsightPillProps = {
 }
 
 const InsightPill = ({ label, value }: InsightPillProps) => (
-  <div className="glass-panel flex items-center justify-between gap-3 rounded-full px-4 py-2">
-    <span className="text-xs font-medium text-[var(--color-text-muted)]">{label}</span>
-    <span className="hud-monospaced text-sm text-[var(--color-text-primary)]">{value}</span>
+  <div className="obsidian-pill flex items-center justify-between gap-3 px-4 py-3">
+    <span className="text-xs font-medium text-[#b8b4ae]">{label}</span>
+    <span className="obsidian-metric text-sm">{value}</span>
   </div>
 )
 
@@ -168,67 +168,67 @@ export const SubscriptionDashboardPanel: React.FC<SubscriptionDashboardPanelProp
   }, [billableSubscriptions.length, hasLoadError])
 
   return (
-    <div className="hud-glass-card">
-      <div className="flex items-center gap-2 mb-6">
-        <span className="hud-status-dot" />
-        <h3 className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
+    <div className="obsidian-panel p-5 sm:p-6 lg:p-8">
+      <div className="mb-6 flex items-center gap-2">
+        <span className="obsidian-dot" />
+        <h3 className="obsidian-kicker m-0">
           Subscription Dashboard
         </h3>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <section
-          className="glass-panel rounded-[1.25rem] p-5 lg:col-span-2"
+          className="obsidian-subpanel p-5 lg:col-span-2"
           aria-label="Subscription spend overview"
         >
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
+              <p className="obsidian-kicker m-0">
                 Estimated yearly spend
               </p>
-              <p className="text-sm text-[var(--color-text-muted)] m-0">Estimated monthly spend</p>
+              <p className="m-0 text-sm text-[#b8b4ae]">Estimated monthly spend</p>
             </div>
             <div className="text-right">
-              <p className="hud-monospaced text-sm text-[var(--color-text-primary)] m-0">{yearlyValue}</p>
+              <p className="obsidian-metric m-0 text-sm">{yearlyValue}</p>
             </div>
           </div>
 
           <div className="mt-4">
-            <p className="hud-monospaced text-4xl font-semibold text-[var(--color-text-primary)] m-0">
+            <p className="obsidian-metric m-0 text-4xl font-semibold sm:text-5xl">
               {primaryValue}
             </p>
-            <p className="mt-2 text-xs text-[var(--color-text-muted)]">{helperLine}</p>
+            <p className="mt-2 text-xs text-[#b8b4ae]">{helperLine}</p>
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="glass-panel rounded-[1rem] px-4 py-3">
-              <p className="text-[0.7rem] uppercase tracking-[0.14em] text-[var(--color-text-muted)] m-0">
+            <div className="obsidian-subpanel px-4 py-4">
+              <p className="obsidian-kicker m-0">
                 Active
               </p>
-              <p className="hud-monospaced mt-1 text-lg text-[var(--color-text-primary)] m-0">
+              <p className="obsidian-metric mt-2 text-lg">
                 {isLoading || hasLoadError ? '—' : String(activeSubscriptions.length)}
               </p>
             </div>
-            <div className="glass-panel rounded-[1rem] px-4 py-3">
-              <p className="text-[0.7rem] uppercase tracking-[0.14em] text-[var(--color-text-muted)] m-0">
+            <div className="obsidian-subpanel px-4 py-4">
+              <p className="obsidian-kicker m-0">
                 Monthly equivalent
               </p>
-              <p className="hud-monospaced mt-1 text-lg text-[var(--color-text-primary)] m-0">
+              <p className="obsidian-metric mt-2 text-lg">
                 {isLoading || hasLoadError ? '—' : formatCents(monthlySpendCents, currencyFormatter)}
               </p>
             </div>
-            <div className="glass-panel rounded-[1rem] px-4 py-3">
-              <p className="text-[0.7rem] uppercase tracking-[0.14em] text-[var(--color-text-muted)] m-0">
+            <div className="obsidian-subpanel px-4 py-4">
+              <p className="obsidian-kicker m-0">
                 Yearly projection
               </p>
-              <p className="hud-monospaced mt-1 text-lg text-[var(--color-text-primary)] m-0">
+              <p className="obsidian-metric mt-2 text-lg">
                 {yearlyValue}
               </p>
             </div>
           </div>
         </section>
 
-        <section className="glass-panel rounded-[1.25rem] p-5" aria-label="Subscription insights">
+        <section className="obsidian-subpanel p-5" aria-label="Subscription insights">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <InsightPill
               label="Renewals next 7 days"

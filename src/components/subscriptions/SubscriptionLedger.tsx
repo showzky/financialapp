@@ -139,22 +139,19 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
     [locale, currency],
   )
 
-  const currencyFormatter = useMemo(
-    () => {
-      try {
-        return new Intl.NumberFormat(localeCurrency.locale, {
-          style: 'currency',
-          currency: localeCurrency.currency,
-        })
-      } catch {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'NOK',
-        })
-      }
-    },
-    [localeCurrency],
-  )
+  const currencyFormatter = useMemo(() => {
+    try {
+      return new Intl.NumberFormat(localeCurrency.locale, {
+        style: 'currency',
+        currency: localeCurrency.currency,
+      })
+    } catch {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'NOK',
+      })
+    }
+  }, [localeCurrency])
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase()
@@ -229,20 +226,18 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
     !isLoading && !loadError && subscriptions.length > 0 && filtered.length > 0 && totalPages > 1
 
   return (
-    <div className="hud-glass-card">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="obsidian-panel p-5 sm:p-6 lg:p-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
-          <span className="hud-status-dot" />
-          <h3 className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] m-0">
-            Subscription Ledger
-          </h3>
+          <span className="obsidian-dot" />
+          <h3 className="obsidian-kicker m-0">Subscription Ledger</h3>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,18rem)_10rem_auto]">
           <button
             type="button"
             onClick={onAdd}
-            className="glass-panel w-full px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10 sm:w-auto"
+            className="obsidian-button obsidian-button--gold w-full px-4 py-3 text-sm font-semibold sm:w-auto"
             aria-label="Add subscription"
           >
             Add Subscription
@@ -252,13 +247,13 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Search name/provider/category..."
             aria-label="Search subscriptions"
-            className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)] placeholder-text-muted sm:w-72"
+            className="obsidian-field min-w-0 px-4 py-3 text-sm"
           />
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as SubscriptionStatus | 'all')}
             aria-label="Filter subscriptions by status"
-            className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)] sm:w-44"
+            className="obsidian-field px-4 py-3 text-sm"
           >
             <option value="all">All</option>
             <option value="active">Active</option>
@@ -274,7 +269,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                 setStatusFilter('all')
                 setCurrentPage(1)
               }}
-              className="glass-panel w-full px-3 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition-all hover:bg-white/10 sm:w-auto"
+              className="obsidian-button obsidian-button--ghost w-full px-4 py-3 text-xs font-semibold sm:w-auto"
               aria-label="Clear search and status filters"
             >
               Clear filters
@@ -284,79 +279,79 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
       </div>
 
       <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">
-            <tr className="border-b border-white/10">
-              <th className="py-3 pr-4" aria-sort={getAriaSort('name')}>
+        <table className="w-full min-w-[840px] text-left text-sm">
+          <thead className="text-[0.7rem] uppercase tracking-[0.18em] text-[#b8b4ae]">
+            <tr className="border-b border-[rgba(255,255,255,0.08)]">
+              <th className="py-4 pr-4" aria-sort={getAriaSort('name')}>
                 <button
                   type="button"
                   onClick={() => handleSort('name')}
-                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[#f0ede8]"
                   aria-label="Sort by name"
                 >
                   Node
                 </button>
               </th>
-              <th className="py-3 pr-4" aria-sort={getAriaSort('price')}>
+              <th className="py-4 pr-4" aria-sort={getAriaSort('price')}>
                 <button
                   type="button"
                   onClick={() => handleSort('price')}
-                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[#f0ede8]"
                   aria-label="Sort by price"
                 >
                   Price
                 </button>
               </th>
-              <th className="py-3 pr-4" aria-sort={getAriaSort('next')}>
+              <th className="py-4 pr-4" aria-sort={getAriaSort('next')}>
                 <button
                   type="button"
                   onClick={() => handleSort('next')}
-                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[#f0ede8]"
                   aria-label="Sort by next renewal date"
                 >
                   Next
                 </button>
               </th>
-              <th className="py-3 pr-4" aria-sort={getAriaSort('status')}>
+              <th className="py-4 pr-4" aria-sort={getAriaSort('status')}>
                 <button
                   type="button"
                   onClick={() => handleSort('status')}
-                  className="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]"
+                  className="inline-flex items-center gap-1 transition-colors hover:text-[#f0ede8]"
                   aria-label="Sort by status"
                 >
                   Status
                 </button>
               </th>
-              <th className="py-3 text-right">Actions</th>
+              <th className="py-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="text-[var(--color-text-primary)]">
+          <tbody className="text-[#f0ede8]">
             {isLoading ? (
               skeletonRows.map((row) => (
                 <tr
                   key={`skeleton-${row}`}
-                  className="border-b border-white/5 animate-pulse"
+                  className="animate-pulse border-b border-[rgba(255,255,255,0.04)]"
                   data-testid="subscription-skeleton-row"
                 >
-                  <td className="py-4 pr-4">
+                  <td className="py-5 pr-4">
                     <div className="h-4 w-28 rounded bg-white/10" />
                     <div className="mt-2 h-3 w-36 rounded bg-white/5" />
                   </td>
-                  <td className="py-4 pr-4">
+                  <td className="py-5 pr-4">
                     <div className="h-4 w-20 rounded bg-white/10" />
                     <div className="mt-2 h-3 w-24 rounded bg-white/5" />
                   </td>
-                  <td className="py-4 pr-4">
+                  <td className="py-5 pr-4">
                     <div className="h-4 w-24 rounded bg-white/10" />
                   </td>
-                  <td className="py-4 pr-4">
-                    <div className="h-6 w-16 rounded bg-white/10" />
+                  <td className="py-5 pr-4">
+                    <div className="h-8 w-20 rounded bg-white/10" />
                   </td>
-                  <td className="py-4">
+                  <td className="py-5">
                     <div className="ml-auto flex w-fit gap-2">
-                      <div className="h-8 w-14 rounded bg-white/10" />
-                      <div className="h-8 w-16 rounded bg-white/10" />
-                      <div className="h-8 w-14 rounded bg-white/10" />
+                      <div className="h-10 w-16 rounded bg-white/10" />
+                      <div className="h-10 w-20 rounded bg-white/10" />
+                      <div className="h-10 w-16 rounded bg-white/10" />
                     </div>
                   </td>
                 </tr>
@@ -365,7 +360,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
               <tr>
                 <td colSpan={5} className="py-6">
                   <div
-                    className="glass-panel flex flex-col gap-3 border border-red-400/30 px-4 py-3 text-red-200 sm:flex-row sm:items-center sm:justify-between"
+                    className="obsidian-subpanel flex flex-col gap-3 border border-[rgba(201,107,107,0.28)] bg-[rgba(201,107,107,0.08)] px-4 py-4 text-[#f1c3c3] sm:flex-row sm:items-center sm:justify-between"
                     role="status"
                     aria-live="polite"
                   >
@@ -373,7 +368,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                     <button
                       type="button"
                       onClick={onRetryLoad}
-                      className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-all hover:bg-white/10"
+                      className="obsidian-button w-full px-4 py-3 text-xs font-semibold sm:w-auto"
                       aria-label="Retry loading subscriptions"
                     >
                       Retry
@@ -383,54 +378,56 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
               </tr>
             ) : subscriptions.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-6">
-                  <div className="text-center text-[var(--color-text-muted)]" role="status" aria-live="polite">
+                <td colSpan={5} className="py-8">
+                  <div className="text-center text-[#b8b4ae]" role="status" aria-live="polite">
                     No subscriptions yet. Add your first subscription.
                   </div>
                 </td>
               </tr>
             ) : filtered.length === 0 && hasFilters ? (
               <tr>
-                <td colSpan={5} className="py-6">
-                  <div className="text-center text-[var(--color-text-muted)]" role="status" aria-live="polite">
+                <td colSpan={5} className="py-8">
+                  <div className="text-center text-[#b8b4ae]" role="status" aria-live="polite">
                     No subscriptions match your current search/filter.
                   </div>
                 </td>
               </tr>
             ) : (
               paginatedRows.map((sub) => (
-                <tr key={sub.id} className="border-b border-white/5">
-                  <td className="py-4 pr-4">
-                    <div className="hud-monospaced">{sub.name}</div>
-                    <div className="text-xs text-[var(--color-text-muted)]">
+                <tr key={sub.id} className="border-b border-[rgba(255,255,255,0.04)] align-top">
+                  <td className="py-5 pr-4">
+                    <div className="obsidian-metric text-[1.05rem] font-semibold">{sub.name}</div>
+                    <div className="mt-1 text-xs text-[#b8b4ae]">
                       {sub.provider} - {sub.category}
                     </div>
                   </td>
-                  <td className="py-4 pr-4">
-                    <div className="hud-monospaced">
+                  <td className="py-5 pr-4">
+                    <div className="obsidian-metric text-base font-semibold">
                       {formatCents(sub.priceCents, currencyFormatter)}
-                      <span className="text-[var(--color-text-muted)]">
+                      <span className="ml-1 text-[#b8b4ae]">
                         {sub.cadence === 'monthly' ? ' /mo' : ' /yr'}
                       </span>
                     </div>
-                    <div className="text-xs text-[var(--color-text-muted)]">
+                    <div className="mt-1 text-xs text-[#b8b4ae]">
                       Eq: {formatCents(monthlyEquivalentCents(sub), currencyFormatter)} /mo
                     </div>
                   </td>
-                  <td className="py-4 pr-4">
-                    <div className="hud-monospaced">{formatNextBillingDate(getNextBillingRaw(sub))}</div>
+                  <td className="py-5 pr-4">
+                    <div className="obsidian-metric text-base">
+                      {formatNextBillingDate(getNextBillingRaw(sub))}
+                    </div>
                   </td>
-                  <td className="py-4 pr-4">
-                    <span className="glass-panel inline-flex px-3 py-1 text-xs">
+                  <td className="py-5 pr-4">
+                    <span className="obsidian-badge" data-status={sub.status}>
                       {statusLabel(sub.status)}
                     </span>
                   </td>
-                  <td className="py-4 text-right">
+                  <td className="py-5 text-right">
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
                         onClick={() => onEdit(sub)}
-                        className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-all hover:bg-white/10"
+                        className="obsidian-button px-3 py-2.5 text-xs font-semibold"
                       >
                         Edit
                       </button>
@@ -438,7 +435,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                         type="button"
                         onClick={() => onToggleStatus(sub)}
                         disabled={pendingToggleId === sub.id}
-                        className="glass-panel px-3 py-2 text-xs font-semibold text-text-primary transition-all hover:bg-white/10"
+                        className="obsidian-button px-3 py-2.5 text-xs font-semibold"
                       >
                         {pendingToggleId === sub.id
                           ? 'Saving...'
@@ -450,7 +447,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
                         <button
                           type="button"
                           onClick={() => onDelete(sub)}
-                          className="glass-panel px-3 py-2 text-xs font-semibold text-red-400 transition-all hover:bg-white/10"
+                          className="obsidian-button obsidian-button--danger px-3 py-2.5 text-xs font-semibold"
                         >
                           Delete
                         </button>
@@ -465,7 +462,7 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
       </div>
 
       {shouldShowPagination ? (
-        <div className="mt-4 flex items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]">
+        <div className="mt-5 flex flex-col gap-3 text-xs text-[#b8b4ae] sm:flex-row sm:items-center sm:justify-between">
           <div>
             Showing {pageStart + 1}-{Math.min(pageEnd, totalItems)} of {totalItems}
           </div>
@@ -474,19 +471,19 @@ export const SubscriptionLedger: React.FC<SubscriptionLedgerProps> = ({
               type="button"
               onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
               disabled={safeCurrentPage === 1}
-              className="glass-panel px-3 py-2 font-semibold text-text-primary transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="obsidian-button px-3 py-2 font-semibold"
               aria-label="Go to previous page"
             >
               Prev
             </button>
-            <span className="hud-monospaced" aria-live="polite">
+            <span className="obsidian-metric text-sm" aria-live="polite">
               Page {safeCurrentPage} / {totalPages}
             </span>
             <button
               type="button"
               onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
               disabled={safeCurrentPage === totalPages}
-              className="glass-panel px-3 py-2 font-semibold text-text-primary transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="obsidian-button px-3 py-2 font-semibold"
               aria-label="Go to next page"
             >
               Next

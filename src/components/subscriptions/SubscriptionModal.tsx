@@ -44,6 +44,9 @@ export type SubscriptionModalProps = {
   onSave: (payload: CreateSubscriptionPayload) => Promise<void>
 }
 
+const fieldLabelClass = 'text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]'
+const fieldClass = 'obsidian-field px-4 py-[14px] text-sm tracking-[0.01em]'
+
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   isOpen,
   subscription,
@@ -121,33 +124,38 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4 backdrop-blur-md">
-      <div className="w-full max-w-xl rounded-[22px] bg-gradient-to-br from-white/20 to-transparent p-[1px] shadow-[0_0_35px_rgba(var(--accent-rgb),0.2)]">
-        <div className="rounded-[21px] border border-white/10 bg-surface p-6">
-          <div className="mb-5 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[rgba(0,0,0,0.72)] p-3 backdrop-blur-md sm:p-4">
+      <div className="grid min-h-full place-items-start sm:place-items-center">
+        <div className="relative w-full max-w-xl overflow-hidden rounded-[22px] border border-[rgba(255,255,255,0.10)] bg-[#111114] p-4 shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:p-5">
+          <div className="pointer-events-none absolute left-8 right-8 top-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent opacity-50" />
+
+          <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c9a84c]/75">
                 {subscription ? 'Edit subscription' : 'Add subscription'}
               </p>
-              <h2 className="text-xl font-semibold text-text-primary">Subscription node</h2>
+              <h2 className="font-italiana text-[32px] leading-none tracking-[-0.01em] text-[#f0ede8]">
+                Subscription node
+              </h2>
+              <p className="mt-2 text-sm text-[#6b6862]">
+                Keep your recurring services in the same Obsidian Wealth style as the rest of the dashboard.
+              </p>
             </div>
+
             <button
               type="button"
               onClick={onClose}
               aria-label="Close subscription modal"
-              className="rounded-lg border border-white/15 p-2 text-text-muted transition hover:border-white/30 hover:text-text-primary"
+              className="mt-1 flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] text-[#6b6862] transition-all duration-200 hover:border-[rgba(255,255,255,0.18)] hover:bg-[#202026] hover:text-[#f0ede8]"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label
-                  htmlFor="sub-name"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-name" className={fieldLabelClass}>
                   Name
                 </label>
                 <input
@@ -157,19 +165,16 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, name: event.target.value }))
                   }
-                  className="w-full border-0 border-b border-white/20 bg-transparent px-0 pb-2 pt-1 text-text-primary outline-none transition focus:border-accent focus:shadow-[0_6px_14px_-8px_rgba(var(--accent-rgb),0.95)]"
+                  className={fieldClass}
                   autoFocus
                 />
                 {hasTriedSubmit && !isNameValid ? (
-                  <p className="text-xs text-error">Name is required.</p>
+                  <p className="text-sm text-[#c96b6b]">Name is required.</p>
                 ) : null}
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="sub-provider"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-provider" className={fieldLabelClass}>
                   Provider
                 </label>
                 <input
@@ -179,20 +184,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, provider: event.target.value }))
                   }
-                  className="w-full border-0 border-b border-white/20 bg-transparent px-0 pb-2 pt-1 text-text-primary outline-none transition focus:border-accent focus:shadow-[0_6px_14px_-8px_rgba(var(--accent-rgb),0.95)]"
+                  className={fieldClass}
                 />
                 {hasTriedSubmit && !isProviderValid ? (
-                  <p className="text-xs text-error">Provider is required.</p>
+                  <p className="text-sm text-[#c96b6b]">Provider is required.</p>
                 ) : null}
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label
-                  htmlFor="sub-category"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-category" className={fieldLabelClass}>
                   Category
                 </label>
                 <input
@@ -202,15 +204,12 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, category: event.target.value }))
                   }
-                  className="w-full border-0 border-b border-white/20 bg-transparent px-0 pb-2 pt-1 text-text-primary outline-none transition focus:border-accent focus:shadow-[0_6px_14px_-8px_rgba(var(--accent-rgb),0.95)]"
+                  className={fieldClass}
                 />
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="sub-status"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-status" className={fieldLabelClass}>
                   Status
                 </label>
                 <select
@@ -222,7 +221,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                       status: event.target.value as SubscriptionStatus,
                     }))
                   }
-                  className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)]"
+                  className={fieldClass}
                 >
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>
@@ -233,10 +232,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2 sm:col-span-2">
-                <label
-                  htmlFor="sub-price"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-price" className={fieldLabelClass}>
                   Price (KR)
                 </label>
                 <input
@@ -248,18 +244,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, price: event.target.value }))
                   }
-                  className="w-full border-0 border-b border-white/20 bg-transparent px-0 pb-2 pt-1 text-text-primary outline-none transition focus:border-accent focus:shadow-[0_6px_14px_-8px_rgba(var(--accent-rgb),0.95)]"
+                  className={fieldClass}
                 />
                 {hasTriedSubmit && !isPriceValid ? (
-                  <p className="text-xs text-error">Price must be greater than 0.</p>
+                  <p className="text-sm text-[#c96b6b]">Price must be greater than 0.</p>
                 ) : null}
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="sub-cadence"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-cadence" className={fieldLabelClass}>
                   Cadence
                 </label>
                 <select
@@ -271,7 +264,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                       cadence: event.target.value as BillingCadence,
                     }))
                   }
-                  className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)]"
+                  className={fieldClass}
                 >
                   <option value="monthly">Monthly</option>
                   <option value="yearly">Yearly</option>
@@ -281,10 +274,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label
-                  htmlFor="sub-renewal"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-renewal" className={fieldLabelClass}>
                   Next renewal
                 </label>
                 <input
@@ -294,18 +284,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, nextRenewalDate: event.target.value }))
                   }
-                  className="glass-panel w-full px-3 py-2 text-[var(--color-text-primary)]"
+                  className={fieldClass}
                 />
                 {hasTriedSubmit && !isDateValid ? (
-                  <p className="text-xs text-error">Renewal date is required.</p>
+                  <p className="text-sm text-[#c96b6b]">Renewal date is required.</p>
                 ) : null}
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="sub-notes"
-                  className="text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
-                >
+                <label htmlFor="sub-notes" className={fieldLabelClass}>
                   Notes
                 </label>
                 <input
@@ -315,34 +302,35 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   onChange={(event) =>
                     setFormState((current) => ({ ...current, notes: event.target.value }))
                   }
-                  className="w-full border-0 border-b border-white/20 bg-transparent px-0 pb-2 pt-1 text-text-primary outline-none transition focus:border-accent focus:shadow-[0_6px_14px_-8px_rgba(var(--accent-rgb),0.95)]"
+                  className={fieldClass}
                   placeholder="Optional"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            {saveError ? (
+              <p className="text-sm text-[#c96b6b]" role="alert">
+                {saveError}
+              </p>
+            ) : null}
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
+                className="obsidian-button obsidian-button--ghost w-full px-6 py-3 text-base font-semibold sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
+                className="obsidian-button obsidian-button--gold w-full px-6 py-3 text-base font-semibold sm:w-auto"
               >
                 {isSaving ? 'Saving...' : subscription ? 'Save changes' : 'Add subscription'}
               </button>
             </div>
-            {saveError ? (
-              <p className="text-right text-xs text-error" role="alert">
-                {saveError}
-              </p>
-            ) : null}
           </form>
         </div>
       </div>
@@ -351,4 +339,3 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 }
 
 export default SubscriptionModal
-
