@@ -44,7 +44,7 @@ const envSchema = z
     DEV_USER_ID: z.string().uuid().default('00000000-0000-0000-0000-000000000001'),
     DEV_USER_EMAIL: z.string().email().default('local@financetracker.local'),
     DEV_USER_NAME: z.string().min(1).default('Local User'),
-    BROWSERLESS_TOKEN: z.string().min(1, 'BROWSERLESS_TOKEN is required'),
+    BROWSERLESS_TOKEN: z.string().min(1).optional(),
     BROWSERLESS_BASE_URL: z.string().url().default('https://production-sfo.browserless.io'),
     BROWSERLESS_MODE: z.enum(['content', 'unblock', 'auto']).default('unblock'),
     BROWSERLESS_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(20000),

@@ -37,6 +37,7 @@ Migration source of truth is [backend/migrations/README.md](migrations/README.md
 - `LOCAL_AUTH_COOKIE_SAME_SITE`: `strict` or `lax`
 - `LOCAL_AUTH_COOKIE_MAX_AGE_DAYS`: persistent login lifetime in days (default `30`)
 - `ALLOW_DEV_AUTH_BYPASS`: keep `false` unless explicitly needed in local testing
+- `BROWSERLESS_TOKEN`: optional unless you enable features that call Browserless
 
 ## Generate secure local credentials
 

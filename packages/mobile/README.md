@@ -65,6 +65,8 @@ EXPO_PUBLIC_BACKEND_AUTH_TOKEN=eyJhbGciOi...
 
 (Note: Android emulator uses `10.0.2.2` for localhost)
 
+Production APKs must set `EXPO_PUBLIC_BACKEND_URL` explicitly before building. Release builds no longer fall back to localhost/emulator addresses.
+
 ## Build for Production
 
 ```bash
@@ -76,6 +78,15 @@ eas build -p ios --non-interactive
 ```
 
 Requires [Expo Account](https://expo.dev) and `eas-cli` installed.
+
+For a local Gradle release APK on Windows, set the backend URL first:
+
+```powershell
+$env:EXPO_PUBLIC_BACKEND_URL="https://your-render-service.onrender.com/api/v1"
+$env:NODE_ENV="production"
+Set-Location packages/mobile/android
+.\gradlew.bat app:assembleRelease
+```
 
 ## Dashboard Month Picker
 
