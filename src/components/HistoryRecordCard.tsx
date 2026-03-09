@@ -18,18 +18,18 @@ export const HistoryRecordCard = ({ record, onDelete }: HistoryRecordCardProps) 
   }
 
   return (
-    <NeoCard className="grid items-center gap-4 p-4 md:grid-cols-[1.2fr_1fr_auto_auto]">
+    <NeoCard className="obsidian-card grid items-center gap-4 p-4 md:grid-cols-[1.2fr_1fr_auto_auto]">
       <div>
-        <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Pay period</p>
-        <p className="text-lg font-semibold text-text-primary">{record.label}</p>
-        <p className="mt-1 text-xs text-text-muted">
+        <p className="obsidian-kicker">Pay period</p>
+        <p className="text-lg font-semibold text-[#f0ede8]">{record.label}</p>
+        <p className="mt-1 text-xs text-[#b8b4ae]">
           {record.periodStart} to {record.periodEnd}
         </p>
       </div>
 
       <div>
-        <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Summary</p>
-        <p className="text-sm text-text-primary">
+        <p className="obsidian-kicker">Summary</p>
+        <p className="text-sm text-[#f0ede8]">
           Saved {formatCurrency(record.summary.totalSaved)} • Spent{' '}
           {formatCurrency(record.summary.spent)}/ {formatCurrency(record.summary.allocated)}
         </p>
@@ -37,7 +37,7 @@ export const HistoryRecordCard = ({ record, onDelete }: HistoryRecordCardProps) 
 
       <Link
         to={`/history/${record.id}`}
-        className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
+        className="obsidian-button px-4 py-2 text-sm font-semibold"
       >
         Open
       </Link>
@@ -45,7 +45,7 @@ export const HistoryRecordCard = ({ record, onDelete }: HistoryRecordCardProps) 
       <button
         type="button"
         onClick={handleDelete}
-        className="glass-panel px-4 py-2 text-sm font-semibold text-rose-600 transition-all hover:bg-white/10"
+        className="obsidian-button obsidian-button--danger px-4 py-2 text-sm font-semibold"
       >
         Delete
       </button>
