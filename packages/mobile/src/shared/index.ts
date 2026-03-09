@@ -11,6 +11,21 @@ export type {
   UpdateLoanPayload,
 } from './contracts/loans'
 
+export type {
+  BillingCadence,
+  BillingCadence as SubscriptionBillingCadence,
+  CreateSubscriptionPayload,
+  CreateSubscriptionPayload as MobileCreateSubscriptionPayload,
+  Subscription as MobileSubscription,
+  Subscription,
+  SubscriptionStatus as MobileSubscriptionStatus,
+  SubscriptionStatus,
+  ToggleSubscriptionStatusPayload as MobileToggleSubscriptionStatusPayload,
+  ToggleSubscriptionStatusPayload,
+  UpdateSubscriptionPayload as MobileUpdateSubscriptionPayload,
+  UpdateSubscriptionPayload,
+} from './contracts/subscriptions'
+
 export {
   defaultNotificationPreferences,
   isAppNotificationKind,

@@ -40,8 +40,10 @@ export const HistorySnapshot = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Historical View</p>
-            <h1 className="text-2xl font-semibold text-text-primary">{record.dateRange}</h1>
-            <p className="text-sm text-text-muted">Read-only snapshot of your past month</p>
+            <h1 className="text-2xl font-semibold text-text-primary">{record.label}</h1>
+            <p className="text-sm text-text-muted">
+              Read-only snapshot for {record.periodStart} to {record.periodEnd}
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

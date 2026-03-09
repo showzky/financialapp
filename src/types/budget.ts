@@ -15,15 +15,22 @@ export type BudgetState = {
   categories: BudgetCategory[]
 }
 
-// ADD THIS: archived monthly dashboard snapshot record
+export type HistorySummary = {
+  allocated: number
+  spent: number
+  totalSaved: number
+}
+
+export type CaptureMode = 'manual' | 'current-payday'
+
+// ADD THIS: archived payday snapshot record
 export type HistoryRecord = {
   id: string
-  dateRange: string
+  periodKey: string
+  periodStart: string
+  periodEnd: string
+  label: string
   createdAt: string
   snapshot: BudgetState
-  summary: {
-    allocated: number
-    spent: number
-    totalSaved: number
-  }
+  summary: HistorySummary
 }

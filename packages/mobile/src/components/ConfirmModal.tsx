@@ -20,6 +20,23 @@ type Props = {
   onCancel: () => void
   isConfirming?: boolean
   confirmDestructive?: boolean
+  theme?: {
+    overlayColor?: string
+    cardBackground?: string
+    borderColor?: string
+    titleColor?: string
+    bodyColor?: string
+    cancelBackground?: string
+    cancelBorder?: string
+    cancelTextColor?: string
+    confirmBackground?: string
+    destructiveBackground?: string
+    confirmTextColor?: string
+    iconNeutralBackground?: string
+    iconNeutralColor?: string
+    iconDestructiveBackground?: string
+    iconDestructiveColor?: string
+  }
 }
 
 // Why a shared ConfirmModal? Reuse for Mark Repaid, Delete, and any future
@@ -34,7 +51,15 @@ export function ConfirmModal({
   onCancel,
   isConfirming = false,
   confirmDestructive = false,
+  theme,
 }: Props) {
+  const iconBackground = confirmDestructive
+    ? theme?.iconDestructiveBackground ?? '#fef2f2'
+    : theme?.iconNeutralBackground ?? '#eff6ff'
+  const iconColor = confirmDestructive
+    ? theme?.iconDestructiveColor ?? '#dc2626'
+    : theme?.iconNeutralColor ?? '#3b82f6'
+
   return (
     <Modal
       visible={isOpen}
@@ -43,50 +68,72 @@ export function ConfirmModal({
       onRequestClose={onCancel}
     >
       <TouchableOpacity
-        style={styles.overlay}
+        style={[styles.overlay, theme?.overlayColor ? { backgroundColor: theme.overlayColor } : null]}
         activeOpacity={1}
         onPress={onCancel}
       >
-        <TouchableOpacity activeOpacity={1} style={styles.card}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[
+            styles.card,
+            theme?.cardBackground ? { backgroundColor: theme.cardBackground } : null,
+            theme?.borderColor ? { borderColor: theme.borderColor, borderWidth: 1 } : null,
+          ]}
+        >
           {/* Icon */}
-          <View
-            style={[
-              styles.iconWrapper,
-              confirmDestructive ? styles.iconWrapperRed : styles.iconWrapperBlue,
-            ]}
-          >
+          <View style={[styles.iconWrapper, { backgroundColor: iconBackground }]}> 
             <Ionicons
               name={confirmDestructive ? 'trash-outline' : 'checkmark-circle-outline'}
               size={28}
-              color={confirmDestructive ? '#dc2626' : '#3b82f6'}
+              color={iconColor}
             />
           </View>
 
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.body}>{body}</Text>
+          <Text style={[styles.title, theme?.titleColor ? { color: theme.titleColor } : null]}>{title}</Text>
+          <Text style={[styles.body, theme?.bodyColor ? { color: theme.bodyColor } : null]}>{body}</Text>
 
           <View style={styles.actions}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[
+                styles.cancelButton,
+                theme?.cancelBackground ? { backgroundColor: theme.cancelBackground } : null,
+                theme?.cancelBorder ? { borderColor: theme.cancelBorder } : null,
+              ]}
               onPress={onCancel}
               disabled={isConfirming}
             >
-              <Text style={styles.cancelButtonText}>{cancelText}</Text>
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  theme?.cancelTextColor ? { color: theme.cancelTextColor } : null,
+                ]}
+              >
+                {cancelText}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.confirmButton,
-                confirmDestructive ? styles.confirmButtonRed : styles.confirmButtonBlue,
+                confirmDestructive
+                  ? [styles.confirmButtonRed, theme?.destructiveBackground ? { backgroundColor: theme.destructiveBackground } : null]
+                  : [styles.confirmButtonBlue, theme?.confirmBackground ? { backgroundColor: theme.confirmBackground } : null],
                 isConfirming ? styles.confirmButtonDisabled : null,
               ]}
               onPress={onConfirm}
               disabled={isConfirming}
             >
               {isConfirming ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={theme?.confirmTextColor ?? '#fff'} />
               ) : (
-                <Text style={styles.confirmButtonText}>{confirmText}</Text>
+                <Text
+                  style={[
+                    styles.confirmButtonText,
+                    theme?.confirmTextColor ? { color: theme.confirmTextColor } : null,
+                  ]}
+                >
+                  {confirmText}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -110,6 +157,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '100%',
     alignItems: 'center',
+    borderColor: 'transparent',
   },
   iconWrapper: {
     width: 56,
@@ -118,12 +166,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-  },
-  iconWrapperBlue: {
-    backgroundColor: '#eff6ff',
-  },
-  iconWrapperRed: {
-    backgroundColor: '#fef2f2',
   },
   title: {
     fontSize: 17,

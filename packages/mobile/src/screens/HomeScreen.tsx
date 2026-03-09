@@ -32,6 +32,7 @@ type PocketBucketKey = 'bills' | 'food' | 'fuel' | 'savings' | 'pocket' | 'other
 export function HomeScreen() {
   const {
     activeTheme,
+    colors,
   } = useScreenPalette()
   const { selectedMonth, setSelectedMonth } = usePeriod()
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
@@ -302,16 +303,34 @@ export function HomeScreen() {
           >
             <View style={styles.pocketMoneyHeader}>
               <View style={styles.pocketMoneyCopy}>
-                <Text style={styles.pocketMoneyEyebrow}>Pocket money left</Text>
+                <Text
+                  style={[
+                    styles.pocketMoneyEyebrow,
+                    {
+                      color:
+                        pocketMoneySummary.pocketMoneyLeft < 0
+                          ? activeTheme.colors.danger
+                          : activeTheme.colors.accent,
+                    },
+                  ]}
+                >
+                  Pocket money left
+                </Text>
                 <Text
                   style={[
                     styles.pocketMoneyAmount,
                     pocketMoneySummary.pocketMoneyLeft < 0 && styles.pocketMoneyAmountWarning,
+                    {
+                      color:
+                        pocketMoneySummary.pocketMoneyLeft < 0
+                          ? activeTheme.colors.danger
+                          : activeTheme.colors.text,
+                    },
                   ]}
                 >
                   NOK {pocketMoneySummary.pocketMoneyLeft.toLocaleString('nb-NO')}
                 </Text>
-                <Text style={styles.pocketMoneyHint}>
+                <Text style={[styles.pocketMoneyHint, { color: activeTheme.colors.mutedText }]}> 
                   {pocketMoneySummary.pocketMoneyLeft < 0
                     ? `Committed categories are NOK ${Math.abs(pocketMoneySummary.pocketMoneyLeft).toLocaleString('nb-NO')} above income.`
                     : 'Bills, food, fuel, savings, and other essentials reduce this first.'}
@@ -341,16 +360,28 @@ export function HomeScreen() {
               ]
                 .filter((item) => item.value > 0)
                 .map((item) => (
-                  <View key={item.label} style={[styles.pocketMoneyChip, item.tone]}>
-                    <Text style={styles.pocketMoneyChipLabel}>{item.label}</Text>
-                    <Text style={styles.pocketMoneyChipValue}>NOK {item.value.toLocaleString('nb-NO')}</Text>
+                  <View
+                    key={item.label}
+                    style={[
+                      styles.pocketMoneyChip,
+                      item.tone,
+                      {
+                        backgroundColor: activeTheme.colors.surfaceAlt,
+                        borderColor: activeTheme.colors.surfaceBorder,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.pocketMoneyChipLabel, { color: activeTheme.colors.mutedText }]}>
+                      {item.label}
+                    </Text>
+                    <Text style={[styles.pocketMoneyChipValue, { color: activeTheme.colors.text }]}>NOK {item.value.toLocaleString('nb-NO')}</Text>
                   </View>
                 ))}
             </View>
 
-            <View style={styles.pocketMoneyFooter}>
-              <Text style={styles.pocketMoneyFooterLabel}>Planned pocket money</Text>
-              <Text style={styles.pocketMoneyFooterValue}>
+            <View style={[styles.pocketMoneyFooter, { borderTopColor: activeTheme.colors.surfaceBorder }]}>
+              <Text style={[styles.pocketMoneyFooterLabel, { color: activeTheme.colors.mutedText }]}>Planned pocket money</Text>
+              <Text style={[styles.pocketMoneyFooterValue, { color: activeTheme.colors.accent }]}> 
                 NOK {pocketMoneySummary.pocket.toLocaleString('nb-NO')}
               </Text>
             </View>
@@ -358,35 +389,75 @@ export function HomeScreen() {
         ) : null}
 
         <View style={styles.insightGrid}>
-          <View style={styles.insightCard}>
-            <View style={[styles.insightIconWrap, styles.categoriesInsightIcon]}>
+          <View
+            style={[
+              styles.insightCard,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor: activeTheme.colors.surfaceBorder,
+                shadowColor: colors.cardShadow,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.insightIconWrap,
+                styles.categoriesInsightIcon,
+                { backgroundColor: activeTheme.colors.accentSoft },
+              ]}
+            >
               <Ionicons name="pie-chart-outline" size={18} color="#7c3aed" />
             </View>
-            <Text style={styles.insightValue}>{dashboard.categoryCount}</Text>
-            <Text style={styles.insightLabel}>Categories</Text>
+            <Text style={[styles.insightValue, { color: activeTheme.colors.text }]}>{dashboard.categoryCount}</Text>
+            <Text style={[styles.insightLabel, { color: activeTheme.colors.mutedText }]}>Categories</Text>
           </View>
-          <View style={styles.insightCard}>
-            <View style={[styles.insightIconWrap, styles.loanInsightIcon]}>
+          <View
+            style={[
+              styles.insightCard,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor: activeTheme.colors.surfaceBorder,
+                shadowColor: colors.cardShadow,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.insightIconWrap,
+                styles.loanInsightIcon,
+                { backgroundColor: activeTheme.colors.tertiarySoft },
+              ]}
+            >
               <Ionicons name="document-text-outline" size={18} color="#f97316" />
             </View>
-            <Text style={styles.insightValue}>{dashboard.activeLoans}</Text>
-            <Text style={styles.insightLabel}>Active Loans</Text>
+            <Text style={[styles.insightValue, { color: activeTheme.colors.text }]}>{dashboard.activeLoans}</Text>
+            <Text style={[styles.insightLabel, { color: activeTheme.colors.mutedText }]}>Active Loans</Text>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.loanSpotlightCard} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={[
+            styles.loanSpotlightCard,
+            {
+              backgroundColor: activeTheme.colors.surface,
+              borderColor: activeTheme.colors.surfaceBorder,
+              shadowColor: colors.cardShadow,
+            },
+          ]}
+          activeOpacity={0.85}
+        >
           <View style={styles.loanSpotlightLeft}>
-            <View style={styles.loanSpotlightIconWrap}>
+            <View style={[styles.loanSpotlightIconWrap, { backgroundColor: activeTheme.colors.tertiarySoft }]}> 
               <Ionicons name="document-text-outline" size={16} color="#f97316" />
             </View>
             <View>
-              <Text style={styles.loanSpotlightValue}>NOK {dashboard.loanBalance.toLocaleString('nb-NO')}</Text>
-              <Text style={styles.loanSpotlightMeta}>
+              <Text style={[styles.loanSpotlightValue, { color: activeTheme.colors.text }]}>NOK {dashboard.loanBalance.toLocaleString('nb-NO')}</Text>
+              <Text style={[styles.loanSpotlightMeta, { color: activeTheme.colors.mutedText }]}>
                 {dashboard.activeLoans} active {dashboard.activeLoans === 1 ? 'loan' : 'loans'}
               </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+          <Ionicons name="chevron-forward" size={18} color={activeTheme.colors.mutedText} />
         </TouchableOpacity>
       </View>
 
@@ -559,9 +630,9 @@ export function HomeScreen() {
 
       {/* ── Phase 3: Categories Grid ── */}
       <View style={styles.categoriesSection}>
-        <Text style={styles.dashboardSectionTitle}>Categories</Text>
+        <Text style={[styles.dashboardSectionTitle, { color: activeTheme.colors.text }]}>Categories</Text>
         {groupedCategories.length === 0 ? (
-          <Text style={styles.emptyCategories}>No categories yet</Text>
+          <Text style={[styles.emptyCategories, { color: activeTheme.colors.mutedText }]}>No categories yet</Text>
         ) : (
           groupedCategories.map((group) => (
             <CategoryAccordionSection
@@ -590,33 +661,75 @@ export function HomeScreen() {
 
       {/* Quick Actions */}
       <View style={styles.actionsSection}>
-        <Text style={styles.dashboardSectionTitle}>Quick Actions</Text>
+        <Text style={[styles.dashboardSectionTitle, { color: activeTheme.colors.text }]}>Quick Actions</Text>
         <View style={styles.dashboardActionGrid}>
           <TouchableOpacity
-            style={styles.dashboardActionCard}
+            style={[
+              styles.dashboardActionCard,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor: activeTheme.colors.surfaceBorder,
+                shadowColor: colors.cardShadow,
+              },
+            ]}
             onPress={() => setAddExpenseModalOpen(true)}
             activeOpacity={0.85}
           >
-            <View style={[styles.dashboardActionIcon, styles.dashboardActionIconBlue]}>
+            <View
+              style={[
+                styles.dashboardActionIcon,
+                styles.dashboardActionIconBlue,
+                { backgroundColor: activeTheme.colors.accentSoft },
+              ]}
+            >
               <Ionicons name="add" size={22} color="#6d5bd0" />
             </View>
-            <Text style={styles.dashboardActionLabel}>Add Expense</Text>
+            <Text style={[styles.dashboardActionLabel, { color: activeTheme.colors.mutedText }]}>Add Expense</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.dashboardActionCard}
+            style={[
+              styles.dashboardActionCard,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor: activeTheme.colors.surfaceBorder,
+                shadowColor: colors.cardShadow,
+              },
+            ]}
             onPress={() => setSetIncomeModalOpen(true)}
             activeOpacity={0.85}
           >
-            <View style={[styles.dashboardActionIcon, styles.dashboardActionIconGreen]}>
-              <Text style={styles.dashboardActionEmoji}>$</Text>
+            <View
+              style={[
+                styles.dashboardActionIcon,
+                styles.dashboardActionIconGreen,
+                { backgroundColor: activeTheme.colors.secondarySoft },
+              ]}
+            >
+              <Text style={[styles.dashboardActionEmoji, { color: activeTheme.colors.secondary }]}>$</Text>
             </View>
-            <Text style={styles.dashboardActionLabel}>Set income</Text>
+            <Text style={[styles.dashboardActionLabel, { color: activeTheme.colors.mutedText }]}>Set income</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.dashboardActionCard} activeOpacity={0.85}>
-            <View style={[styles.dashboardActionIcon, styles.dashboardActionIconOrange]}>
+          <TouchableOpacity
+            style={[
+              styles.dashboardActionCard,
+              {
+                backgroundColor: activeTheme.colors.surface,
+                borderColor: activeTheme.colors.surfaceBorder,
+                shadowColor: colors.cardShadow,
+              },
+            ]}
+            activeOpacity={0.85}
+          >
+            <View
+              style={[
+                styles.dashboardActionIcon,
+                styles.dashboardActionIconOrange,
+                { backgroundColor: activeTheme.colors.tertiarySoft },
+              ]}
+            >
               <Ionicons name="document-text-outline" size={20} color="#f97316" />
             </View>
-            <Text style={styles.dashboardActionLabel}>Add Loan</Text>
+            <Text style={[styles.dashboardActionLabel, { color: activeTheme.colors.mutedText }]}>Add Loan</Text>
           </TouchableOpacity>
         </View>
       </View>

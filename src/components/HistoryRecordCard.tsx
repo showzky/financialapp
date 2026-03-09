@@ -21,7 +21,10 @@ export const HistoryRecordCard = ({ record, onDelete }: HistoryRecordCardProps) 
     <NeoCard className="grid items-center gap-4 p-4 md:grid-cols-[1.2fr_1fr_auto_auto]">
       <div>
         <p className="text-xs uppercase tracking-[0.14em] text-text-muted">Pay period</p>
-        <p className="text-lg font-semibold text-text-primary">{record.dateRange}</p>
+        <p className="text-lg font-semibold text-text-primary">{record.label}</p>
+        <p className="mt-1 text-xs text-text-muted">
+          {record.periodStart} to {record.periodEnd}
+        </p>
       </div>
 
       <div>

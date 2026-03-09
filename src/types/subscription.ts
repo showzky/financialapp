@@ -10,5 +10,7 @@ export type Subscription = {
   cadence: BillingCadence
   priceCents: number
   nextRenewalDate: string
+  // optional alternative billing date present in some data flows
+  nextBillingDate?: string
   notes?: string
 }

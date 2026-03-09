@@ -6,6 +6,7 @@ import helmet from 'helmet'
 import hpp from 'hpp'
 import rateLimit from 'express-rate-limit'
 import pinoHttpModule from 'pino-http'
+import { uptimeRouter } from './Uptime/index.js'
 import { env } from './config/env.js'
 import { logger } from './config/logger.js'
 import { requireAuth } from './middleware/requireAuth.js'
@@ -19,6 +20,9 @@ const app = express()
 
 app.set('trust proxy', 1)
 app.set('etag', false)
+
+// Keep the uptime probe path extremely cheap so external monitors can ping it.
+app.use(uptimeRouter)
 
 app.use(
   rateLimit({
@@ -48,10 +52,6 @@ app.use(cookieParser())
 app.use(express.json({ limit: '100kb' }))
 app.use(express.urlencoded({ extended: false, limit: '100kb' }))
 app.use(pinoHttp({ logger }))
-
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok' })
-})
 
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

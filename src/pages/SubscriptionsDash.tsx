@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { SubscriptionLedger } from '@/components/subscriptions/SubscriptionLedger'
-import { SubscriptionSummaryCards } from '@/components/subscriptions/SubscriptionSummaryCards'
 import { SubscriptionDashboardPanel } from '@/components/subscriptions/SubscriptionDashboardPanel'
 // HUD utilities (monospaced font, status-dot helpers) are still leveraged
 // on this page via hud.css, but the top-level scan-line animation has been
@@ -151,18 +149,6 @@ export const SubscriptionsDash: React.FC = () => {
     <div className="relative min-h-screen pt-12 overflow-hidden bg-[var(--app-bg)]">
       <div className="vacation-hud-grid relative z-10 mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
         <SubscriptionDashboardPanel
-          subscriptions={subscriptions}
-          isLoading={isLoading}
-          loadError={loadError}
-        />
-
-        <SubscriptionSummaryCards
-          subscriptions={subscriptions}
-          isLoading={isLoading}
-          loadError={loadError}
-        />
-
-        <SubscriptionLedger
           subscriptions={subscriptions}
           isLoading={isLoading}
           loadError={loadError}

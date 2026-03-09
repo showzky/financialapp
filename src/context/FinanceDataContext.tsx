@@ -1,49 +1,23 @@
 // ADD THIS: Shared finance data context for active + historical dashboard states
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { useBudgetContext } from '@/context/BudgetContext'
-import type { BudgetState, HistoryRecord } from '@/types/budget'
+import { createLocalStorageCaptureSettingsRepository } from '@/repositories/captureSettingsRepository'
+import { createLocalStorageHistoryRepository } from '@/repositories/historyRepository'
+import type { BudgetState, CaptureMode, HistoryRecord } from '@/types/budget'
+import type { HistoryCaptureResult } from '@/types/history'
+import { cloneBudgetState, computeHistorySummary } from '@/utils/history'
+import { buildPayPeriodFromMonth, getCurrentPayPeriod } from '@/utils/payPeriod'
 
-const HISTORY_STORAGE_KEY = 'finance-history-records-v1'
-
-const computeSummary = (snapshot: BudgetState) => {
-  const allocated = snapshot.categories.reduce((sum, category) => sum + category.allocated, 0)
-  const spent = snapshot.categories.reduce((sum, category) => sum + category.spent, 0)
-  const totalSaved = Math.max(snapshot.income - allocated, 0)
-  return { allocated, spent, totalSaved }
-}
-
-const buildSnapshotDateRange = (snapshot: BudgetState) => {
-  // ADD THIS: lightweight date range cue for record cards
-  if (snapshot.month) return snapshot.month
-  return new Date().toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-const cloneState = (state: BudgetState): BudgetState => ({
-  ...state,
-  categories: state.categories.map((category) => ({ ...category })),
-})
-
-const readHistoryFromStorage = (): HistoryRecord[] => {
-  if (typeof window === 'undefined') return []
-
-  try {
-    const raw = window.localStorage.getItem(HISTORY_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as HistoryRecord[]
-    if (!Array.isArray(parsed)) return []
-    return parsed
-  } catch {
-    return []
-  }
-}
+const historyRepository = createLocalStorageHistoryRepository()
+const captureSettingsRepository = createLocalStorageCaptureSettingsRepository()
 
 const FinanceDataContext = createContext<
   | {
       historyRecords: HistoryRecord[]
-      createSnapshotFromActive: () => void
+      captureMode: CaptureMode
+      setCaptureMode: (mode: CaptureMode) => void
+      captureCurrentPayPeriod: () => HistoryCaptureResult
+      capturePayPeriodByMonth: (year: number, monthIndex: number) => HistoryCaptureResult
       deleteHistoryRecord: (id: string) => void
       getHistoryRecordById: (id: string) => HistoryRecord | undefined
       getDisplayState: (historyId?: string) => {
@@ -57,33 +31,47 @@ const FinanceDataContext = createContext<
 
 export const FinanceDataProvider = ({ children }: { children: ReactNode }) => {
   const { state } = useBudgetContext()
-  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>(readHistoryFromStorage)
+  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>(() => historyRepository.list())
+  const [captureMode, setCaptureModeState] = useState<CaptureMode>(
+    () => captureSettingsRepository.read().captureMode,
+  )
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyRecords))
-  }, [historyRecords])
-
-  const createSnapshotFromActive = () => {
-    // ADD THIS: store monthly record snapshot in localStorage-backed array
-    const snapshot = cloneState(state)
-    const record: HistoryRecord = {
-      id: `${Date.now()}`,
-      dateRange: buildSnapshotDateRange(snapshot),
-      createdAt: new Date().toISOString(),
-      snapshot,
-      summary: computeSummary(snapshot),
+  const captureSnapshot = (period: ReturnType<typeof getCurrentPayPeriod>): HistoryCaptureResult => {
+    const snapshot = cloneBudgetState(state)
+    const snapshotWithMonth: BudgetState = {
+      ...snapshot,
+      month: period.label,
     }
+    const result = historyRepository.create({
+      snapshot: snapshotWithMonth,
+      summary: computeHistorySummary(snapshotWithMonth),
+      period,
+    })
 
-    setHistoryRecords((current) => [record, ...current])
+    setHistoryRecords(historyRepository.list())
+    return result
   }
+
+  const setCaptureMode = (mode: CaptureMode) => {
+    const next = captureSettingsRepository.write({ captureMode: mode })
+    setCaptureModeState(next.captureMode)
+  }
+
+  const captureCurrentPayPeriod = () => captureSnapshot(getCurrentPayPeriod())
+
+  const capturePayPeriodByMonth = (year: number, monthIndex: number) =>
+    captureSnapshot(buildPayPeriodFromMonth(year, monthIndex))
 
   const deleteHistoryRecord = (id: string) => {
     // ADD THIS: remove a monthly record by id
-    setHistoryRecords((current) => current.filter((record) => record.id !== id))
+    historyRepository.remove(id)
+    setHistoryRecords(historyRepository.list())
   }
 
-  const getHistoryRecordById = (id: string) => historyRecords.find((record) => record.id === id)
+  const getHistoryRecordById = useMemo(
+    () => (id: string) => historyRecords.find((record) => record.id === id),
+    [historyRecords],
+  )
 
   const getDisplayState = (historyId?: string) => {
     if (!historyId) {
@@ -115,7 +103,10 @@ export const FinanceDataProvider = ({ children }: { children: ReactNode }) => {
     <FinanceDataContext.Provider
       value={{
         historyRecords,
-        createSnapshotFromActive,
+        captureMode,
+        setCaptureMode,
+        captureCurrentPayPeriod,
+        capturePayPeriodByMonth,
         deleteHistoryRecord,
         getHistoryRecordById,
         getDisplayState,

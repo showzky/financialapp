@@ -73,7 +73,7 @@ function HomeTabs() {
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Dashboard' }} />
       <Tab.Screen name="Loans" component={LoansScreen} options={{ title: 'Loans' }} />
       <Tab.Screen name="Wishlist" component={WishlistScreen} options={{ title: 'Wishlist' }} />
-      <Tab.Screen name="Indicators" component={IndicatorsScreen} options={{ title: 'Overview' }} />
+      <Tab.Screen name="Indicators" component={IndicatorsScreen} options={{ title: 'Subscriptions' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Tab.Navigator>
   )

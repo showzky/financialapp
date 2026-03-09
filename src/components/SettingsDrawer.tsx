@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { BudgetCategoryType } from '@/types/budget'
 import type { BudgetState } from '@/types/budget'
 import { RecurringManager } from '@/components/RecurringManager'
+import { useFinanceData } from '@/context/FinanceDataContext'
 import { useTheme } from '@/context/ThemeContext'
 import { type Theme } from '@/context/ThemeContext'
 
@@ -82,6 +83,8 @@ export const SettingsDrawer = ({
   onDeleteRecurring,
   loanShortcut,
 }: SettingsDrawerProps) => {
+  const { captureMode, setCaptureMode } = useFinanceData()
+
   const handleResetClick = () => {
     // ADD THIS: secondary confirmation warning before destructive reset
     const confirmed = window.confirm(
@@ -225,6 +228,36 @@ export const SettingsDrawer = ({
                 <option value="$">$</option>
                 <option value="€">€</option>
               </select>
+            </div>
+          </section>
+
+          <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
+              History Capture
+            </h3>
+
+            <div className="space-y-2">
+              <p className="text-xs text-text-muted">Default capture action</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCaptureMode('current-payday')}
+                  className={`rounded-[8px] border px-3 py-1.5 text-sm font-medium transition ${captureMode === 'current-payday' ? 'border-[rgba(201,168,76,0.4)] bg-[#111114] text-[#e2c06a] ring-1 ring-[#c9a84c]' : 'border-[rgba(255,255,255,0.055)] bg-[#111114] text-[#a09d98] hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]'}`}
+                >
+                  Current payday
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCaptureMode('manual')}
+                  className={`rounded-[8px] border px-3 py-1.5 text-sm font-medium transition ${captureMode === 'manual' ? 'border-[rgba(201,168,76,0.4)] bg-[#111114] text-[#e2c06a] ring-1 ring-[#c9a84c]' : 'border-[rgba(255,255,255,0.055)] bg-[#111114] text-[#a09d98] hover:border-[rgba(255,255,255,0.10)] hover:text-[#d4d0ca]'}`}
+                >
+                  Manual period
+                </button>
+              </div>
+              <p className="text-[11px] leading-4 text-[#6b6862]">
+                Stored through the history settings layer so a database adapter can replace local
+                storage later.
+              </p>
             </div>
           </section>
 

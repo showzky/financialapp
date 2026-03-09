@@ -13,6 +13,8 @@ export type Subscription = {
   cadence: BillingCadence
   priceCents: number
   nextRenewalDate: string
+  // optional alternative billing date present in some data flows
+  nextBillingDate?: string
   notes: string | null
   createdAt: string
   updatedAt: string
@@ -27,6 +29,7 @@ export type CreateSubscriptionInput = {
   cadence: BillingCadence
   priceCents: number
   nextRenewalDate: string
+  nextBillingDate?: string
   notes?: string | null
 }
 
@@ -38,6 +41,7 @@ export type UpdateSubscriptionInput = {
   cadence?: BillingCadence | undefined
   priceCents?: number | undefined
   nextRenewalDate?: string | undefined
+  nextBillingDate?: string | undefined
   notes?: string | null | undefined
 }
 

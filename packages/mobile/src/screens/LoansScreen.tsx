@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -47,25 +47,25 @@ type TabKey = 'mine' | 'lent'
 const STATUS_CONFIG = {
   due_soon: {
     label: 'Due soon',
-    color: '#b45309',
+    text: '#b45309',
     bg: '#fef3c7',
     dot: '#f59e0b',
   },
   outstanding: {
     label: 'Outstanding',
-    color: '#475569',
+    text: '#475569',
     bg: '#e2e8f0',
     dot: '#94a3b8',
   },
   overdue: {
     label: 'Overdue',
-    color: '#b91c1c',
+    text: '#b91c1c',
     bg: '#fee2e2',
     dot: '#ef4444',
   },
   repaid: {
     label: 'Repaid',
-    color: '#047857',
+    text: '#047857',
     bg: '#d1fae5',
     dot: '#10b981',
   },
@@ -74,29 +74,44 @@ const STATUS_CONFIG = {
 const BORROWED_STATUS_CONFIG = {
   due_soon: {
     label: 'Due soon',
-    color: '#b45309',
+    text: '#b45309',
     bg: '#fef3c7',
     dot: '#f59e0b',
   },
   active: {
     label: 'Active',
-    color: '#047857',
+    text: '#047857',
     bg: '#d1fae5',
     dot: '#10b981',
   },
   overdue: {
     label: 'Overdue',
-    color: '#b91c1c',
+    text: '#b91c1c',
     bg: '#fee2e2',
     dot: '#ef4444',
   },
   paid_off: {
     label: 'Paid off',
-    color: '#047857',
+    text: '#047857',
     bg: '#d1fae5',
     dot: '#10b981',
   },
 } as const
+
+type ScreenPalette = ReturnType<typeof useScreenPalette>['colors']
+type ThemeColors = ReturnType<typeof useScreenPalette>['activeTheme']['colors']
+
+function getStatusTheme(
+  statusConfig: { bg?: string; text?: string; border?: string; dot?: string },
+  colors: ScreenPalette,
+) {
+  return {
+    backgroundColor: statusConfig.bg ?? colors.chipBackground,
+    color: statusConfig.text ?? colors.chipText,
+    borderColor: statusConfig.border ?? colors.surfaceBorder,
+    dotColor: statusConfig.dot ?? statusConfig.text ?? colors.chipText,
+  }
+}
 
 function formatNOK(n: number) {
   return `NOK ${n.toLocaleString('en-US')}`
@@ -179,8 +194,11 @@ function LentLoanCard({
   onEdit: (loan: Loan) => void
   onMarkRepaid: (loan: Loan) => void
 }) {
+  const { colors, activeTheme } = useScreenPalette()
+  const styles = useMemo(() => createStyles(colors, activeTheme.colors), [activeTheme.colors, colors])
   const [expanded, setExpanded] = useState(false)
   const status = STATUS_CONFIG[loan.status] ?? STATUS_CONFIG.outstanding
+  const statusTheme = getStatusTheme(status, colors)
   const avatar = avatarColor(loan.recipient)
 
   const toggleExpanded = () => {
@@ -210,9 +228,9 @@ function LentLoanCard({
         </View>
 
         <View style={styles.loanRightBlock}>
-          <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
-            <View style={[styles.statusDot, { backgroundColor: status.dot }]} />
-            <Text style={[styles.statusPillText, { color: status.color }]}>{status.label}</Text>
+          <View style={[styles.statusPill, { backgroundColor: statusTheme.backgroundColor }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusTheme.dotColor }]} />
+            <Text style={[styles.statusPillText, { color: statusTheme.color }]}>{status.label}</Text>
           </View>
           <Text style={styles.remainingAmount}>{formatNOK(loan.amount)}</Text>
         </View>
@@ -244,7 +262,7 @@ function LentLoanCard({
 
       {getLoanNotes(loan) ? (
         <View style={styles.notesBanner}>
-          <Ionicons name="chatbubble-ellipses-outline" size={14} color="#a78bfa" />
+          <Ionicons name="chatbubble-ellipses-outline" size={14} color={activeTheme.colors.accent} />
           <Text style={styles.notesText} numberOfLines={2}>
             {getLoanNotes(loan)}
           </Text>
@@ -275,7 +293,7 @@ function LentLoanCard({
                 onPress={() => onEdit(loan)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="pencil" size={15} color="#475569" />
+                <Ionicons name="pencil" size={15} color={colors.mutedText} />
                 <Text style={styles.secondaryActionText}>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -283,7 +301,7 @@ function LentLoanCard({
                 onPress={() => onMarkRepaid(loan)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="checkmark-circle" size={16} color="#059669" />
+                <Ionicons name="checkmark-circle" size={16} color={activeTheme.colors.success} />
                 <Text style={styles.primaryActionText}>Mark as repaid</Text>
               </TouchableOpacity>
             </View>
@@ -328,6 +346,8 @@ function BorrowedLoanCard({
   onDelete: (loan: BorrowedLoan) => void
   onRecordPayment: (loan: BorrowedLoan, paymentAmount: number, interestAmount: number) => Promise<void>
 }) {
+  const { colors, activeTheme } = useScreenPalette()
+  const styles = useMemo(() => createStyles(colors, activeTheme.colors), [activeTheme.colors, colors])
   const [expanded, setExpanded] = useState(false)
   const [paymentPanelOpen, setPaymentPanelOpen] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
@@ -335,6 +355,7 @@ function BorrowedLoanCard({
   const [paymentDate, setPaymentDate] = useState(getTodayIsoDate())
   const [isSavingPayment, setIsSavingPayment] = useState(false)
   const status = BORROWED_STATUS_CONFIG[loan.status] ?? BORROWED_STATUS_CONFIG.active
+  const statusTheme = getStatusTheme(status, colors)
   const avatar = avatarColor(loan.lender)
   const paidAmount = getBorrowedPaidAmount(loan)
   const paidPercent = getBorrowedPaidPercent(loan)
@@ -422,9 +443,15 @@ function BorrowedLoanCard({
         </View>
 
         <View style={styles.loanRightBlock}>
-          <View style={[styles.statusPill, styles.borrowedStatusPill, { backgroundColor: status.bg, borderColor: status.dot }]}>
-            <View style={[styles.statusDot, { backgroundColor: status.dot }]} />
-            <Text style={[styles.statusPillText, { color: status.color }]}>{status.label}</Text>
+          <View
+            style={[
+              styles.statusPill,
+              styles.borrowedStatusPill,
+              { backgroundColor: statusTheme.backgroundColor, borderColor: statusTheme.borderColor },
+            ]}
+          >
+            <View style={[styles.statusDot, { backgroundColor: statusTheme.dotColor }]} />
+            <Text style={[styles.statusPillText, { color: statusTheme.color }]}>{status.label}</Text>
           </View>
         </View>
       </View>
@@ -474,7 +501,7 @@ function BorrowedLoanCard({
 
         {getBorrowedLoanNotes(loan) ? (
           <View style={[styles.notesBanner, styles.borrowedNotesBanner]}>
-            <Ionicons name="document-text-outline" size={14} color="#64748b" />
+            <Ionicons name="document-text-outline" size={14} color={colors.mutedText} />
             <Text style={styles.notesText} numberOfLines={2}>
               {getBorrowedLoanNotes(loan)}
             </Text>
@@ -514,7 +541,7 @@ function BorrowedLoanCard({
                 <Ionicons
                   name={paymentPanelOpen ? 'close' : 'checkmark-circle'}
                   size={16}
-                  color={paymentPanelOpen ? '#854d0e' : '#15803d'}
+                  color={paymentPanelOpen ? activeTheme.colors.warning : activeTheme.colors.success}
                 />
                 <Text style={[styles.primaryActionText, paymentPanelOpen ? styles.primaryActionTextOpen : null]}>
                   {paymentPanelOpen ? 'Cancel payment' : 'Record payment'}
@@ -528,7 +555,7 @@ function BorrowedLoanCard({
                 onPress={() => onEdit(loan)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="pencil" size={15} color="#475569" />
+                <Ionicons name="pencil" size={15} color={colors.mutedText} />
                 <Text style={styles.secondaryActionText}>Edit</Text>
               </TouchableOpacity>
             ) : (
@@ -537,7 +564,7 @@ function BorrowedLoanCard({
                 onPress={() => onDelete(loan)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="trash-outline" size={16} color="#b91c1c" />
+                <Ionicons name="trash-outline" size={16} color={activeTheme.colors.danger} />
                 <Text style={styles.dangerActionText}>Delete</Text>
               </TouchableOpacity>
             )}
@@ -586,7 +613,7 @@ function BorrowedLoanCard({
                     value={paymentAmount}
                     onChangeText={setPaymentAmount}
                     placeholder="0"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor={colors.mutedText}
                   />
                 </View>
                 <View style={styles.paymentField}>
@@ -599,7 +626,7 @@ function BorrowedLoanCard({
                     value={interestAmount}
                     onChangeText={setInterestAmount}
                     placeholder="0"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor={colors.mutedText}
                   />
                 </View>
               </View>
@@ -612,7 +639,7 @@ function BorrowedLoanCard({
                     value={paymentDate}
                     onChangeText={setPaymentDate}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor={colors.mutedText}
                     autoCapitalize="none"
                   />
                 </View>
@@ -669,10 +696,13 @@ function BorrowedLoanCard({
 }
 
 function EmptyMineLoansState() {
+  const { colors, activeTheme } = useScreenPalette()
+  const styles = useMemo(() => createStyles(colors, activeTheme.colors), [activeTheme.colors, colors])
+
   return (
     <View style={styles.placeholderCard}>
       <View style={styles.placeholderIcon}>
-        <Ionicons name="business-outline" size={22} color="#1d4ed8" />
+        <Ionicons name="business-outline" size={22} color={activeTheme.colors.accent} />
       </View>
       <Text style={styles.placeholderTitle}>No personal loans yet</Text>
       <Text style={styles.placeholderText}>
@@ -683,7 +713,8 @@ function EmptyMineLoansState() {
 }
 
 export function LoansScreen() {
-  const { activeTheme } = useScreenPalette()
+  const { activeTheme, colors } = useScreenPalette()
+  const styles = useMemo(() => createStyles(colors, activeTheme.colors), [activeTheme.colors, colors])
   const { enablePushNotifications, permissionState, preferences } = useNotifications()
   const [tab, setTab] = useState<TabKey>('lent')
   const [loans, setLoans] = useState<Loan[]>([])
@@ -1225,10 +1256,14 @@ export function LoansScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ScreenPalette, themeColors: ThemeColors) {
+  const cardBackground = colors.cardBackground ?? colors.surfaceAlt
+  const textPrimary = (colors as ScreenPalette & { textPrimary?: string }).textPrimary ?? themeColors.text
+
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.screenBackground,
   },
   contentContainer: {
     paddingBottom: 28,
@@ -1237,33 +1272,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-  },
-  hero: {
-    paddingTop: 28,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    backgroundColor: '#0f172a',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1.4,
-    color: '#94a3b8',
-    marginBottom: 6,
-  },
-  heroTitle: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#f8fafc',
+    backgroundColor: themeColors.screenBackground,
   },
   heroActions: {
     flexDirection: 'row',
@@ -1273,15 +1282,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  heroAddButton: {
-    backgroundColor: '#e2e8f0',
-    borderColor: '#e2e8f0',
   },
   summaryGrid: {
     flexDirection: 'row',
@@ -1289,26 +1292,21 @@ const styles = StyleSheet.create({
   },
   summaryTile: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   summaryTileLabel: {
     fontSize: 12,
-    color: '#cbd5e1',
     marginBottom: 8,
   },
   summaryTileValue: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#fff',
   },
   summaryTileMeta: {
     marginTop: 6,
     fontSize: 11,
-    color: '#94a3b8',
   },
   errorBanner: {
     flexDirection: 'row',
@@ -1318,18 +1316,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#fee2e2',
+    borderWidth: 1,
     gap: 8,
   },
   errorText: {
     flex: 1,
     fontSize: 13,
-    color: '#991b1b',
     fontWeight: '600',
   },
   tabWrap: {
     flexDirection: 'row',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: themeColors.surfaceAlt,
     marginHorizontal: 18,
     marginTop: 18,
     borderRadius: 14,
@@ -1345,21 +1342,9 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 12,
   },
-  tabButtonActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
   tabLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748b',
-  },
-  tabLabelActive: {
-    color: '#0f172a',
   },
   section: {
     paddingHorizontal: 18,
@@ -1374,18 +1359,16 @@ const styles = StyleSheet.create({
   },
   sectionHint: {
     fontSize: 12,
-    color: '#94a3b8',
     marginBottom: 4,
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
   },
   inlineAddButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e3a5f',
+    borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 999,
@@ -1394,16 +1377,15 @@ const styles = StyleSheet.create({
   inlineAddButtonText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
   },
   loanCard: {
-    backgroundColor: '#fff',
+    backgroundColor: cardBackground,
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
+    borderColor: themeColors.surfaceBorder,
+    shadowColor: colors.cardShadow,
     shadowOpacity: 0.04,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -1411,7 +1393,7 @@ const styles = StyleSheet.create({
   },
   borrowedLoanCard: {
     borderRadius: 22,
-    borderColor: '#dbe4ee',
+    borderColor: themeColors.surfaceBorder,
     shadowOpacity: 0.07,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -1462,7 +1444,7 @@ const styles = StyleSheet.create({
   loanName: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1e293b',
+    color: textPrimary,
   },
   borrowedLoanName: {
     fontSize: 22,
@@ -1470,7 +1452,7 @@ const styles = StyleSheet.create({
   },
   loanSubtext: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.mutedText,
     marginTop: 2,
   },
   loanRightBlock: {
@@ -1502,21 +1484,21 @@ const styles = StyleSheet.create({
   remainingAmount: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1e293b',
+    color: textPrimary,
   },
   balanceSection: {
     marginTop: 18,
   },
   balanceLabel: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.mutedText,
     marginBottom: 4,
   },
   balanceValue: {
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: -0.6,
-    color: '#0f172a',
+    color: textPrimary,
   },
   progressWrap: {
     marginTop: 14,
@@ -1528,25 +1510,25 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: colors.mutedText,
   },
   progressTrack: {
     height: 8,
     borderRadius: 999,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.progressTrack,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: '#22c55e',
+    backgroundColor: themeColors.success,
   },
   progressPct: {
     marginTop: 6,
     textAlign: 'right',
     fontSize: 12,
     fontWeight: '700',
-    color: '#16a34a',
+    color: themeColors.success,
   },
   metricRow: {
     flexDirection: 'row',
@@ -1556,22 +1538,22 @@ const styles = StyleSheet.create({
   },
   metricBlock: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.surfaceAlt,
     borderRadius: 12,
     padding: 10,
   },
   metricLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: colors.mutedText,
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: textPrimary,
   },
   metricValueWarning: {
-    color: '#d97706',
+    color: themeColors.warning,
   },
   notesBanner: {
     marginTop: 14,
@@ -1579,24 +1561,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: themeColors.surfaceAlt,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   borrowedNotesBanner: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.surfaceAlt,
   },
   notesText: {
     flex: 1,
     fontSize: 13,
-    color: '#64748b',
+    color: colors.mutedText,
     fontWeight: '500',
   },
   loanExpandedSection: {
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#eef2f7',
+    borderTopColor: colors.divider,
   },
   loanExpandedGrid: {
     flexDirection: 'row',
@@ -1607,7 +1589,7 @@ const styles = StyleSheet.create({
   },
   detailCard: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.surfaceAlt,
     borderRadius: 12,
     padding: 10,
   },
@@ -1618,13 +1600,13 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: colors.mutedText,
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#334155',
+    color: textPrimary,
   },
   actionRow: {
     flexDirection: 'row',
@@ -1638,15 +1620,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: themeColors.surfaceBorder,
     borderRadius: 12,
     paddingVertical: 10,
-    backgroundColor: '#fff',
+    backgroundColor: cardBackground,
   },
   secondaryActionText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
+    color: colors.mutedText,
   },
   primaryAction: {
     flex: 1.4,
@@ -1656,20 +1638,20 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 12,
     paddingVertical: 10,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: themeColors.secondarySoft,
   },
   primaryActionOpen: {
-    backgroundColor: '#fef9c3',
+    backgroundColor: `${themeColors.warning}20`,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    borderColor: `${themeColors.warning}55`,
   },
   primaryActionText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#059669',
+    color: themeColors.success,
   },
   primaryActionTextOpen: {
-    color: '#854d0e',
+    color: themeColors.warning,
   },
   dangerAction: {
     flex: 1.2,
@@ -1679,28 +1661,28 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 12,
     paddingVertical: 10,
-    backgroundColor: '#fef2f2',
+    backgroundColor: `${themeColors.danger}14`,
   },
   dangerActionText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#b91c1c',
+    color: themeColors.danger,
   },
   paymentPanel: {
     marginTop: 14,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e8eef5',
+    borderTopColor: colors.divider,
   },
   paymentPanelTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0f172a',
+    color: textPrimary,
     marginBottom: 4,
   },
   paymentPanelHint: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.mutedText,
     marginBottom: 14,
   },
   paymentPresets: {
@@ -1712,22 +1694,22 @@ const styles = StyleSheet.create({
   presetButton: {
     borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: '#d7e0ea',
-    backgroundColor: '#fff',
+    borderColor: themeColors.surfaceBorder,
+    backgroundColor: cardBackground,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   presetButtonActive: {
-    backgroundColor: '#0f172a',
-    borderColor: '#0f172a',
+    backgroundColor: themeColors.accent,
+    borderColor: themeColors.accent,
   },
   presetButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.mutedText,
   },
   presetButtonTextActive: {
-    color: '#fff',
+    color: themeColors.heroTitle,
   },
   paymentFieldsRow: {
     flexDirection: 'row',
@@ -1739,9 +1721,9 @@ const styles = StyleSheet.create({
   },
   paymentBreakdownCard: {
     borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#e8eef5',
+    borderColor: colors.divider,
     paddingHorizontal: 12,
     paddingVertical: 10,
     justifyContent: 'center',
@@ -1749,28 +1731,28 @@ const styles = StyleSheet.create({
   paymentFieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.mutedText,
     marginBottom: 5,
   },
   paymentInput: {
     height: 42,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#d7e0ea',
-    backgroundColor: '#fff',
+    borderColor: themeColors.surfaceBorder,
+    backgroundColor: colors.inputBackground,
     paddingHorizontal: 12,
     fontSize: 14,
-    color: '#0f172a',
+    color: textPrimary,
   },
   paymentBreakdownValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: textPrimary,
   },
   paymentBreakdownHint: {
     marginTop: 4,
     fontSize: 11,
-    color: '#94a3b8',
+    color: colors.mutedText,
   },
   paymentPanelActions: {
     flexDirection: 'row',
@@ -1781,21 +1763,21 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#d7e0ea',
-    backgroundColor: '#fff',
+    borderColor: themeColors.surfaceBorder,
+    backgroundColor: cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
   paymentCancelButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748b',
+    color: colors.mutedText,
   },
   paymentSaveButton: {
     flex: 1,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#2563eb',
+    backgroundColor: themeColors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1808,10 +1790,10 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   placeholderCard: {
-    backgroundColor: '#fff',
+    backgroundColor: cardBackground,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: themeColors.surfaceBorder,
     padding: 20,
     alignItems: 'center',
   },
@@ -1819,7 +1801,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#dbeafe',
+    backgroundColor: themeColors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -1827,14 +1809,14 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0f172a',
+    color: textPrimary,
     textAlign: 'center',
   },
   placeholderText: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 19,
-    color: '#64748b',
+    color: colors.mutedText,
     textAlign: 'center',
   },
   repaidSection: {
@@ -1846,4 +1828,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-})
+  })
+}
