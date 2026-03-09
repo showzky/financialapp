@@ -67,48 +67,48 @@ export const History = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <header className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,19,37,0.94),rgba(7,16,31,0.94))] p-6 shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
+      <header className="obsidian-panel p-6">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
-                Monthly Records
-              </p>
-              <h1 className="mt-3 text-3xl font-semibold text-text-primary">Archived snapshots</h1>
-              <p className="mt-2 text-sm text-text-muted">
+              <p className="obsidian-kicker">Monthly Records</p>
+              <h1 className="mt-3 text-3xl font-semibold text-[#f0ede8]">Archived snapshots</h1>
+              <p className="mt-2 text-sm text-[#b8b4ae]">
                 Archive payday-based snapshots and backfill missed periods manually.
               </p>
             </div>
             <button
               type="button"
               onClick={handlePrimaryCapture}
-              className="inline-flex items-center justify-center rounded-2xl border border-[rgba(var(--accent-rgb),0.3)] bg-[rgba(var(--accent-rgb),0.12)] px-4 py-3 text-sm font-semibold text-accent transition hover:bg-[rgba(var(--accent-rgb),0.18)]"
+              className="obsidian-button obsidian-button--gold px-4 py-3 text-sm font-semibold"
             >
               {captureMode === 'manual' ? '+ Capture Selected Pay Period' : '+ Capture Current Pay Period'}
             </button>
           </div>
 
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-muted">
-              Manual Backfill
-            </p>
+            <p className="obsidian-kicker">Manual Backfill</p>
             <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
               <input
                 type="month"
                 value={manualMonth}
                 onChange={(event) => setManualMonth(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-[#111114] px-4 py-3 text-sm text-text-primary outline-none transition focus:border-[rgba(var(--accent-rgb),0.35)]"
+                className="obsidian-field max-w-[12rem] px-4 py-3 text-sm"
               />
               <button
                 type="button"
                 onClick={handleManualCapture}
-                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-text-primary transition hover:bg-white/10"
+                className="obsidian-button px-4 py-3 text-sm font-semibold"
               >
                 Capture Chosen Period
               </button>
-              <p className="text-sm text-text-muted">Current payday period: {currentPeriodLabel}</p>
+              <p className="text-sm text-[#b8b4ae]">Current payday period: {currentPeriodLabel}</p>
             </div>
-            {feedback ? <p className="mt-3 text-sm text-[#e2c06a]">{feedback}</p> : null}
+            {feedback ? (
+              <div className="obsidian-subpanel mt-3 border border-[rgba(201,168,76,0.22)] bg-[rgba(201,168,76,0.08)] px-4 py-3 text-sm text-[#e2c06a]">
+                {feedback}
+              </div>
+            ) : null}
           </div>
         </div>
       </header>

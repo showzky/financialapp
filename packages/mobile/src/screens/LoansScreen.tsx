@@ -1257,7 +1257,8 @@ export function LoansScreen() {
 }
 
 function createStyles(colors: ScreenPalette, themeColors: ThemeColors) {
-  const cardBackground = colors.cardBackground ?? colors.surfaceAlt
+  const cardBackground =
+    (colors as ScreenPalette & { cardBackground?: string }).cardBackground ?? colors.surfaceAlt
   const textPrimary = (colors as ScreenPalette & { textPrimary?: string }).textPrimary ?? themeColors.text
 
   return StyleSheet.create({

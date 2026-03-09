@@ -14,6 +14,8 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { Loan, UpdateLoanPayload } from '../services/loanApi'
+import { useScreenPalette } from '../customthemes'
+import { LoanDateField } from './LoanDateField'
 
 type Props = {
   isOpen: boolean
@@ -25,6 +27,134 @@ type Props = {
 // Why useEffect on loan?.id? When the parent swaps which loan is being edited,
 // we need to re-seed the form fields from the new loan's data.
 export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
+  const { activeTheme, colors } = useScreenPalette()
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        overlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          justifyContent: 'flex-end',
+        },
+        keyboardView: {
+          justifyContent: 'flex-end',
+        },
+        card: {
+          backgroundColor: activeTheme.colors.surface,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          paddingBottom: 36,
+          maxHeight: '90%',
+          borderWidth: 1,
+          borderColor: activeTheme.colors.surfaceBorder,
+        },
+        cardHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 20,
+        },
+        cardTitle: {
+          fontSize: 20,
+          fontWeight: '700',
+          color: activeTheme.colors.text,
+        },
+        field: {
+          marginBottom: 16,
+        },
+        label: {
+          fontSize: 13,
+          fontWeight: '600',
+          color: activeTheme.colors.text,
+          marginBottom: 6,
+        },
+        input: {
+          borderWidth: 1,
+          borderColor: activeTheme.colors.surfaceBorder,
+          borderRadius: 10,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          fontSize: 15,
+          color: activeTheme.colors.text,
+          backgroundColor: colors.inputBackground,
+        },
+        notesInput: {
+          minHeight: 92,
+          paddingTop: 12,
+        },
+        inputError: {
+          borderColor: activeTheme.colors.danger,
+          backgroundColor: `${activeTheme.colors.danger}10`,
+        },
+        fieldFooter: {
+          marginTop: 4,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        errorText: {
+          fontSize: 12,
+          color: activeTheme.colors.danger,
+        },
+        counterText: {
+          fontSize: 12,
+          color: activeTheme.colors.mutedText,
+        },
+        submitErrorBanner: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: `${activeTheme.colors.danger}10`,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: `${activeTheme.colors.danger}40`,
+          padding: 10,
+          marginBottom: 16,
+          gap: 6,
+        },
+        submitErrorText: {
+          fontSize: 13,
+          color: activeTheme.colors.danger,
+          flex: 1,
+        },
+        actions: {
+          flexDirection: 'row',
+          gap: 12,
+          marginTop: 4,
+        },
+        cancelButton: {
+          flex: 1,
+          paddingVertical: 13,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: activeTheme.colors.surfaceBorder,
+          backgroundColor: activeTheme.colors.surfaceAlt,
+          alignItems: 'center',
+        },
+        cancelButtonText: {
+          fontSize: 15,
+          fontWeight: '600',
+          color: activeTheme.colors.text,
+        },
+        submitButton: {
+          flex: 2,
+          paddingVertical: 13,
+          borderRadius: 10,
+          backgroundColor: activeTheme.colors.accent,
+          alignItems: 'center',
+        },
+        submitButtonDisabled: {
+          backgroundColor: activeTheme.colors.accentSoft,
+        },
+        submitButtonText: {
+          fontSize: 15,
+          fontWeight: '600',
+          color: '#fff',
+        },
+      }),
+    [activeTheme.colors, colors.inputBackground],
+  )
   const [recipient, setRecipient] = useState('')
   const [amount, setAmount] = useState('')
   const [dateGiven, setDateGiven] = useState('')
@@ -131,7 +261,7 @@ export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Edit Loan</Text>
               <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color="#6b7280" />
+                <Ionicons name="close" size={22} color={activeTheme.colors.mutedText} />
               </TouchableOpacity>
             </View>
 
@@ -145,7 +275,7 @@ export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
                     hasTriedSubmit && errors.recipient ? styles.inputError : null,
                   ]}
                   placeholder="Ola Nordmann"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={activeTheme.colors.subtleText}
                   value={recipient}
                   onChangeText={setRecipient}
                   autoCapitalize="words"
@@ -165,7 +295,7 @@ export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
                     hasTriedSubmit && errors.amount ? styles.inputError : null,
                   ]}
                   placeholder="5000"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={activeTheme.colors.subtleText}
                   value={amount}
                   onChangeText={setAmount}
                   keyboardType="numeric"
@@ -177,46 +307,22 @@ export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
               </View>
 
               {/* Date Given */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Date Given</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    hasTriedSubmit && errors.dateGiven ? styles.inputError : null,
-                  ]}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#9ca3af"
-                  value={dateGiven}
-                  onChangeText={setDateGiven}
-                  keyboardType="numbers-and-punctuation"
-                  returnKeyType="next"
-                  maxLength={10}
-                />
-                {hasTriedSubmit && errors.dateGiven ? (
-                  <Text style={styles.errorText}>{errors.dateGiven}</Text>
-                ) : null}
-              </View>
+              <LoanDateField
+                label="Date Given"
+                value={dateGiven}
+                onChange={setDateGiven}
+                placeholder="Select date"
+                error={hasTriedSubmit ? errors.dateGiven : ''}
+              />
 
               {/* Expected Repayment Date */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Expected Repayment Date</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    hasTriedSubmit && errors.expectedRepaymentDate ? styles.inputError : null,
-                  ]}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#9ca3af"
-                  value={expectedRepaymentDate}
-                  onChangeText={setExpectedRepaymentDate}
-                  keyboardType="numbers-and-punctuation"
-                  returnKeyType="done"
-                  maxLength={10}
-                />
-                {hasTriedSubmit && errors.expectedRepaymentDate ? (
-                  <Text style={styles.errorText}>{errors.expectedRepaymentDate}</Text>
-                ) : null}
-              </View>
+              <LoanDateField
+                label="Expected Repayment Date"
+                value={expectedRepaymentDate}
+                onChange={setExpectedRepaymentDate}
+                placeholder="Select date"
+                error={hasTriedSubmit ? errors.expectedRepaymentDate : ''}
+              />
 
               <View style={styles.field}>
                 <Text style={styles.label}>Notes</Text>
@@ -227,7 +333,7 @@ export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
                     hasTriedSubmit && errors.notes ? styles.inputError : null,
                   ]}
                   placeholder="Til husleie"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={activeTheme.colors.subtleText}
                   value={notes}
                   onChangeText={setNotes}
                   multiline
@@ -247,7 +353,7 @@ export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
               {/* API-level error */}
               {submitError ? (
                 <View style={styles.submitErrorBanner}>
-                  <Ionicons name="alert-circle" size={14} color="#dc2626" />
+                  <Ionicons name="alert-circle" size={14} color={activeTheme.colors.danger} />
                   <Text style={styles.submitErrorText}>{submitError}</Text>
                 </View>
               ) : null}
@@ -279,122 +385,3 @@ export function EditLoanModal({ isOpen, loan, onClose, onSubmit }: Props) {
     </Modal>
   )
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
-  keyboardView: {
-    justifyContent: 'flex-end',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 36,
-    maxHeight: '90%',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  field: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#f9fafb',
-  },
-  notesInput: {
-    minHeight: 92,
-    paddingTop: 12,
-  },
-  inputError: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
-  },
-  fieldFooter: {
-    marginTop: 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#ef4444',
-  },
-  counterText: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  submitErrorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
-    gap: 6,
-  },
-  submitErrorText: {
-    fontSize: 13,
-    color: '#dc2626',
-    flex: 1,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  submitButton: {
-    flex: 2,
-    paddingVertical: 13,
-    borderRadius: 10,
-    backgroundColor: '#3b82f6',
-    alignItems: 'center',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#93c5fd',
-  },
-  submitButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-  },
-})
