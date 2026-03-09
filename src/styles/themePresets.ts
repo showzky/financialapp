@@ -42,22 +42,22 @@ export const themePresets: ThemePreset[] = [
     },
   },
   {
-    id: 'midnight-luxe',
-    name: 'Midnight Luxe',
-    description: 'Deep slate surfaces with neon-teal accents and glow.',
-    swatches: ['#151c2a', '#243046', '#24d6bc'],
+    id: 'mission-control',
+    name: 'Obsidian Wealth',
+    description: 'Dark luxury dashboard with gold accents and serif display type.',
+    swatches: ['#111114', '#202026', '#c9a84c'],
     tokens: {
-      '--color-surface': '#1a2333',
-      '--color-surface-strong': '#242f44',
-      '--color-accent': '#24cdb4',
-      '--color-accent-strong': '#16a892',
-      '--accent-rgb': '36, 205, 180',
-      '--accent-strong-rgb': '22, 168, 146',
-      '--color-text-primary': '#ecf4ff',
-      '--color-text-muted': '#9fb0ce',
-      '--color-shadow-dark': '#121824',
-      '--color-shadow-light': '#2a3750',
-      '--app-bg': 'radial-gradient(circle at 20% 20%, #0f1522, #141d2d 45%, #1a2537 100%)',
+      '--color-surface': '#111114',
+      '--color-surface-strong': '#18181c',
+      '--color-accent': '#c9a84c',
+      '--color-accent-strong': '#e2c06a',
+      '--accent-rgb': '201, 168, 76',
+      '--accent-strong-rgb': '226, 192, 106',
+      '--color-text-primary': '#f0ede8',
+      '--color-text-muted': '#b8b4ae',
+      '--color-shadow-dark': '#06060a',
+      '--color-shadow-light': '#1a1a20',
+      '--app-bg': 'linear-gradient(180deg, #0a0a0b, #0a0a0b)',
     },
   },
   {
@@ -83,7 +83,7 @@ export const themePresets: ThemePreset[] = [
 
 // ADD THIS: helper to safely resolve persisted theme ids
 export const getThemePresetById = (themeId: string) =>
-  themePresets.find((theme) => theme.id === themeId) ?? themePresets[0]
+  themePresets.find((theme) => theme.id === (themeId === 'midnight-luxe' ? 'mission-control' : themeId)) ?? themePresets[0]
 
 // ADD THIS: applies all CSS token overrides to the root element
 export const applyThemePreset = (target: HTMLElement, preset: ThemePreset) => {

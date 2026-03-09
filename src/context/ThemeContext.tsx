@@ -30,7 +30,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [selectedPresetId, setSelectedPresetIdState] = useState<string>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY_PRESET)
-      if (raw) return raw
+      if (raw) return getThemePresetById(raw).id
     } catch {
       // Ignore storage access errors (e.g. private browsing restrictions).
     }
@@ -61,6 +61,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     apply()
+
+    const normalizedPresetId = getThemePresetById(selectedPresetId).id
+    if (normalizedPresetId !== selectedPresetId) {
+      setSelectedPresetIdState(normalizedPresetId)
+      try {
+        localStorage.setItem(STORAGE_KEY_PRESET, normalizedPresetId)
+      } catch {
+        // Ignore storage write errors and continue with in-memory state.
+      }
+    }
 
     const mql =
       typeof window !== 'undefined' && window.matchMedia

@@ -76,6 +76,7 @@ function App() {
       <Route path="/login" element={bypassLoginScreen ? <Navigate to="/" replace /> : <Login />} />
 
       <Route element={<RequireFrontendLogin />}>
+        {/* /flow renders outside the shared app shell — layout isolated */}
         <Route path="/flow" element={<Flow />} />
 
         <Route element={<AppLayout />}>

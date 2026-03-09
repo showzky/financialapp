@@ -30,7 +30,9 @@ const config: Config = {
       },
       fontFamily: {
         display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif'],
+        body:    ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        italiana: ['Italiana', 'serif'],
+        'dm-mono': ['"DM Mono"', 'monospace'],
       },
     },
   },

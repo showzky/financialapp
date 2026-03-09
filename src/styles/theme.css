@@ -60,11 +60,58 @@
 body {
   background: var(--app-bg);
   color: var(--color-text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   min-height: 100vh;
   transition:
     background 0.32s ease,
     color 0.28s ease;
+}
+
+/* ── Obsidian Wealth semantic tokens (active on mission-control preset) ── */
+html[data-theme-preset='mission-control'] {
+  --gold:      #c9a84c;
+  --gold2:     #e2c06a;
+  --gold3:     #f5d98a;
+  --gold-s:    rgba(201, 168, 76, 0.10);
+  --gold-line: rgba(201, 168, 76, 0.22);
+  --sage:      #5ebd97;
+  --sage-s:    rgba(94, 189, 151, 0.10);
+  --rose:      #c96b6b;
+  --rose-s:    rgba(201, 107, 107, 0.10);
+  --sky:       #5ba3c9;
+  --sky-s:     rgba(91, 163, 201, 0.10);
+  --ink:       #0a0a0b;
+  --ink1:      #111114;
+  --ink2:      #18181c;
+  --ink3:      #202026;
+  --ink4:      #2a2a32;
+  --ow-border:  rgba(255, 255, 255, 0.055);
+  --ow-border2: rgba(255, 255, 255, 0.10);
+  --ow-border3: rgba(255, 255, 255, 0.16);
+  --color-success: #5ebd97;
+  --color-warning: #e2c06a;
+  --color-error:   #c96b6b;
+}
+
+/* grain texture overlay for obsidian theme */
+html[data-theme-preset='mission-control'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.032;
+}
+
+/* subtle radial gold warmth at top for obsidian theme */
+html[data-theme-preset='mission-control'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% -5%, rgba(201, 168, 76, 0.07) 0%, transparent 70%);
 }
 
 * {

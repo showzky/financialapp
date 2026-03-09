@@ -1,23 +1,75 @@
-// ADD THIS: Neumorphic home dashboard layout
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Sortable from 'sortablejs'
 import { AddCategoryModal } from '@/components/AddCategoryModal'
 import { BudgetCategoryCard } from '@/components/BudgetCategoryCard'
-import { LoanAreaCard } from '@/components/LoanAreaCard'
-import { NeoCard } from '@/components/NeoCard'
-import { ProgressBar } from '@/components/ProgressBar'
 import { RecurringAutomationToast } from '@/components/RecurringAutomationToast'
 import { SettingsDrawer } from '@/components/SettingsDrawer'
-import { SummaryStat } from '@/components/SummaryStat'
 import { UpdateIncomeModal } from '@/components/UpdateIncomeModal'
-import type { BudgetCategoryType } from '@/types/budget'
+import type { BudgetCategory, BudgetCategoryType } from '@/types/budget'
 import type { LoanSummary } from '@/types/loan'
 import { useBudgets } from '@/hooks/useBudgets'
 import { useRecurringAutomation } from '@/hooks/useRecurringAutomation'
 import { loanApi } from '@/services/loanApi'
 import { themePresets } from '@/styles/themePresets'
 import { formatCurrency } from '@/utils/currency'
-import { useTheme } from '@/context/ThemeContext' // ADD THIS
+import { useTheme } from '@/context/ThemeContext'
+
+const findCategoryByKeywords = (categories: BudgetCategory[], keywords: string[]) =>
+  categories.find((category) => {
+    const name = category.name.toLowerCase()
+    return keywords.some((keyword) => name.includes(keyword))
+  })
+
+const getBudgetPressure = (category?: BudgetCategory) => {
+  if (!category || category.type !== 'budget' || category.allocated <= 0) {
+    return {
+      title: 'No pressure',
+      toneClass: 'bg-[rgba(var(--accent-rgb),0.12)] text-accent',
+      meta: 'No active category pressure yet',
+      rate: 0,
+      categoryName: 'Telemetry pending',
+      left: 0,
+      spent: 0,
+    }
+  }
+
+  const rate = Math.min(category.spent / Math.max(category.allocated, 1), 1)
+
+  if (rate >= 0.8) {
+    return {
+      title: 'High pressure',
+      toneClass: 'bg-red-500/10 text-red-300',
+      meta: `${Math.round(rate * 100)}% used`,
+      rate,
+      categoryName: category.name,
+      left: Math.max(category.allocated - category.spent, 0),
+      spent: category.spent,
+    }
+  }
+
+  if (rate >= 0.45) {
+    return {
+      title: 'Watch',
+      toneClass: 'bg-amber-400/10 text-amber-200',
+      meta: `${Math.round(rate * 100)}% used`,
+      rate,
+      categoryName: category.name,
+      left: Math.max(category.allocated - category.spent, 0),
+      spent: category.spent,
+    }
+  }
+
+  return {
+    title: 'Low',
+    toneClass: 'bg-emerald-400/10 text-emerald-200',
+    meta: `${Math.round(rate * 100)}% used`,
+    rate,
+    categoryName: category.name,
+    left: Math.max(category.allocated - category.spent, 0),
+    spent: category.spent,
+  }
+}
 
 export const Home = () => {
   const {
@@ -35,61 +87,197 @@ export const Home = () => {
     deleteRecurringTransaction,
   } = useBudgets()
 
-  const { selectedPresetId } = useTheme() // ADD THIS
-
-  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false) // ADD THIS: modal visibility
-  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false) // ADD THIS: income modal visibility
-  const [isEditing, setIsEditing] = useState(false) // ADD THIS: settings edit mode toggle
+  const { selectedPresetId } = useTheme()
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false)
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [loanSummary, setLoanSummary] = useState<LoanSummary | null>(null)
   const [isLoanSummaryLoading, setIsLoanSummaryLoading] = useState(true)
   const [loanSummaryError, setLoanSummaryError] = useState('')
-
   const [currencySymbol, setCurrencySymbol] = useState<'KR' | '$' | '€'>('KR')
   const [defaultCategoryType, setDefaultCategoryType] = useState<BudgetCategoryType>('budget')
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
-  const sortableRef = useRef<HTMLElement | null>(null)
-  const sortableInstanceRef = useRef<Sortable | null>(null)
+  const budgetSortableRef = useRef<HTMLElement | null>(null)
+  const fixedSortableRef = useRef<HTMLElement | null>(null)
+  const sortableInstancesRef = useRef<Sortable[]>([])
   const { automationMessage, clearAutomationMessage } = useRecurringAutomation()
-  const utilization = Math.round((totals.spent / totals.allocated) * 100) || 0 // ADD THIS
-  const freeCash = Math.max(state.income - totals.allocated, 0) // ADD THIS
+
+  const budgetCategories = useMemo(
+    () => state.categories.filter((category) => category.type === 'budget'),
+    [state.categories],
+  )
+  const fixedCategories = useMemo(
+    () => state.categories.filter((category) => category.type === 'fixed'),
+    [state.categories],
+  )
+  const freeCash = Math.max(state.income - totals.allocated, 0)
+  const fixedCommitted = fixedCategories.reduce((sum, category) => sum + category.allocated, 0)
+  const averageDailySafeSpend = Math.round(freeCash / 30)
+  const allocationRate = state.income > 0 ? Math.round((totals.allocated / state.income) * 100) : 0
+
+  const budgetPressure = useMemo(() => {
+    const priorityCategory =
+      findCategoryByKeywords(budgetCategories, ['food', 'mat', 'fuel', 'drivstoff', 'fun']) ??
+      [...budgetCategories].sort((left, right) => {
+        const leftRate = left.allocated === 0 ? 0 : left.spent / left.allocated
+        const rightRate = right.allocated === 0 ? 0 : right.spent / right.allocated
+        return rightRate - leftRate
+      })[0]
+
+    return getBudgetPressure(priorityCategory)
+  }, [budgetCategories])
+
+  const pocketHealth = useMemo(() => {
+    if (freeCash >= Math.max(state.income * 0.18, 2500)) {
+      return {
+        title: 'Stable',
+        toneClass: 'bg-emerald-400/10 text-emerald-200',
+        meta: `Safe daily spend: ${formatCurrency(averageDailySafeSpend, currencySymbol)}`,
+      }
+    }
+
+    if (freeCash >= Math.max(state.income * 0.08, 1000)) {
+      return {
+        title: 'Watch',
+        toneClass: 'bg-amber-400/10 text-amber-200',
+        meta: `Buffer remaining: ${formatCurrency(freeCash, currencySymbol)}`,
+      }
+    }
+
+    return {
+      title: 'Tight',
+      toneClass: 'bg-red-500/10 text-red-300',
+      meta: `Only ${formatCurrency(freeCash, currencySymbol)} unassigned`,
+    }
+  }, [averageDailySafeSpend, currencySymbol, freeCash, state.income])
+
+  const fixedLoad = useMemo(() => {
+    const fixedRate = state.income > 0 ? fixedCommitted / state.income : 0
+
+    if (fixedRate >= 0.45) {
+      return {
+        title: 'Heavy',
+        toneClass: 'bg-red-500/10 text-red-300',
+        meta: `${Math.round(fixedRate * 100)}% of income committed`,
+      }
+    }
+
+    if (fixedRate >= 0.25) {
+      return {
+        title: 'Watch',
+        toneClass: 'bg-amber-400/10 text-amber-200',
+        meta: `${Math.round(fixedRate * 100)}% of income committed`,
+      }
+    }
+
+    return {
+      title: 'Light',
+      toneClass: 'bg-[rgba(var(--accent-rgb),0.12)] text-accent',
+      meta: `${Math.round(fixedRate * 100)}% of income committed`,
+    }
+  }, [fixedCommitted, state.income])
+
+  const loanRisk = useMemo(() => {
+    if ((loanSummary?.overdueCount ?? 0) > 0) {
+      return {
+        title: 'High',
+        toneClass: 'bg-red-500/10 text-red-300',
+        meta: `${loanSummary?.overdueCount ?? 0} overdue right now`,
+      }
+    }
+
+    if ((loanSummary?.dueSoonCount ?? 0) > 0) {
+      return {
+        title: 'Medium',
+        toneClass: 'bg-amber-400/10 text-amber-200',
+        meta: `${loanSummary?.dueSoonCount ?? 0} due soon this cycle`,
+      }
+    }
+
+    return {
+      title: isLoanSummaryLoading ? 'Loading' : 'Low',
+      toneClass: 'bg-emerald-400/10 text-emerald-200',
+      meta: isLoanSummaryLoading ? 'Checking active loans' : 'No urgent loan follow-up',
+    }
+  }, [isLoanSummaryLoading, loanSummary])
+
+  const telemetryRows = useMemo(
+    () =>
+      [...budgetCategories]
+        .sort((left, right) => {
+          const leftRate = left.allocated === 0 ? 0 : left.spent / left.allocated
+          const rightRate = right.allocated === 0 ? 0 : right.spent / right.allocated
+          return rightRate - leftRate
+        })
+        .slice(0, 3)
+        .map((category) => {
+          const pressure = getBudgetPressure(category)
+          return {
+            id: category.id,
+            name: category.name,
+            spent: category.spent,
+            left: Math.max(category.allocated - category.spent, 0),
+            rate: pressure.rate,
+            title: pressure.title,
+            toneClass: pressure.toneClass,
+          }
+        }),
+    [budgetCategories],
+  )
+
+  const getOrderedIdsFromRef = (container: HTMLElement | null) =>
+    container
+      ? Array.from(container.querySelectorAll<HTMLElement>('[data-category-id]'))
+          .map((item) => item.dataset.categoryId)
+          .filter((id): id is string => Boolean(id))
+      : []
 
   const syncOrderFromDom = useCallback(() => {
-    // ADD THIS: persist visual drag order into state array
-    const container = sortableRef.current
-    if (!container) return
-
-    const orderedIds = Array.from(container.querySelectorAll<HTMLElement>('[data-category-id]'))
-      .map((item) => item.dataset.categoryId)
-      .filter((id): id is string => Boolean(id))
+    const budgetIds = getOrderedIdsFromRef(budgetSortableRef.current)
+    const fixedIds = getOrderedIdsFromRef(fixedSortableRef.current)
+    const knownIds = new Set([...budgetIds, ...fixedIds])
+    const remainingIds = state.categories
+      .map((category) => category.id)
+      .filter((id) => !knownIds.has(id))
+    const orderedIds = [...budgetIds, ...fixedIds, ...remainingIds]
 
     if (orderedIds.length) {
       reorderCategories(orderedIds)
     }
-  }, [reorderCategories])
+  }, [reorderCategories, state.categories])
 
   useEffect(() => {
-    if (!isEditing || !sortableRef.current) {
-      sortableInstanceRef.current?.destroy()
-      sortableInstanceRef.current = null
+    sortableInstancesRef.current.forEach((instance) => instance.destroy())
+    sortableInstancesRef.current = []
+
+    if (!isEditing) {
       return
     }
 
-    sortableInstanceRef.current = Sortable.create(sortableRef.current, {
-      animation: 300,
-      easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      dragClass: 'sortable-drag',
-      forceFallback: false,
-      onEnd: () => {
-        syncOrderFromDom()
-      },
+    ;[budgetSortableRef.current, fixedSortableRef.current].forEach((container) => {
+      if (!container) {
+        return
+      }
+
+      const instance = Sortable.create(container, {
+        animation: 300,
+        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        forceFallback: false,
+        onEnd: () => {
+          syncOrderFromDom()
+        },
+      })
+
+      sortableInstancesRef.current.push(instance)
     })
 
     return () => {
-      sortableInstanceRef.current?.destroy()
-      sortableInstanceRef.current = null
+      sortableInstancesRef.current.forEach((instance) => instance.destroy())
+      sortableInstancesRef.current = []
     }
   }, [isEditing, syncOrderFromDom])
 
@@ -120,10 +308,8 @@ export const Home = () => {
   }, [])
 
   useEffect(() => {
-    // ADD THIS: lock page scroll while settings drawer is open
     if (!isSettingsOpen) return
 
-    // ADD THIS: preserve current scroll position (iOS + desktop safe lock)
     const scrollY = window.scrollY
     const previousOverflow = document.body.style.overflow
     const previousPosition = document.body.style.position
@@ -157,7 +343,6 @@ export const Home = () => {
   }, [isSettingsOpen])
 
   const handleDeleteCategory = (id: string) => {
-    // ADD THIS: animate shrink/fade before deleting from state
     setDeletingCategoryId(id)
     window.setTimeout(() => {
       removeCategory(id)
@@ -166,13 +351,11 @@ export const Home = () => {
   }
 
   const handleDoneEditing = () => {
-    // ADD THIS: commit current visual order and exit editing mode
     syncOrderFromDom()
     setIsEditing(false)
   }
 
   const handleExportData = () => {
-    // ADD THIS: export dashboard snapshot as JSON
     const payload = {
       exportedAt: new Date().toISOString(),
       state,
@@ -198,104 +381,195 @@ export const Home = () => {
   }
 
   return (
-    <div className="app-shell min-h-screen px-4 py-10 md:px-8 lg:px-12">
-      <div className={`mx-auto max-w-6xl space-y-8 ${isEditing ? 'editing-mode' : ''}`}>
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-text-muted">
-              Financial Budget Tracker
+    <div className={isEditing ? 'editing-mode' : ''}>
+      {/* ── PAGE HEADER ── */}
+      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#c9a84c] opacity-80">
+            Financial Budget Tracker
+          </p>
+          <h1 className="font-italiana text-[clamp(36px,5vw,52px)] leading-none tracking-[-0.01em] text-text-primary">
+            {state.month}
+          </h1>
+          <p className="mt-1.5 text-[13px] text-[#6b6862]">Andre sin finance tracker</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsEditing((current) => !current)}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-transparent px-[18px] py-2.5 text-[12px] font-semibold tracking-[0.04em] text-[#b8b4ae] transition hover:border-[rgba(255,255,255,0.16)] hover:bg-[#18181c] hover:text-text-primary"
+          >
+            {isEditing ? 'Stop Editing' : 'Edit Layout'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsAddCategoryOpen(true)}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#c9a84c] bg-[#c9a84c] px-[18px] py-2.5 text-[12px] font-semibold tracking-[0.04em] text-[#0a0a0b] transition hover:bg-[#e2c06a] hover:border-[#e2c06a]"
+          >
+            + Add Category
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(true)}
+            className="inline-flex cursor-pointer items-center rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-transparent px-3 py-2.5 text-[15px] leading-none text-[#6b6862] transition hover:border-[rgba(255,255,255,0.16)] hover:text-[#b8b4ae]"
+            aria-label="Settings"
+          >
+            ⚙
+          </button>
+          {isEditing ? (
+            <button
+              type="button"
+              onClick={handleDoneEditing}
+              className="inline-flex cursor-pointer items-center rounded-[10px] border border-[rgba(94,189,151,0.3)] bg-[rgba(94,189,151,0.10)] px-[18px] py-2.5 text-[12px] font-semibold text-[#5ebd97] transition hover:bg-[rgba(94,189,151,0.16)]"
+            >
+              Done
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {/* ── METRIC STRIP ── */}
+      <div className="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Income */}
+        <button
+          type="button"
+          onClick={() => setIsIncomeModalOpen(true)}
+          className="relative overflow-hidden rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-[22px_24px] text-left transition hover:-translate-y-px hover:border-[rgba(255,255,255,0.10)]"
+        >
+          <span className="absolute left-6 right-6 top-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent" />
+          <p className="mb-3.5 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6b6862]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#c9a84c] shadow-[0_0_8px_rgba(201,168,76,0.6)]" />
+            Monthly Income
+          </p>
+          <p className="font-italiana mb-2 text-[42px] leading-none tracking-[-0.01em] text-[#e2c06a]">
+            {formatCurrency(state.income, currencySymbol)}
+          </p>
+          <p className="text-[12px] text-[#6b6862] transition hover:text-[#b8b4ae]">Tap to update</p>
+        </button>
+
+        {/* Allocated */}
+        <div className="rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-[22px_24px] transition hover:-translate-y-px hover:border-[rgba(255,255,255,0.10)]">
+          <p className="mb-3.5 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6b6862]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#5ba3c9] shadow-[0_0_8px_rgba(91,163,201,0.6)]" />
+            Allocated
+          </p>
+          <p className="font-italiana mb-2 text-[42px] leading-none tracking-[-0.01em] text-text-primary">
+            {formatCurrency(totals.allocated, currencySymbol)}
+          </p>
+          <p className="text-[12px] text-[#6b6862]">{allocationRate}% of income assigned</p>
+        </div>
+
+        {/* Free to Assign */}
+        <div className="rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-[22px_24px] transition hover:-translate-y-px hover:border-[rgba(255,255,255,0.10)]">
+          <p className="mb-3.5 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6b6862]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#5ebd97] shadow-[0_0_8px_rgba(94,189,151,0.6)]" />
+            Free to Assign
+          </p>
+          <p className="font-italiana mb-2 text-[42px] leading-none tracking-[-0.01em] text-[#5ebd97]">
+            {formatCurrency(freeCash, currencySymbol)}
+          </p>
+          <p className="text-[12px] font-medium text-[#5ebd97]">Before savings goals</p>
+        </div>
+      </div>
+
+      {/* ── CASH FLOW SNAPSHOT ── */}
+      <div className="mb-3.5 rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-[22px_24px]">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6b6862]">
+              Cash Flow Snapshot
             </p>
-            <h1 className="text-3xl font-semibold text-text-primary">{state.month}</h1>
-            <p className="text-sm text-text-muted">Andre sin finance tracker</p>
+            <p className="font-italiana text-[26px] leading-none tracking-[-0.01em] text-text-primary">
+              {formatCurrency(freeCash, currencySymbol)} left to allocate
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsEditing((current) => !current)}
-              className="glass-panel px-3 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
-              aria-label="Toggle settings"
-            >
-              ⚙ Edit Layout
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAddCategoryOpen(true)}
-              className="glass-panel px-4 py-2 text-sm font-semibold text-text-primary transition-all hover:bg-white/10"
-            >
-              + Add category
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(true)}
-              className="glass-panel px-3 py-2 text-sm font-semibold text-text-muted transition-all hover:bg-white/10"
-              aria-label="Open settings"
-            >
-              ⚙
-            </button>
-            {isEditing ? (
-              <button
-                type="button"
-                onClick={handleDoneEditing}
-                className="glass-panel px-4 py-2 text-sm font-semibold text-accent-strong transition-all hover:bg-white/10"
-              >
-                Done
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-[10px] border border-[rgba(91,163,201,0.2)] bg-[rgba(91,163,201,0.10)] px-3 py-1.5 font-['DM_Mono',monospace] text-[11px] font-medium tracking-[0.04em] text-[#5ba3c9]">
+              Spent {formatCurrency(totals.spent, currencySymbol)}
+            </span>
+            <span className="rounded-[10px] border border-[rgba(201,168,76,0.22)] bg-[rgba(201,168,76,0.10)] px-3 py-1.5 font-['DM_Mono',monospace] text-[11px] font-medium tracking-[0.04em] text-[#e2c06a]">
+              Planned {formatCurrency(totals.allocated, currencySymbol)}
+            </span>
+          </div>
+        </div>
+        <div className="relative h-1.5 overflow-hidden rounded-full bg-[#202026]">
+          <span
+            className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-[#c9a84c] to-[#e2c06a] opacity-35 transition-[width] duration-700"
+            style={{ width: `${Math.min(allocationRate, 100)}%` }}
+          />
+          <span
+            className="absolute left-0 top-0 h-full rounded-full bg-[#5ba3c9] shadow-[0_0_12px_rgba(91,163,201,0.4)] transition-[width] duration-700"
+            style={{
+              width: `${totals.allocated > 0 ? Math.min((totals.spent / totals.allocated) * 100, 100) : 0}%`,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── LOANS PANEL ── */}
+      <div className="mb-7 rounded-[16px] border border-[rgba(255,255,255,0.055)] bg-[#111114] p-[22px_24px]">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6b6862]">
+              Loans Given
+            </p>
+            <p className="font-italiana text-[28px] leading-none tracking-[-0.01em] text-text-primary">
+              {loanSummary
+                ? `${formatCurrency(loanSummary.totalOutstandingAmount, currencySymbol)} outstanding`
+                : isLoanSummaryLoading
+                  ? 'Loading...'
+                  : '--'}
+            </p>
+            {!isLoanSummaryLoading && loanSummaryError ? (
+              <p className="mt-1 text-[12px] text-[#c96b6b]">{loanSummaryError}</p>
             ) : null}
           </div>
-        </header>
-
-        <section className="grid gap-4 md:grid-cols-3">
-          <SummaryStat
-            label="Monthly income"
-            value={formatCurrency(state.income, currencySymbol)}
-            helper="Tap to update"
-            icon="💰"
-            onClick={() => setIsIncomeModalOpen(true)}
-          />
-          <SummaryStat
-            label="Allocated"
-            value={formatCurrency(totals.allocated, currencySymbol)}
-            helper={`${utilization}% of plan`}
-            icon="🗂️"
-          />
-          <SummaryStat
-            label="Free to assign"
-            value={formatCurrency(Math.max(state.income - totals.allocated, 0), currencySymbol)}
-            helper="Before savings goals"
-            tone="positive"
-            icon="✨"
-          />
-        </section>
-
-        <NeoCard className="flex flex-col gap-4 p-5 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-text-muted">Cash flow snapshot</p>
-              <p className="text-xl font-semibold text-text-primary">
-                {formatCurrency(freeCash, currencySymbol)} left to allocate
+          <Link
+            to="/loans"
+            className="inline-flex items-center rounded-[10px] border border-[rgba(91,163,201,0.25)] bg-transparent px-4 py-2.5 text-[12px] font-semibold text-[#5ba3c9] transition hover:bg-[rgba(91,163,201,0.08)]"
+          >
+            Open Loan Area →
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {[
+            { label: 'Active', value: loanSummary?.activeCount ?? 0, tone: '' },
+            { label: 'Due Soon', value: loanSummary?.dueSoonCount ?? 0, tone: 'text-[#e2c06a]' },
+            { label: 'Overdue', value: loanSummary?.overdueCount ?? 0, tone: 'text-[#c96b6b]' },
+            { label: 'Repaid', value: loanSummary?.repaidCount ?? 0, tone: 'text-[#5ebd97]' },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[10px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] p-[16px_18px] transition hover:border-[rgba(255,255,255,0.10)]"
+            >
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#6b6862]">
+                {item.label}
+              </p>
+              <p className={`font-italiana text-[34px] leading-none text-text-primary ${item.tone}`}>
+                {item.value}
               </p>
             </div>
-            <div className="flex gap-3 text-sm text-text-muted">
-              <span className="rounded-full bg-surface-strong px-3 py-1 shadow-neo-sm">
-                Spent {formatCurrency(totals.spent, currencySymbol)}
-              </span>
-              <span className="rounded-full bg-surface-strong px-3 py-1 shadow-neo-sm">
-                Planned {formatCurrency(totals.allocated, currencySymbol)}
-              </span>
-            </div>
-          </div>
-          <ProgressBar value={totals.spent} max={Math.max(totals.allocated, 1)} />
-        </NeoCard>
+          ))}
+        </div>
+      </div>
 
-        <LoanAreaCard
-          summary={loanSummary}
-          isLoading={isLoanSummaryLoading}
-          error={loanSummaryError}
-          currencySymbol={currencySymbol}
-        />
+      {/* ── BUDGET CATEGORIES ── */}
+      <div className="mb-5 flex items-center gap-4">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6862]">
+          Budget Categories
+        </span>
+        <span className="h-px flex-1 bg-[rgba(255,255,255,0.055)]" />
+        <span className="rounded-full border border-[rgba(255,255,255,0.055)] bg-transparent px-3 py-1 font-['DM_Mono',monospace] text-[11px] text-[#6b6862]">
+          {budgetCategories.length}
+        </span>
+      </div>
 
-        <section ref={sortableRef} className="grid gap-4 md:grid-cols-2">
-          {state.categories.map((category) => (
+      <section
+        ref={budgetSortableRef as React.RefObject<HTMLElement>}
+        className="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      >
+        {budgetCategories.length > 0 ? (
+          budgetCategories.map((category) => (
             <div key={category.id} data-category-id={category.id} className="sortable-item">
               <BudgetCategoryCard
                 category={category}
@@ -306,8 +580,58 @@ export const Home = () => {
                 currencySymbol={currencySymbol}
               />
             </div>
-          ))}
-        </section>
+          ))
+        ) : (
+          <div className="col-span-2 rounded-[16px] border border-dashed border-[rgba(255,255,255,0.055)] px-4 py-8 text-center text-sm text-[#6b6862]">
+            No budget categories yet. Add one to start planning variable spending.
+          </div>
+        )}
+      </section>
+
+      {/* ── FIXED COSTS ── */}
+      <div className="mb-5 flex items-center gap-4">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6862]">
+          Fixed Costs
+        </span>
+        <span className="h-px flex-1 bg-[rgba(255,255,255,0.055)]" />
+        <span className="rounded-full border border-[rgba(255,255,255,0.055)] bg-transparent px-3 py-1 font-['DM_Mono',monospace] text-[11px] text-[#6b6862]">
+          {fixedCategories.length}
+        </span>
+      </div>
+
+      <section
+        ref={fixedSortableRef as React.RefObject<HTMLElement>}
+        className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        {fixedCategories.length > 0 ? (
+          fixedCategories.map((category) => (
+            <div key={category.id} data-category-id={category.id} className="sortable-item">
+              <BudgetCategoryCard
+                category={category}
+                onChangeAmounts={updateCategoryAmounts}
+                isEditing={isEditing}
+                isDeleting={deletingCategoryId === category.id}
+                onDelete={handleDeleteCategory}
+                currencySymbol={currencySymbol}
+              />
+            </div>
+          ))
+        ) : (
+          <div className="col-span-3 rounded-[16px] border border-dashed border-[rgba(255,255,255,0.055)] px-4 py-8 text-center text-sm text-[#6b6862]">
+            No fixed costs yet. Add one to keep monthly commitments visible.
+          </div>
+        )}
+      </section>
+
+      {/* ── FOOTER ── */}
+      <div className="flex justify-end">
+        <Link
+          to="/history"
+          className="inline-flex items-center rounded-[10px] border border-[rgba(255,255,255,0.10)] bg-transparent px-4 py-2.5 text-[12px] font-semibold tracking-[0.04em] text-[#6b6862] transition hover:border-[rgba(255,255,255,0.16)] hover:text-[#b8b4ae]"
+        >
+          Open Monthly Records →
+        </Link>
+      </div>
 
         {isAddCategoryOpen ? (
           <AddCategoryModal
@@ -352,7 +676,6 @@ export const Home = () => {
         {automationMessage ? (
           <RecurringAutomationToast message={automationMessage} onClose={clearAutomationMessage} />
         ) : null}
-      </div>
     </div>
   )
 }
