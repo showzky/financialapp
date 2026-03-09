@@ -14,10 +14,17 @@ export type BackendRequestOptions = {
   withCredentials?: boolean
 }
 
+const developmentFallbackBaseUrl = 'http://10.0.2.2:4000/api/v1'
+
 const defaultBaseUrl = (): string => {
   const raw = process.env.EXPO_PUBLIC_BACKEND_URL?.trim()
   if (raw) return raw.replace(/\/+$/, '')
-  return 'http://10.0.2.2:4000/api/v1'
+
+  if (__DEV__) {
+    return developmentFallbackBaseUrl
+  }
+
+  throw new Error('EXPO_PUBLIC_BACKEND_URL must be set for production mobile builds')
 }
 
 const defaultAuthToken = (): string | undefined => {
