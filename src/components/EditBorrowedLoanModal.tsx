@@ -143,6 +143,8 @@ export const EditBorrowedLoanModal = ({
               onClick={handleClose}
               aria-label="Close edit borrowed loan modal"
               className="rounded-lg border border-[rgba(255,255,255,0.10)] p-2 text-text-muted transition hover:border-[rgba(255,255,255,0.20)] hover:text-text-primary"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
 
