@@ -77,7 +77,7 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
   try {
     updated = await userModel.update(req.auth.userId, payload)
   } catch {
-    // DB error—try upsert path
+    updated = null
   }
 
   if (!updated) {
@@ -90,10 +90,13 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
       })
     } catch {
       // Upsert also failed—return fallback
+      const fallbackDisplayName =
+        payload.displayName ?? req.auth.email?.split('@')[0] ?? 'Local User'
+
       res.status(200).json({
         id: req.auth.userId,
         email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
-        displayName: payload.displayName ?? 'Local User',
+        displayName: fallbackDisplayName,
         monthlyIncome: payload.monthlyIncome ?? 0,
         createdAt: new Date().toISOString(),
         isBootstrapAdmin: req.auth.userId === env.LOCAL_AUTH_USER_ID,

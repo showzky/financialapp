@@ -33,7 +33,7 @@ export const Login = () => {
       })
       .catch(() => {
         if (!isMounted) return
-        setIsRegistrationEnabled(false)
+        setIsRegistrationEnabled(true)
       })
       .finally(() => {
         if (!isMounted) return

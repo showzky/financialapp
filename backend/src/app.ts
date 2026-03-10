@@ -59,6 +59,7 @@ const authRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: { trustProxy: false },
+  skip: (req) => req.method === 'GET' && req.path === '/register-status',
 })
 
 app.use('/api/v1/auth', authRateLimiter, authRouter)

@@ -3,8 +3,23 @@ import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 import { env } from './env.js'
 import { logger } from './logger.js'
 
+const getConnectionString = (): string => {
+  if (!env.DATABASE_SSL) {
+    return env.DATABASE_URL
+  }
+
+  const connectionUrl = new URL(env.DATABASE_URL)
+
+  // Let the explicit ssl object control certificate verification.
+  ;['sslmode', 'ssl', 'sslrootcert', 'sslcert', 'sslkey', 'sslpassword'].forEach((key) => {
+    connectionUrl.searchParams.delete(key)
+  })
+
+  return connectionUrl.toString()
+}
+
 const pool = new Pool({
-  connectionString: env.DATABASE_URL,
+  connectionString: getConnectionString(),
   ssl: env.DATABASE_SSL
     ? {
         rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED,
