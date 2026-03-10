@@ -13,6 +13,7 @@ import {
   getCurrentPayPeriod,
   parseMonthLabel,
 } from '@/utils/payPeriod'
+import type { BudgetCategory } from '@/types/budget'
 
 const HISTORY_STORAGE_KEY = 'finance-history-records-v2'
 const LEGACY_HISTORY_STORAGE_KEY = 'finance-history-records-v1'
@@ -27,6 +28,23 @@ type LegacyHistoryRecord = {
     categories?: unknown[]
   }
   summary?: HistoryRecord['summary']
+}
+
+const isBudgetCategory = (value: unknown): value is BudgetCategory => {
+  if (!value || typeof value !== 'object') return false
+
+  return (
+    'id' in value &&
+    typeof value.id === 'string' &&
+    'name' in value &&
+    typeof value.name === 'string' &&
+    'type' in value &&
+    (value.type === 'budget' || value.type === 'fixed') &&
+    'allocated' in value &&
+    typeof value.allocated === 'number' &&
+    'spent' in value &&
+    typeof value.spent === 'number'
+  )
 }
 
 const isHistoryRecord = (value: unknown): value is HistoryRecord => {
@@ -102,7 +120,7 @@ export const normalizeHistoryRecords = (raw: unknown): HistoryRecord[] => {
       income:
         typeof legacyRecord.snapshot.income === 'number' ? legacyRecord.snapshot.income : 0,
       categories: Array.isArray(legacyRecord.snapshot.categories)
-        ? legacyRecord.snapshot.categories
+        ? legacyRecord.snapshot.categories.filter(isBudgetCategory)
         : [],
     }
 

@@ -7,6 +7,7 @@ type RemoteUser = {
   displayName: string
   monthlyIncome: number
   createdAt: string
+  isBootstrapAdmin?: boolean
 }
 
 type UpdateCurrentUserPayload = {

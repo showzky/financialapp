@@ -27,6 +27,32 @@ export const authCredentialModel = {
     return result.rows[0] ?? null
   },
 
+  async create(input: {
+    userId: string
+    username: string
+    passwordHash: string
+  }): Promise<AuthCredential> {
+    const result = await db.query<AuthCredential>(
+      `
+      INSERT INTO auth_credentials (user_id, username, password_hash)
+      VALUES ($1, $2, $3)
+      RETURNING
+        user_id AS "userId",
+        username,
+        password_hash AS "passwordHash",
+        created_at AS "createdAt"
+      `,
+      [input.userId, input.username, input.passwordHash],
+    )
+
+    const row = result.rows[0]
+    if (!row) {
+      throw new Error('Failed to create auth credential')
+    }
+
+    return row
+  },
+
   async upsert(input: {
     userId: string
     username: string

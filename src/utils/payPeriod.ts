@@ -64,10 +64,8 @@ export const buildPayPeriod = (periodStart: Date): PayPeriod => {
     periodStart: toIsoDate(start),
     periodEnd: toIsoDate(end),
     label: formatPayPeriodLabel({
-      periodKey: toLocalDateKey(start),
       periodStart: toIsoDate(start),
       periodEnd: toIsoDate(end),
-      label: '',
     }),
   }
 }
