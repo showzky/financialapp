@@ -38,6 +38,7 @@ Migration source of truth is [backend/migrations/README.md](migrations/README.md
 - `LOCAL_AUTH_COOKIE_MAX_AGE_DAYS`: persistent login lifetime in days (default `30`)
 - `ALLOW_DEV_AUTH_BYPASS`: keep `false` unless explicitly needed in local testing
 - `BROWSERLESS_TOKEN`: optional unless you enable features that call Browserless
+- `LOCAL_AUTH_USER_ID`: bootstrap admin user id (used for auth settings access)
 
 ## Generate secure local credentials
 
@@ -79,6 +80,10 @@ It prints these values for `backend/.env`:
 
 - `GET /health`
 - `POST /api/v1/auth/login`
+- `POST /api/v1/auth/register`
+- `GET /api/v1/auth/register-status`
+- `GET /api/v1/auth/settings`
+- `PATCH /api/v1/auth/settings`
 - `POST /api/v1/users/me`
 - `GET /api/v1/users/me`
 - `PATCH /api/v1/users/me`
@@ -118,3 +123,10 @@ Run the SQL migration located at `backend/migrations/20260220183000_add_loans_gi
 3. Backend sets secure session cookie (`httpOnly`, `Secure`, `SameSite`, `maxAge`)
 4. Frontend calls protected `/api/v1/*` routes with `credentials: include`
 5. `POST /api/v1/auth/logout` clears session cookie
+
+## Registration controls
+
+- `POST /api/v1/auth/register` creates a new `users` row and `auth_credentials` row, then signs in immediately.
+- Public registration can be toggled at runtime through `app_settings`.
+- `GET /api/v1/auth/register-status` is public and returns `publicRegistrationEnabled` for login-screen UX.
+- `GET/PATCH /api/v1/auth/settings` are restricted to the bootstrap admin (`LOCAL_AUTH_USER_ID`).

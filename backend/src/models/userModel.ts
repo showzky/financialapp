@@ -22,6 +22,29 @@ export type UpdateUserInput = {
 }
 
 export const userModel = {
+  async create(input: CreateUserInput): Promise<User> {
+    const result = await db.query<User>(
+      `
+      INSERT INTO users (id, email, display_name, monthly_income)
+      VALUES ($1, $2, $3, COALESCE($4, 0))
+      RETURNING
+        id,
+        email,
+        display_name AS "displayName",
+        monthly_income::float8 AS "monthlyIncome",
+        created_at AS "createdAt"
+      `,
+      [input.id, input.email, input.displayName, input.monthlyIncome ?? null],
+    )
+
+    const row = result.rows[0]
+    if (!row) {
+      throw new Error('Failed to create user')
+    }
+
+    return row
+  },
+
   async upsertFromAuth(input: CreateUserInput): Promise<User> {
     const result = await db.query<User>(
       `
@@ -81,6 +104,25 @@ export const userModel = {
       LIMIT 1
       `,
       [id],
+    )
+
+    return result.rows[0] ?? null
+  },
+
+  async getByEmail(email: string): Promise<User | null> {
+    const result = await db.query<User>(
+      `
+      SELECT
+        id,
+        email,
+        display_name AS "displayName",
+        monthly_income::float8 AS "monthlyIncome",
+        created_at AS "createdAt"
+      FROM users
+      WHERE email = $1
+      LIMIT 1
+      `,
+      [email],
     )
 
     return result.rows[0] ?? null

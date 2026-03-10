@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/authApi'
+import { useCurrentUser } from '@/context/CurrentUserContext'
 
 const currentMonthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()
 
@@ -8,6 +9,13 @@ export const AppLayout = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [isMoreOpen, setIsMoreOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const { currentUser } = useCurrentUser()
+
+  const userInitial = useMemo(() => {
+    const source = currentUser.displayName?.trim() || currentUser.email
+    return source.charAt(0).toUpperCase() || 'U'
+  }, [currentUser.displayName, currentUser.email])
 
   const moreIsActive = ['/wishlist', '/loans', '/subscriptions', '/vacation'].some((path) =>
     location.pathname.startsWith(path),
@@ -120,13 +128,6 @@ export const AppLayout = () => {
               ) : null}
             </div>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className={navLinkClass(false)}
-            >
-              Logout
-            </button>
           </div>
 
           {/* Right: month label + avatar */}
@@ -134,8 +135,43 @@ export const AppLayout = () => {
             <div className="hidden rounded-[10px] border border-[rgba(255,255,255,0.055)] px-3.5 py-[7px] font-['DM_Mono',monospace] text-[12px] tracking-[0.06em] text-[#6b6862] sm:block">
               {currentMonthLabel}
             </div>
-            <div className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border border-[rgba(255,255,255,0.10)] bg-[#202026] text-[12px] font-semibold text-[#e2c06a]">
-              A
+            <div
+              className="relative"
+              onMouseLeave={() => setIsUserMenuOpen(false)}
+              onBlur={(event) => {
+                const nextFocused = event.relatedTarget as Node | null
+                if (nextFocused && event.currentTarget.contains(nextFocused)) return
+                setIsUserMenuOpen(false)
+              }}
+            >
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={isUserMenuOpen}
+                onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[12px] font-semibold text-[var(--color-accent)] transition hover:border-[var(--color-accent-soft)]"
+              >
+                {userInitial}
+              </button>
+
+              {isUserMenuOpen ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 w-56 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
+                >
+                  <div className="rounded-[10px] bg-[var(--color-surface-alt)] px-3 py-2">
+                    <p className="text-sm font-semibold text-text-primary">{currentUser.displayName}</p>
+                    <p className="truncate text-xs text-text-muted">{currentUser.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mt-2 block w-full rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-left text-sm font-medium text-text-primary transition hover:border-[var(--color-accent-soft)]"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

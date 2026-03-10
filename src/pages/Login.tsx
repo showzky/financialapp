@@ -1,21 +1,50 @@
 import { useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/authApi'
 import { hasBackendConfig } from '@/services/backendClient'
 
-// ADD THIS: Frontend-only login screen UI (no real authentication yet)
 export const Login = () => {
-  // ADD THIS: Router navigation after successful frontend-only unlock
   const navigate = useNavigate()
 
-  // ADD THIS: Local form state for design/testing
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRegistrationEnabled, setIsRegistrationEnabled] = useState(true)
+  const [isCheckingRegistrationStatus, setIsCheckingRegistrationStatus] = useState(true)
 
-  // ADD THIS: secure login submit using backend auth endpoint
+  useEffect(() => {
+    if (!hasBackendConfig()) {
+      setIsCheckingRegistrationStatus(false)
+      return
+    }
+
+    let isMounted = true
+
+    void authApi
+      .getRegistrationStatus()
+      .then((result) => {
+        if (!isMounted) return
+        setIsRegistrationEnabled(result.publicRegistrationEnabled)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setIsRegistrationEnabled(false)
+      })
+      .finally(() => {
+        if (!isMounted) return
+        setIsCheckingRegistrationStatus(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -25,20 +54,33 @@ export const Login = () => {
       return
     }
 
+    if (mode === 'register' && !isRegistrationEnabled) {
+      setError('Public registration is currently disabled.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      const response = await authApi.login({
-        email: email.trim().toLowerCase(),
-        password,
-      })
+      const normalizedEmail = email.trim().toLowerCase()
+      const response =
+        mode === 'register'
+          ? await authApi.register({
+              email: normalizedEmail,
+              password,
+              displayName: displayName.trim(),
+            })
+          : await authApi.login({
+              email: normalizedEmail,
+              password,
+            })
 
       if (!response.user?.id) {
-        throw new Error('Login session could not be created')
+        throw new Error('Session could not be created')
       }
 
       navigate('/', { replace: true })
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Login failed')
+      setError(submitError instanceof Error ? submitError.message : 'Authentication failed')
     } finally {
       setIsSubmitting(false)
     }
@@ -62,8 +104,47 @@ export const Login = () => {
             <p className="mt-2 text-sm text-white/70">Sign in to access your private dashboard.</p>
           </div>
 
+          <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('login')
+                setError('')
+              }}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${mode === 'login' ? 'bg-cyan-400/20 text-cyan-200' : 'text-white/70 hover:text-white'}`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('register')
+                setError('')
+              }}
+              disabled={!isRegistrationEnabled || isCheckingRegistrationStatus}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${mode === 'register' ? 'bg-fuchsia-500/20 text-fuchsia-200' : 'text-white/70 hover:text-white'} ${!isRegistrationEnabled || isCheckingRegistrationStatus ? 'opacity-50' : ''}`}
+            >
+              Register
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* ADD THIS: Email input */}
+            {mode === 'register' ? (
+              <div>
+                <label className="mb-1 block text-xs uppercase tracking-wider text-white/70">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Andre"
+                  className="w-full rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-sm outline-none transition focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-400/30"
+                />
+              </div>
+            ) : null}
+
             <div>
               <label className="mb-1 block text-xs uppercase tracking-wider text-white/70">
                 Email
@@ -102,16 +183,29 @@ export const Login = () => {
               </div>
             </div>
 
-            {/* ADD THIS: Submit button */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                (mode === 'register' && (isCheckingRegistrationStatus || !isRegistrationEnabled))
+              }
               className="mt-2 w-full rounded-xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-[#05070f] transition hover:brightness-110"
             >
-              {isSubmitting ? 'Signing in...' : 'Enter Dashboard'}
+              {isSubmitting
+                ? mode === 'register'
+                  ? 'Creating account...'
+                  : 'Signing in...'
+                : mode === 'register'
+                  ? 'Create Account'
+                  : 'Enter Dashboard'}
             </button>
 
-            {/* ADD THIS: Inline login error message */}
+            {mode === 'register' && !isCheckingRegistrationStatus && !isRegistrationEnabled ? (
+              <p className="text-xs text-amber-300">
+                Public registration is currently disabled by the administrator.
+              </p>
+            ) : null}
+
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
           </form>
         </div>

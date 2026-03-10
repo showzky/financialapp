@@ -62,6 +62,11 @@ type SettingsDrawerProps = {
   onUpdateRecurring: (id: string, updates: Partial<RecurringTransaction>) => void
   onDeleteRecurring: (id: string) => void
   loanShortcut?: LoanShortcut
+  isBootstrapAdmin?: boolean
+  publicRegistrationEnabled?: boolean
+  isAuthSettingsBusy?: boolean
+  authSettingsError?: string
+  onTogglePublicRegistration?: (enabled: boolean) => void
 }
 
 export const SettingsDrawer = ({
@@ -82,6 +87,11 @@ export const SettingsDrawer = ({
   onUpdateRecurring,
   onDeleteRecurring,
   loanShortcut,
+  isBootstrapAdmin = false,
+  publicRegistrationEnabled = true,
+  isAuthSettingsBusy = false,
+  authSettingsError = '',
+  onTogglePublicRegistration,
 }: SettingsDrawerProps) => {
   const { captureMode, setCaptureMode } = useFinanceData()
 
@@ -319,6 +329,36 @@ export const SettingsDrawer = ({
               Open loans
             </Link>
           </section>
+
+          {isBootstrapAdmin ? (
+            <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
+                Auth Admin
+              </h3>
+
+              <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-text-primary">Public registration</p>
+                  <p className="text-xs text-text-muted">
+                    {publicRegistrationEnabled ? 'Enabled for new users' : 'Disabled for new users'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isAuthSettingsBusy}
+                  onClick={() => onTogglePublicRegistration?.(!publicRegistrationEnabled)}
+                  className={`rounded-[8px] border px-3 py-1.5 text-sm font-medium transition ${publicRegistrationEnabled ? 'border-[rgba(76,201,141,0.35)] bg-[rgba(76,201,141,0.14)] text-[#8fe0b6]' : 'border-[rgba(201,107,107,0.30)] bg-[rgba(201,107,107,0.12)] text-[#d89a9a]'} ${isAuthSettingsBusy ? 'opacity-60' : ''}`}
+                >
+                  {isAuthSettingsBusy ? 'Saving...' : publicRegistrationEnabled ? 'Turn Off' : 'Turn On'}
+                </button>
+              </div>
+
+              {authSettingsError ? (
+                <p className="text-xs text-[#c96b6b]">{authSettingsError}</p>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="rounded-[14px] border border-[rgba(255,255,255,0.055)] bg-[#18181c] space-y-3 p-4">
             <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6862]">

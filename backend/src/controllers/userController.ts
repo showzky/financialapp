@@ -1,6 +1,7 @@
 // ADD THIS: user controllers with schema-validated payloads
 import { z } from 'zod'
 import type { Request, Response } from 'express'
+import { env } from '../config/env.js'
 import { userModel } from '../models/userModel.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
@@ -53,11 +54,15 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
       displayName: req.auth.email?.split('@')[0] ?? 'Local User',
       monthlyIncome: 0,
       createdAt: new Date().toISOString(),
+      isBootstrapAdmin: req.auth.userId === env.LOCAL_AUTH_USER_ID,
     })
     return
   }
 
-  res.status(200).json(row)
+  res.status(200).json({
+    ...row,
+    isBootstrapAdmin: req.auth.userId === env.LOCAL_AUTH_USER_ID,
+  })
 })
 
 export const updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
@@ -91,12 +96,16 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
         displayName: payload.displayName ?? 'Local User',
         monthlyIncome: payload.monthlyIncome ?? 0,
         createdAt: new Date().toISOString(),
+        isBootstrapAdmin: req.auth.userId === env.LOCAL_AUTH_USER_ID,
       })
       return
     }
   }
 
-  res.status(200).json(updated)
+  res.status(200).json({
+    ...updated,
+    isBootstrapAdmin: req.auth.userId === env.LOCAL_AUTH_USER_ID,
+  })
 })
 
 export const deleteCurrentUser = asyncHandler(async (req: Request, res: Response) => {

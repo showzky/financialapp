@@ -9,6 +9,21 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS auth_credentials (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS budget_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -208,6 +223,7 @@ SET normalized_url = url
 WHERE normalized_url IS NULL OR normalized_url = '';
 
 CREATE INDEX IF NOT EXISTS idx_budget_categories_user_id ON budget_categories(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_credentials_username_unique ON auth_credentials(LOWER(username));
 CREATE INDEX IF NOT EXISTS idx_borrowed_loans_user_id ON borrowed_loans(user_id);
 CREATE INDEX IF NOT EXISTS idx_borrowed_loans_user_paid_off_payoff ON borrowed_loans(user_id, paid_off_at, payoff_date);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
@@ -224,6 +240,10 @@ CREATE INDEX IF NOT EXISTS idx_push_notification_tokens_user_updated_at ON push_
 CREATE INDEX IF NOT EXISTS idx_revolut_import_states_user_id ON revolut_import_states(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_next_renewal ON subscriptions(user_id, next_renewal_date);
+
+INSERT INTO app_settings (key, value)
+VALUES ('auth.public_registration_enabled', 'true'::jsonb)
+ON CONFLICT (key) DO NOTHING;
 
 INSERT INTO wishlist_price_snapshots (wishlist_item_id, user_id, price, captured_at)
 SELECT

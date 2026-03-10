@@ -11,9 +11,11 @@ import type { LoanSummary } from '@/types/loan'
 import { useBudgets } from '@/hooks/useBudgets'
 import { useRecurringAutomation } from '@/hooks/useRecurringAutomation'
 import { loanApi } from '@/services/loanApi'
+import { authApi } from '@/services/authApi'
 import { themePresets } from '@/styles/themePresets'
 import { formatCurrency } from '@/utils/currency'
 import { useTheme } from '@/context/ThemeContext'
+import { useCurrentUser } from '@/context/CurrentUserContext'
 
 export const Home = () => {
   const {
@@ -32,6 +34,7 @@ export const Home = () => {
   } = useBudgets()
 
   const { selectedPresetId } = useTheme()
+  const { currentUser } = useCurrentUser()
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false)
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -42,6 +45,9 @@ export const Home = () => {
   const [currencySymbol, setCurrencySymbol] = useState<'KR' | '$' | '€'>('KR')
   const [defaultCategoryType, setDefaultCategoryType] = useState<BudgetCategoryType>('budget')
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
+  const [publicRegistrationEnabled, setPublicRegistrationEnabled] = useState(true)
+  const [isAuthSettingsBusy, setIsAuthSettingsBusy] = useState(false)
+  const [authSettingsError, setAuthSettingsError] = useState('')
   const budgetSortableRef = useRef<HTMLElement | null>(null)
   const fixedSortableRef = useRef<HTMLElement | null>(null)
   const sortableInstancesRef = useRef<Sortable[]>([])
@@ -139,6 +145,42 @@ export const Home = () => {
       isMounted = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!currentUser.isBootstrapAdmin) return
+
+    let isMounted = true
+    setAuthSettingsError('')
+
+    void authApi
+      .getAuthSettings()
+      .then((settings) => {
+        if (!isMounted) return
+        setPublicRegistrationEnabled(settings.publicRegistrationEnabled)
+      })
+      .catch((error) => {
+        if (!isMounted) return
+        setAuthSettingsError(error instanceof Error ? error.message : 'Failed to load auth settings')
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser.isBootstrapAdmin])
+
+  const handleTogglePublicRegistration = async (enabled: boolean) => {
+    setIsAuthSettingsBusy(true)
+    setAuthSettingsError('')
+
+    try {
+      const updated = await authApi.updateAuthSettings({ publicRegistrationEnabled: enabled })
+      setPublicRegistrationEnabled(updated.publicRegistrationEnabled)
+    } catch (error) {
+      setAuthSettingsError(error instanceof Error ? error.message : 'Failed to update auth settings')
+    } finally {
+      setIsAuthSettingsBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (!isSettingsOpen) return
@@ -516,6 +558,11 @@ export const Home = () => {
             dueSoonCount: loanSummary?.dueSoonCount ?? 0,
             overdueCount: loanSummary?.overdueCount ?? 0,
           }}
+          isBootstrapAdmin={Boolean(currentUser.isBootstrapAdmin)}
+          publicRegistrationEnabled={publicRegistrationEnabled}
+          isAuthSettingsBusy={isAuthSettingsBusy}
+          authSettingsError={authSettingsError}
+          onTogglePublicRegistration={handleTogglePublicRegistration}
         />
 
         {automationMessage ? (
