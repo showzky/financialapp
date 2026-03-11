@@ -11,6 +11,7 @@ type RemoteUser = {
 }
 
 type UpdateCurrentUserPayload = {
+  email?: string
   displayName?: string
   monthlyIncome?: number
 }

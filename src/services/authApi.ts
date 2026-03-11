@@ -171,4 +171,37 @@ export const authApi = {
 
     return (await response.json()) as AuthSettingsResponse
   },
+
+  async changePassword(payload: {
+    currentPassword: string
+    newPassword: string
+  }): Promise<void> {
+    if (!hasBackendConfig()) {
+      throw new Error('VITE_BACKEND_URL is not configured')
+    }
+
+    const response = await fetch(`${apiBaseUrl}/auth/change-password`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok && response.status !== 204) {
+      let errorMessage = `Unable to change password (${response.status})`
+
+      try {
+        const errorBody = (await response.json()) as { message?: string }
+        if (errorBody.message) {
+          errorMessage = errorBody.message
+        }
+      } catch {
+        // Ignore non-JSON errors and keep the generic message.
+      }
+
+      throw new Error(errorMessage)
+    }
+  },
 }

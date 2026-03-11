@@ -38,6 +38,11 @@ const updateAuthSettingsSchema = z.object({
   publicRegistrationEnabled: z.boolean(),
 })
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(8).max(128),
+})
+
 const isBootstrapAdmin = (req: Request): boolean => {
   return req.auth?.userId === env.LOCAL_AUTH_USER_ID
 }
@@ -294,6 +299,37 @@ authRouter.patch('/settings', requireAuth, async (req, res, next) => {
     const payload = updateAuthSettingsSchema.parse(req.body)
     const updated = await authSettingsModel.update(payload)
     res.status(200).json(updated)
+  } catch (error) {
+    next(error)
+  }
+})
+
+authRouter.post('/change-password', requireAuth, async (req, res, next) => {
+  try {
+    if (!req.auth) {
+      throw new AppError('Unauthorized', 401)
+    }
+
+    if (env.AUTH_PROVIDER !== 'local') {
+      throw new AppError('Password changes are only available for local auth', 400)
+    }
+
+    const payload = changePasswordSchema.parse(req.body)
+    const credential = await authCredentialModel.getByUserId(req.auth.userId)
+
+    if (!credential) {
+      throw new AppError('Credential not found', 404)
+    }
+
+    const isPasswordMatch = await verifyPasswordHash(payload.currentPassword, credential.passwordHash)
+    if (!isPasswordMatch) {
+      throw new AppError('Current password is incorrect', 400)
+    }
+
+    const nextPasswordHash = await createPasswordHash(payload.newPassword)
+    await authCredentialModel.updateByUserId(req.auth.userId, { passwordHash: nextPasswordHash })
+
+    res.status(204).send()
   } catch (error) {
     next(error)
   }

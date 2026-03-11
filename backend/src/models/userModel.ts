@@ -17,6 +17,7 @@ export type CreateUserInput = {
 }
 
 export type UpdateUserInput = {
+  email?: string | undefined
   displayName?: string | undefined
   monthlyIncome?: number | undefined
 }
@@ -133,8 +134,9 @@ export const userModel = {
       `
       UPDATE users
       SET
-        display_name = COALESCE($2, display_name),
-        monthly_income = COALESCE($3, monthly_income)
+        email = COALESCE($2, email),
+        display_name = COALESCE($3, display_name),
+        monthly_income = COALESCE($4, monthly_income)
       WHERE id = $1
       RETURNING
         id,
@@ -143,7 +145,7 @@ export const userModel = {
         monthly_income::float8 AS "monthlyIncome",
         created_at AS "createdAt"
       `,
-      [id, input.displayName ?? null, input.monthlyIncome ?? null],
+      [id, input.email ?? null, input.displayName ?? null, input.monthlyIncome ?? null],
     )
 
     return result.rows[0] ?? null

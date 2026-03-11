@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import type { Request, Response } from 'express'
 import { env } from '../config/env.js'
+import { authCredentialModel } from '../models/authCredentialModel.js'
 import { userModel } from '../models/userModel.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/appError.js'
@@ -12,10 +13,11 @@ const upsertUserSchema = z.object({
 
 const updateUserSchema = z
   .object({
+    email: z.string().email().trim().toLowerCase().optional(),
     displayName: z.string().trim().min(1).max(100).optional(),
     monthlyIncome: z.number().finite().nonnegative().optional(),
   })
-  .refine((value) => value.displayName !== undefined || value.monthlyIncome !== undefined, {
+  .refine((value) => value.email !== undefined || value.displayName !== undefined || value.monthlyIncome !== undefined, {
     message: 'At least one field must be provided',
   })
 
@@ -72,10 +74,20 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
 
   const payload = updateUserSchema.parse(req.body)
 
+  if (payload.email) {
+    const existingUser = await userModel.getByEmail(payload.email)
+    if (existingUser && existingUser.id !== req.auth.userId) {
+      throw new AppError('An account with this email already exists', 409)
+    }
+  }
+
   // ADD THIS: try update first, fallback to upsert if user doesn't exist yet
   let updated = null
   try {
     updated = await userModel.update(req.auth.userId, payload)
+    if (updated && payload.email) {
+      await authCredentialModel.updateByUserId(req.auth.userId, { username: payload.email })
+    }
   } catch {
     updated = null
   }
@@ -84,10 +96,13 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
     try {
       updated = await userModel.upsertFromAuth({
         id: req.auth.userId,
-        email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+        email: payload.email ?? req.auth.email ?? `${req.auth.userId}@financetracker.local`,
         displayName: payload.displayName ?? req.auth.email?.split('@')[0] ?? 'Local User',
         monthlyIncome: payload.monthlyIncome,
       })
+      if (payload.email) {
+        await authCredentialModel.updateByUserId(req.auth.userId, { username: payload.email })
+      }
     } catch {
       // Upsert also failed—return fallback
       const fallbackDisplayName =
@@ -95,7 +110,7 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
 
       res.status(200).json({
         id: req.auth.userId,
-        email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+        email: payload.email ?? req.auth.email ?? `${req.auth.userId}@financetracker.local`,
         displayName: fallbackDisplayName,
         monthlyIncome: payload.monthlyIncome ?? 0,
         createdAt: new Date().toISOString(),

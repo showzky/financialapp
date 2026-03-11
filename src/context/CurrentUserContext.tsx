@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 
 type CurrentUser = {
   id: string
@@ -11,18 +11,33 @@ type CurrentUser = {
 
 type CurrentUserContextValue = {
   currentUser: CurrentUser
+  setCurrentUser: (user: CurrentUser) => void
+  mergeCurrentUser: (updates: Partial<CurrentUser>) => void
 }
 
 const CurrentUserContext = createContext<CurrentUserContextValue | null>(null)
 
 export const CurrentUserProvider = ({
-  currentUser,
+  currentUser: initialCurrentUser,
   children,
 }: {
   currentUser: CurrentUser
   children: ReactNode
 }) => {
-  return <CurrentUserContext.Provider value={{ currentUser }}>{children}</CurrentUserContext.Provider>
+  const [currentUser, setCurrentUser] = useState(initialCurrentUser)
+
+  const value = useMemo(
+    () => ({
+      currentUser,
+      setCurrentUser,
+      mergeCurrentUser: (updates: Partial<CurrentUser>) => {
+        setCurrentUser((existing) => ({ ...existing, ...updates }))
+      },
+    }),
+    [currentUser],
+  )
+
+  return <CurrentUserContext.Provider value={value}>{children}</CurrentUserContext.Provider>
 }
 
 export const useCurrentUser = (): CurrentUserContextValue => {

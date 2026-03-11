@@ -9,6 +9,24 @@ export type AuthCredential = {
 }
 
 export const authCredentialModel = {
+  async getByUserId(userId: string): Promise<AuthCredential | null> {
+    const result = await db.query<AuthCredential>(
+      `
+      SELECT
+        user_id AS "userId",
+        username,
+        password_hash AS "passwordHash",
+        created_at AS "createdAt"
+      FROM auth_credentials
+      WHERE user_id = $1
+      LIMIT 1
+      `,
+      [userId],
+    )
+
+    return result.rows[0] ?? null
+  },
+
   async getByUsername(username: string): Promise<AuthCredential | null> {
     const result = await db.query<AuthCredential>(
       `
@@ -81,5 +99,31 @@ export const authCredentialModel = {
     }
 
     return row
+  },
+
+  async updateByUserId(
+    userId: string,
+    input: {
+      username?: string
+      passwordHash?: string
+    },
+  ): Promise<AuthCredential | null> {
+    const result = await db.query<AuthCredential>(
+      `
+      UPDATE auth_credentials
+      SET
+        username = COALESCE($2, username),
+        password_hash = COALESCE($3, password_hash)
+      WHERE user_id = $1
+      RETURNING
+        user_id AS "userId",
+        username,
+        password_hash AS "passwordHash",
+        created_at AS "createdAt"
+      `,
+      [userId, input.username ?? null, input.passwordHash ?? null],
+    )
+
+    return result.rows[0] ?? null
   },
 }

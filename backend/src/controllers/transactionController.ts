@@ -39,12 +39,16 @@ export const createTransaction = asyncHandler(async (req: Request, res: Response
     throw new AppError('Unauthorized', 401)
   }
 
+  // Only create a fallback user row when missing; preserve saved profile fields.
   try {
-    await userModel.upsertFromAuth({
-      id: req.auth.userId,
-      email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
-      displayName: req.auth.email?.split('@')[0] ?? env.LOCAL_AUTH_USER_NAME,
-    })
+    const existingUser = await userModel.getById(req.auth.userId)
+    if (!existingUser) {
+      await userModel.upsertFromAuth({
+        id: req.auth.userId,
+        email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+        displayName: req.auth.email?.split('@')[0] ?? env.LOCAL_AUTH_USER_NAME,
+      })
+    }
   } catch (userError) {
     const msg = userError instanceof Error ? userError.message : String(userError)
     throw new AppError(`Failed to ensure user exists: ${msg}`, 500)

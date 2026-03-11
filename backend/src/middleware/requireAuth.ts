@@ -101,18 +101,22 @@ export const requireAuth = async (
             }
     }
 
-    // ADD THIS: sync user profile but don't fail auth if DB is unavailable
+    // Only create a fallback profile row when missing; do not overwrite saved account fields.
     try {
       const authUserId = req.auth.userId
-      await userModel.upsertFromAuth({
-        id: authUserId,
-        email: req.auth.email ?? `${authUserId}@financetracker.local`,
-        displayName: req.auth.email
-          ? req.auth.email.split('@')[0] || env.DEV_USER_NAME
-          : env.DEV_USER_NAME,
-      })
+      const existingUser = await userModel.getById(authUserId)
+
+      if (!existingUser) {
+        await userModel.upsertFromAuth({
+          id: authUserId,
+          email: req.auth.email ?? `${authUserId}@financetracker.local`,
+          displayName: req.auth.email
+            ? req.auth.email.split('@')[0] || env.DEV_USER_NAME
+            : env.DEV_USER_NAME,
+        })
+      }
     } catch {
-      // Profile sync failed—continue anyway since auth itself succeeded
+      // Profile sync failed; continue anyway since auth itself succeeded.
     }
 
     next()

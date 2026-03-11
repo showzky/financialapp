@@ -368,7 +368,31 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
   const resetDashboard = () => {
     // ADD THIS: restore dashboard to initial empty state
+    const categoryIds = state.categories.map((category) => category.id)
+    const transactionIds = transactions.map((transaction) => transaction.id)
+
     setState(createInitialState())
+    setTransactions([])
+    setRecurringTransactions([])
+    persistRecurring([])
+
+    if (!hasBackendConfig()) return
+
+    void userApi.updateMe({ monthlyIncome: 0 }).catch(() => {
+      // ADD THIS: keep local reset if backend sync fails
+    })
+
+    transactionIds.forEach((id) => {
+      void transactionApi.remove(id).catch(() => {
+        // ADD THIS: keep local reset if backend transaction cleanup fails
+      })
+    })
+
+    categoryIds.forEach((id) => {
+      void categoryApi.remove(id).catch(() => {
+        // ADD THIS: keep local reset if backend category cleanup fails
+      })
+    })
   }
 
   const persistRecurring = (next: RecurringTransaction[]) => {

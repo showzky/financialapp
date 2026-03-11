@@ -41,13 +41,16 @@ export const createCategory = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Unauthorized', 401)
   }
 
-  // ADD THIS: ensure user exists before creating category (foreign key requirement)
+  // Only create a fallback user row when missing; preserve saved profile fields.
   try {
-    await userModel.upsertFromAuth({
-      id: req.auth.userId,
-      email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
-      displayName: req.auth.email?.split('@')[0] ?? env.LOCAL_AUTH_USER_NAME,
-    })
+    const existingUser = await userModel.getById(req.auth.userId)
+    if (!existingUser) {
+      await userModel.upsertFromAuth({
+        id: req.auth.userId,
+        email: req.auth.email ?? `${req.auth.userId}@financetracker.local`,
+        displayName: req.auth.email?.split('@')[0] ?? env.LOCAL_AUTH_USER_NAME,
+      })
+    }
   } catch (userError) {
     // ADD THIS: expose DB error details to help debug persistence issues
     const msg = userError instanceof Error ? userError.message : String(userError)
