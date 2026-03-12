@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateDailyAllowance } from '../utils/vacationMath'
+import { calculateDailyAllowance, calculateDaysRemaining } from '../utils/vacationMath'
 
 describe('calculateDailyAllowance', () => {
   const startDate = '2026-06-01'
@@ -53,5 +53,32 @@ describe('calculateDailyAllowance', () => {
     const remainingBudget = 200000
     // Still divides by 10 days
     expect(calculateDailyAllowance(remainingBudget, startDate, endDate, currentDate)).toBe(20000)
+  })
+
+  it('uses the override days when provided', () => {
+    const currentDate = new Date('2026-06-05')
+    const remainingBudget = 60000
+    expect(calculateDailyAllowance(remainingBudget, startDate, endDate, currentDate, 3)).toBe(20000)
+  })
+})
+
+describe('calculateDaysRemaining', () => {
+  const startDate = '2026-06-01'
+  const endDate = '2026-06-10'
+
+  it('returns inclusive remaining days during the trip', () => {
+    expect(calculateDaysRemaining(startDate, endDate, new Date('2026-06-05'))).toBe(6)
+  })
+
+  it('returns full trip length before the trip starts', () => {
+    expect(calculateDaysRemaining(startDate, endDate, new Date('2026-05-15'))).toBe(10)
+  })
+
+  it('returns the override days when valid', () => {
+    expect(calculateDaysRemaining(startDate, endDate, new Date('2026-06-05'), 4)).toBe(4)
+  })
+
+  it('returns 0 after the trip ends', () => {
+    expect(calculateDaysRemaining(startDate, endDate, new Date('2026-06-11'))).toBe(0)
   })
 })

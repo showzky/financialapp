@@ -42,7 +42,7 @@ export function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryWithSpent | null>(null)
   const [isAddExpenseModalOpen, setAddExpenseModalOpen] = useState(false)
   const [isSetIncomeModalOpen, setSetIncomeModalOpen] = useState(false) // ADDED THIS
-  const [expandedCategoryGroup, setExpandedCategoryGroup] = useState<'fixed' | 'budget' | null>('fixed')
+  const [expandedCategoryGroup, setExpandedCategoryGroup] = useState<'fixed' | 'budget' | null>(null)
   const hasInitializedCategoryAccordion = useRef(false)
 
   const selectedMonthLabel = selectedMonth.toLocaleDateString('en-US', {
@@ -168,8 +168,6 @@ export function HomeScreen() {
     }
 
     if (!hasInitializedCategoryAccordion.current) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-      setExpandedCategoryGroup(groupedCategories[0].key)
       hasInitializedCategoryAccordion.current = true
       return
     }
@@ -183,7 +181,7 @@ export function HomeScreen() {
     }
 
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-    setExpandedCategoryGroup(groupedCategories[0].key)
+    setExpandedCategoryGroup(null)
   }, [expandedCategoryGroup, groupedCategories])
 
   const toggleCategoryGroup = useCallback((groupKey: 'fixed' | 'budget') => {

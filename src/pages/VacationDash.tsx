@@ -6,7 +6,13 @@ import { SurplusSensor } from '../components/SurplusSensor'
 import { ExpenseLedger } from '../components/ExpenseLedger'
 import { vacationApi } from '../services/vacationApi'
 import { getHudAlertMessage } from '../services/backendClient'
+import { calculateDailyAllowance, calculateDaysRemaining } from '../utils/vacationMath'
 import '@/styles/hud.css'
+
+const projectedDailyFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
 
 export const VacationDash: React.FC = () => {
   const [vacationFund, setVacationFund] = useState<VacationFund | null>(null)
@@ -105,22 +111,28 @@ export const VacationDash: React.FC = () => {
     const remainingBudget = totalBudget - totalSpent
 
     const today = new Date()
-    const end = new Date(vacationFund.endDate)
-    const diffTime = Math.max(0, end.getTime() - today.getTime())
-    let daysRemaining = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-
-    // allow user override from inline editor
-    if (customDaysRemaining !== null) {
-      daysRemaining = customDaysRemaining
-    }
+    const computedDaysRemaining = calculateDaysRemaining(
+      vacationFund.startDate,
+      vacationFund.endDate,
+      today,
+    )
+    const daysRemaining = Math.max(1, customDaysRemaining ?? computedDaysRemaining)
+    const dailyAllowance = calculateDailyAllowance(
+      remainingBudget,
+      vacationFund.startDate,
+      vacationFund.endDate,
+      today,
+      daysRemaining,
+    )
+    const progressPercentage = totalBudget > 0 ? (remainingBudget / totalBudget) * 100 : 0
 
     return {
       totalBudget,
       totalSpent,
       remainingBudget,
       daysRemaining,
-      dailyAllowance: remainingBudget / daysRemaining,
-      progressPercentage: (remainingBudget / totalBudget) * 100,
+      dailyAllowance,
+      progressPercentage,
     }
   }, [vacationFund, expenses, customDaysRemaining])
 
@@ -131,9 +143,8 @@ export const VacationDash: React.FC = () => {
     return m ? m[1].trim() : null
   }
 
-  // Ensure base filter: is_vacation === true
   const vacationExpenses = useMemo(() => {
-    return expenses.filter((e) => ((e as any).is_vacation ?? true) === true)
+    return expenses.filter((e) => e.isVacation)
   }, [expenses])
 
   // Keep domain type strict while allowing custom labels for charting
@@ -316,7 +327,7 @@ export const VacationDash: React.FC = () => {
                 </span>
                 <span className="obsidian-metric block text-[2rem] [text-shadow:0_0_18px_rgba(91,163,201,0.22)]">
                   <span className="hud-currency">KR</span>
-                  {Math.floor(summary.dailyAllowance / 100)}
+                  {projectedDailyFormatter.format(summary.dailyAllowance / 100)}
                 </span>
               </div>
 
