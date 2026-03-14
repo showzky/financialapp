@@ -9,7 +9,7 @@ export interface VacationFund {
   startDate: string
   endDate: string
   /** trip length in days; may be overridden by user */
-  durationDays?: number
+  durationDays?: number | null
   createdAt: string
   updatedAt: string
 }

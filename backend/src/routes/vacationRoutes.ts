@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   listVacations,
   createVacation,
+  updateVacation,
   addFunds,
   adjustFunds,
   listExpenses,
@@ -14,6 +15,7 @@ export const vacationRouter = Router()
 
 vacationRouter.get('/', listVacations)
 vacationRouter.post('/', createVacation)
+vacationRouter.patch('/:id', updateVacation)
 vacationRouter.patch('/:id/add-funds', addFunds)
 vacationRouter.patch('/:id/adjust-funds', adjustFunds)
 

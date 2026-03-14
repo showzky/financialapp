@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { vacationApi } from '../services/vacationApi'
 import { getHudAlertMessage } from '../services/backendClient'
 import type { VacationExpense } from '../types/vacation'
+import { cleanVacationDescription } from '../utils/vacationPresentation'
 
 const extractCustomCategoryFromDescription = (description?: string | null): string | null => {
   if (!description) return null
@@ -33,6 +34,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [category, setCategory] = useState('')
   const [customCategory, setCustomCategory] = useState('')
   const [description, setDescription] = useState('')
+  const [date, setDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hudAlert, setHudAlert] = useState('')
   const [isCategoryOpen, setIsCategoryOpen] = useState(false)
@@ -61,18 +63,19 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       if (customLabel) {
         setCategory(CUSTOM_CATEGORY_VALUE)
         setCustomCategory(customLabel)
-        const cleanedDesc = (expenseToEdit.description || '').replace(/^\[Custom Category:\s*(.+?)\]\s*/, '')
-        setDescription(cleanedDesc)
+        setDescription(cleanVacationDescription(expenseToEdit.description))
       } else {
         setCategory(expenseToEdit.category)
         setCustomCategory('')
         setDescription(expenseToEdit.description || '')
       }
+      setDate(expenseToEdit.date)
     } else {
       setAmount('')
       setCategory('')
       setCustomCategory('')
       setDescription('')
+      setDate(new Date().toISOString().split('T')[0])
     }
   }, [expenseToEdit, isOpen])
 
@@ -107,14 +110,14 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
           category: rawCategory,
           amount: getAmountInCents(),
           description: description || undefined,
-          date: new Date().toISOString().split('T')[0],
+          date,
         })
       } else {
         expense = await vacationApi.addExpense(vacationId, {
           category: rawCategory,
           amount: getAmountInCents(),
           description: description || undefined,
-          date: new Date().toISOString().split('T')[0],
+          date,
           isVacation: true,
         })
       }
@@ -130,7 +133,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[rgba(0,0,0,0.72)] p-3 backdrop-blur-md sm:p-4">
       <div className="grid min-h-full place-items-start sm:place-items-center">
-        <div className="relative w-full max-w-md overflow-hidden rounded-[22px] border border-[rgba(255,255,255,0.10)] bg-[#111114] p-4 shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:p-5">
+        <div className="vacation-panel relative w-full max-w-md p-4 shadow-[0_32px_80px_rgba(0,0,0,0.6)] sm:p-5">
           <div className="pointer-events-none absolute left-8 right-8 top-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent opacity-50" />
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
@@ -161,6 +164,17 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                 onChange={(e) => setAmount(e.target.value)}
                 className={fieldClass}
                 placeholder="0.00"
+                required
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className={fieldClass}
                 required
               />
             </div>
@@ -248,7 +262,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
             </div>
 
             {hudAlert ? (
-              <div className="obsidian-subpanel border border-[rgba(201,107,107,0.28)] bg-[rgba(201,107,107,0.08)] px-3 py-2 text-xs text-[#f1c3c3]">
+              <div className="rounded-[1rem] border border-[rgba(201,107,107,0.28)] bg-[rgba(201,107,107,0.08)] px-3 py-2 text-xs text-[#f1c3c3]">
                 {hudAlert}
               </div>
             ) : null}
@@ -257,14 +271,14 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="obsidian-button obsidian-button--ghost flex-1 px-4 py-3 text-sm font-semibold"
+                className="vacation-action flex-1 px-4 py-3 text-sm font-semibold"
                 disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="obsidian-button obsidian-button--gold flex-1 px-4 py-3 text-sm font-semibold"
+                className="vacation-action vacation-action--gold flex-1 px-4 py-3 text-sm font-semibold"
                 disabled={isSubmitting || !canSubmitWithCategory()}
               >
                 {isSubmitting ? 'Saving...' : expenseToEdit ? 'Update Expense' : 'Add Expense'}

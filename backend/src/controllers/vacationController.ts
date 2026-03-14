@@ -36,7 +36,18 @@ const createVacationSchema = z.object({
   targetAmount: z.number().finite().positive(),
   startDate: z.string().trim().date(),
   endDate: z.string().trim().date(),
+  durationDays: z.number().int().positive().optional(),
 })
+
+const updateVacationSchema = z
+  .object({
+    name: z.string().trim().min(1).optional(),
+    targetAmount: z.number().finite().positive().optional(),
+    startDate: z.string().trim().date().optional(),
+    endDate: z.string().trim().date().optional(),
+    durationDays: z.number().int().positive().optional(),
+  })
+  .refine((payload) => Object.keys(payload).length > 0, 'At least one field must be updated')
 
 const addFundsSchema = z.object({ amount: z.number().finite().positive() })
 const adjustFundsSchema = z.object({
@@ -73,8 +84,33 @@ export const listVacations = asyncHandler(async (req: Request, res: Response) =>
 export const createVacation = asyncHandler(async (req: Request, res: Response) => {
   if (!req.auth) throw new AppError('Unauthorized', 401)
   const payload = createVacationSchema.parse(req.body)
-  const created = await vacationModel.create({ ...payload, userId: req.auth.userId })
+  const created = await vacationModel.create({
+    userId: req.auth.userId,
+    name: payload.name,
+    targetAmount: payload.targetAmount,
+    startDate: payload.startDate,
+    endDate: payload.endDate,
+    durationDays: payload.durationDays ?? null,
+  })
   res.status(201).json(created)
+})
+
+export const updateVacation = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) throw new AppError('Unauthorized', 401)
+  const { id } = idSchema.parse(req.params)
+  const payload = updateVacationSchema.parse(req.body)
+  const vac = await vacationModel.getById(id, req.auth.userId)
+  if (!vac) throw new AppError('Vacation not found', 404)
+  const updatePayload = {
+    ...(payload.name !== undefined ? { name: payload.name } : {}),
+    ...(payload.targetAmount !== undefined ? { targetAmount: payload.targetAmount } : {}),
+    ...(payload.startDate !== undefined ? { startDate: payload.startDate } : {}),
+    ...(payload.endDate !== undefined ? { endDate: payload.endDate } : {}),
+    ...(payload.durationDays !== undefined ? { durationDays: payload.durationDays } : {}),
+  }
+  const updated = await vacationModel.update(id, req.auth.userId, updatePayload)
+  if (!updated) throw new AppError('Vacation not found', 404)
+  res.status(200).json(updated)
 })
 
 export const addFunds = asyncHandler(async (req: Request, res: Response) => {

@@ -1,6 +1,14 @@
-import React from 'react'
+import React, { useMemo, useState } from 'react'
+import { ConfirmModal } from './ConfirmModal'
 import type { VacationExpense } from '../types/vacation'
 import { vacationApi } from '../services/vacationApi'
+import {
+  cleanVacationDescription,
+  formatVacationCategoryLabel,
+  formatVacationCurrency,
+  getVacationCategoryColor,
+  getVacationExpenseDisplayCategory,
+} from '../utils/vacationPresentation'
 
 type ExpenseLedgerProps = {
   expenses: VacationExpense[]
@@ -15,118 +23,179 @@ export const ExpenseLedger: React.FC<ExpenseLedgerProps> = ({
   onExpenseDeleted,
   onEditExpense,
 }) => {
-  const handleDelete = async (expenseId: string) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await vacationApi.deleteExpense(vacationId, expenseId)
-        onExpenseDeleted(expenseId)
-      } catch (error) {
-        console.error('Failed to delete expense:', error)
-      }
+  const [search, setSearch] = useState('')
+  const [activeCategory, setActiveCategory] = useState('all')
+  const [expensePendingDelete, setExpensePendingDelete] = useState<VacationExpense | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const categories = useMemo(() => {
+    return ['all', ...new Set(expenses.map((expense) => getVacationExpenseDisplayCategory(expense)))]
+  }, [expenses])
+
+  const filteredExpenses = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+
+    return expenses.filter((expense) => {
+      const displayCategory = getVacationExpenseDisplayCategory(expense)
+      const description = cleanVacationDescription(expense.description).toLowerCase()
+      const matchesCategory = activeCategory === 'all' || displayCategory === activeCategory
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        displayCategory.toLowerCase().includes(normalizedSearch) ||
+        description.includes(normalizedSearch)
+
+      return matchesCategory && matchesSearch
+    })
+  }, [activeCategory, expenses, search])
+
+  const handleDelete = async () => {
+    if (!expensePendingDelete) {
+      return
     }
-  }
 
-  const getCategoryColor = (category?: string): string => {
-    const key = typeof category === 'string' ? category.toLowerCase() : ''
-    switch (key) {
-      case 'flights':
-        return 'bg-pink-400'
-      case 'food':
-        return 'bg-yellow-400'
-      case 'hotel':
-        return 'bg-emerald-400'
-      default:
-        return 'bg-gray-400'
+    try {
+      setIsDeleting(true)
+      await vacationApi.deleteExpense(vacationId, expensePendingDelete.id)
+      onExpenseDeleted(expensePendingDelete.id)
+      setExpensePendingDelete(null)
+    } catch (error) {
+      console.error('Failed to delete expense:', error)
+    } finally {
+      setIsDeleting(false)
     }
-  }
-
-  const formatCategoryLabel = (category?: string): string => {
-    if (!category) return ''
-    return category
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => (w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
-      .join(' ')
-  }
-
-  const extractCustomCategoryFromDescription = (
-    description?: string | null,
-  ): string | null => {
-    if (!description) return null
-    const m = description.match(/^\[Custom Category:\s*(.+?)\]/)
-    return m ? m[1].trim() : null
-  }
-
-  const cleanDescription = (description?: string | null): string => {
-    if (!description) return 'No description'
-    return description.replace(/^\[Custom Category:\s*.+?\]\s*/, '') || 'No description'
   }
 
   return (
-    <div className="obsidian-panel p-5 sm:p-6 lg:p-8">
-      <div className="mb-6 flex items-center gap-2">
-        <span className="obsidian-dot" />
-        <h3 className="obsidian-kicker m-0">Expense Ledger</h3>
-      </div>
+    <>
+      <div className="vacation-panel p-6 sm:p-7">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="vacation-kicker mb-2">Expense Ledger</p>
+            <h2 className="font-italiana text-[2rem] leading-none tracking-[-0.02em] text-[#f0ede8] sm:text-[2.35rem]">
+              Activity Feed
+            </h2>
+          </div>
+          <div className="text-sm text-[#b8b4ae]">
+            {filteredExpenses.length} entries · {formatVacationCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
+          </div>
+        </div>
 
-      <div className="custom-scrollbar max-h-[500px] space-y-2 overflow-y-auto pr-2">
-        {expenses.length === 0 ? (
-          <div className="py-4 text-center text-[#b8b4ae]">No expenses recorded</div>
-        ) : (
-          <ul role="list" className="space-y-2">
-            {expenses.map((expense) => {
-              const custom =
-                expense.category === 'miscellaneous'
-                  ? (extractCustomCategoryFromDescription(expense.description) ?? expense.category)
-                  : expense.category
-
-              const label = formatCategoryLabel(custom)
-              const colorClass = getCategoryColor(custom)
-
+        <div className="mb-5 space-y-3">
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="vacation-field px-4 py-3 text-sm"
+            placeholder="Search by category or note"
+          />
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => {
+              const isActive = activeCategory === category
               return (
-                <li
-                  key={expense.id}
-                  className="obsidian-subpanel group/row flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:border-[rgba(255,255,255,0.1)]"
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveCategory(category)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
+                    isActive
+                      ? 'border-[rgba(201,168,76,0.24)] bg-[rgba(201,168,76,0.10)] text-[#e2c06a]'
+                      : 'border-[rgba(255,255,255,0.08)] bg-[#18181c] text-[#6b6862]'
+                  }`}
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className={`h-3 w-3 rounded-full ${colorClass} shadow-[0_0_8px_rgba(0,0,0,0.3)]`}
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-[#f0ede8]">{label}</div>
-                      <div className="truncate text-xs text-[#b8b4ae]">
-                        {cleanDescription(expense.description)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 opacity-90 transition-opacity group-hover/row:opacity-100">
-                    <span className="obsidian-metric text-sm text-[#f0ede8]">
-                      KR {Math.floor(expense.amount / 100)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => onEditExpense(expense)}
-                      className="obsidian-button px-3 py-2 text-xs font-semibold"
-                      aria-label={`Edit expense ${expense.id}`}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(expense.id)}
-                      className="obsidian-button obsidian-button--danger px-3 py-2 text-xs font-semibold"
-                      aria-label={`Delete expense ${expense.id}`}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
+                  {category === 'all' ? 'All' : formatVacationCategoryLabel(category)}
+                </button>
               )
             })}
-          </ul>
-        )}
+          </div>
+        </div>
+
+        <div className="custom-scrollbar max-h-[720px] space-y-3 overflow-y-auto pr-1">
+          {filteredExpenses.length === 0 ? (
+            <div className="rounded-[1.1rem] border border-dashed border-[rgba(255,255,255,0.08)] px-5 py-10 text-center text-sm text-[#6b6862]">
+              No ledger entries match the current filters.
+            </div>
+          ) : (
+            <ul role="list" className="space-y-3">
+              {filteredExpenses.map((expense) => {
+                const displayCategory = getVacationExpenseDisplayCategory(expense)
+                const cleanedDescription = cleanVacationDescription(expense.description) || 'No description'
+                const categoryColor = getVacationCategoryColor(displayCategory)
+
+                return (
+                  <li
+                    key={expense.id}
+                    className="rounded-[1.15rem] border border-[rgba(255,255,255,0.06)] bg-[#18181c] px-4 py-4 transition-colors hover:border-[rgba(255,255,255,0.12)]"
+                  >
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span
+                          className="mt-1 h-3 w-3 flex-none rounded-full"
+                          style={{ backgroundColor: categoryColor, boxShadow: `0 0 14px ${categoryColor}55` }}
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-[#f0ede8]">
+                              {formatVacationCategoryLabel(displayCategory)}
+                            </span>
+                            <span className="rounded-full border border-[rgba(255,255,255,0.08)] px-2 py-1 text-[0.65rem] uppercase tracking-[0.14em] text-[#6b6862]">
+                              {expense.date}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-[#b8b4ae]">{cleanedDescription}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                        <span className="vacation-metric mr-2 text-base text-[#f0ede8]">
+                          {formatVacationCurrency(expense.amount)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onEditExpense(expense)}
+                          className="vacation-action px-3 py-2 text-xs font-semibold"
+                          aria-label={`Edit expense ${expense.id}`}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExpensePendingDelete(expense)}
+                          className="vacation-action vacation-action--danger px-3 py-2 text-xs font-semibold"
+                          aria-label={`Delete expense ${expense.id}`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
       </div>
-    </div>
+
+      <ConfirmModal
+        isOpen={expensePendingDelete !== null}
+        title="Delete expense"
+        body={
+          expensePendingDelete
+            ? `Remove ${formatVacationCategoryLabel(getVacationExpenseDisplayCategory(expensePendingDelete))} from the ledger?`
+            : ''
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          void handleDelete()
+        }}
+        onCancel={() => {
+          if (!isDeleting) {
+            setExpensePendingDelete(null)
+          }
+        }}
+        isConfirming={isDeleting}
+      />
+    </>
   )
 }

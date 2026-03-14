@@ -70,9 +70,26 @@ export const vacationApi = {
     targetAmount: number
     startDate: string
     endDate: string
+    durationDays?: number
   }): Promise<VacationFund> => {
     return backendRequest<VacationFund>('/vacations', {
       method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  updateVacation: (
+    vacationId: string,
+    payload: {
+      name?: string
+      targetAmount?: number
+      startDate?: string
+      endDate?: string
+      durationDays?: number | null
+    },
+  ): Promise<VacationFund> => {
+    return backendRequest<VacationFund>(`/vacations/${vacationId}`, {
+      method: 'PATCH',
       body: JSON.stringify(payload),
     })
   },

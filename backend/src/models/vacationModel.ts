@@ -9,6 +9,7 @@ export type VacationFund = {
   currentAmount: number
   startDate: string
   endDate: string
+  durationDays?: number | null
   createdAt: string
   updatedAt: string
 }
@@ -36,8 +37,8 @@ export const vacationModel = {
   async create(input: CreateVacationInput): Promise<VacationFund> {
     const result = await db.query<VacationFund>(
       `
-      INSERT INTO vacation_funds (user_id, name, target_amount, current_amount, start_date, end_date)
-      VALUES ($1,$2,$3,$3,$4,$5)
+      INSERT INTO vacation_funds (user_id, name, target_amount, current_amount, start_date, end_date, duration_days)
+      VALUES ($1,$2,$3,$3,$4,$5,$6)
       RETURNING
         id,
         user_id AS "userId",
@@ -46,10 +47,18 @@ export const vacationModel = {
         current_amount::float8 AS "currentAmount",
         start_date AS "startDate",
         end_date AS "endDate",
+        duration_days AS "durationDays",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       `,
-      [input.userId, input.name, input.targetAmount, input.startDate, input.endDate],
+      [
+        input.userId,
+        input.name,
+        input.targetAmount,
+        input.startDate,
+        input.endDate,
+        input.durationDays ?? null,
+      ],
     )
     const row = result.rows[0]
     if (!row) throw new Error('failed to create vacation fund')
@@ -67,6 +76,7 @@ export const vacationModel = {
         current_amount::float8 AS "currentAmount",
         start_date AS "startDate",
         end_date AS "endDate",
+        duration_days AS "durationDays",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM vacation_funds
@@ -89,6 +99,7 @@ export const vacationModel = {
         current_amount::float8 AS "currentAmount",
         start_date AS "startDate",
         end_date AS "endDate",
+        duration_days AS "durationDays",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM vacation_funds
@@ -102,6 +113,47 @@ export const vacationModel = {
 
   async addFunds(vacationId: string, userId: string, amount: number): Promise<VacationFund | null> {
     return this.adjustFunds(vacationId, userId, amount)
+  },
+
+  async update(
+    vacationId: string,
+    userId: string,
+    input: UpdateVacationInput,
+  ): Promise<VacationFund | null> {
+    const result = await db.query<VacationFund>(
+      `
+      UPDATE vacation_funds
+      SET
+        name = COALESCE($3, name),
+        target_amount = COALESCE($4, target_amount),
+        start_date = COALESCE($5, start_date),
+        end_date = COALESCE($6, end_date),
+        duration_days = COALESCE($7, duration_days),
+        updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING
+        id,
+        user_id AS "userId",
+        name,
+        target_amount::float8 AS "targetAmount",
+        current_amount::float8 AS "currentAmount",
+        start_date AS "startDate",
+        end_date AS "endDate",
+        duration_days AS "durationDays",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      `,
+      [
+        vacationId,
+        userId,
+        input.name ?? null,
+        input.targetAmount ?? null,
+        input.startDate ?? null,
+        input.endDate ?? null,
+        input.durationDays ?? null,
+      ],
+    )
+    return result.rows[0] ?? null
   },
 
   async adjustFunds(
@@ -122,6 +174,7 @@ export const vacationModel = {
         current_amount::float8 AS "currentAmount",
         start_date AS "startDate",
         end_date AS "endDate",
+        duration_days AS "durationDays",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       `,

@@ -2,20 +2,25 @@ import React, { useState } from 'react'
 import { vacationApi } from '../services/vacationApi'
 import { getHudAlertMessage } from '../services/backendClient'
 import type { VacationFund } from '../types/vacation'
+import { formatVacationCurrency } from '../utils/vacationPresentation'
 
 type AddFundsModalProps = {
   isOpen: boolean
   vacationId: string
+  currentAmount: number
+  targetAmount: number
   onClose: () => void
   onFundsAdded: (fund: VacationFund) => void
 }
 
-const labelClass = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]'
-const fieldClass = 'obsidian-field w-full px-4 py-[14px] text-sm tracking-[0.01em]'
+const labelClass = 'vacation-kicker mb-2 block'
+const fieldClass = 'vacation-field w-full px-4 py-[14px] text-sm tracking-[0.01em]'
 
 export const AddFundsModal: React.FC<AddFundsModalProps> = ({
   isOpen,
   vacationId,
+  currentAmount,
+  targetAmount,
   onClose,
   onFundsAdded,
 }) => {
@@ -25,6 +30,9 @@ export const AddFundsModal: React.FC<AddFundsModalProps> = ({
 
   const getAmountInCents = () => Math.round(Number.parseFloat(amount || '0') * 100)
   const canSubmitFunds = () => Number.isFinite(getAmountInCents()) && getAmountInCents() !== 0
+  const previewAmount = getAmountInCents()
+  const previewTotal = currentAmount + previewAmount
+  const previewProgress = targetAmount > 0 ? Math.min((previewTotal / targetAmount) * 100, 100) : 0
 
   if (!isOpen) return null
 
@@ -55,11 +63,11 @@ export const AddFundsModal: React.FC<AddFundsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[rgba(0,0,0,0.72)] p-3 backdrop-blur-md sm:p-4">
       <div className="grid min-h-full place-items-start sm:place-items-center">
-        <div className="relative w-full max-w-md overflow-hidden rounded-[22px] border border-[rgba(255,255,255,0.10)] bg-[#111114] p-4 shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:p-5">
+        <div className="vacation-panel relative w-full max-w-md p-4 shadow-[0_32px_80px_rgba(0,0,0,0.6)] sm:p-5">
           <div className="pointer-events-none absolute left-8 right-8 top-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent opacity-50" />
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c9a84c]/75">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8fc6e1]">
                 Vacation
               </p>
               <h2 className="font-italiana text-[32px] leading-none tracking-[-0.01em] text-[#f0ede8]">
@@ -77,6 +85,17 @@ export const AddFundsModal: React.FC<AddFundsModalProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[1.1rem] border border-[rgba(91,163,201,0.18)] bg-[rgba(91,163,201,0.08)] p-4">
+                <span className="vacation-kicker mb-2 block">Current</span>
+                <div className="vacation-metric text-lg text-[#8fc6e1]">{formatVacationCurrency(currentAmount)}</div>
+              </div>
+              <div className="rounded-[1.1rem] border border-[rgba(94,189,151,0.18)] bg-[rgba(94,189,151,0.08)] p-4">
+                <span className="vacation-kicker mb-2 block">After update</span>
+                <div className="vacation-metric text-lg text-[#7ad1ad]">{formatVacationCurrency(previewTotal)}</div>
+              </div>
+            </div>
+
             <div>
               <label className={labelClass}>Adjustment Amount (KR)</label>
               <input
@@ -94,8 +113,22 @@ export const AddFundsModal: React.FC<AddFundsModalProps> = ({
               </p>
             </div>
 
+            <div>
+              <div className="mb-2 flex items-center justify-between text-[0.72rem] uppercase tracking-[0.14em] text-[#6b6862]">
+                <span>Goal preview</span>
+                <span>{Math.round(previewProgress)}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-[#202026]">
+                <div
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#5ba3c9_0%,#5ebd97_100%)] transition-[width] duration-300"
+                  style={{ width: `${previewProgress}%` }}
+                />
+              </div>
+              <div className="mt-2 text-xs text-[#6b6862]">Goal {formatVacationCurrency(targetAmount)}</div>
+            </div>
+
             {hudAlert ? (
-              <div className="obsidian-subpanel border border-[rgba(201,107,107,0.28)] bg-[rgba(201,107,107,0.08)] px-3 py-2 text-xs text-[#f1c3c3]">
+              <div className="rounded-[1rem] border border-[rgba(201,107,107,0.28)] bg-[rgba(201,107,107,0.08)] px-3 py-2 text-xs text-[#f1c3c3]">
                 {hudAlert}
               </div>
             ) : null}
@@ -104,14 +137,14 @@ export const AddFundsModal: React.FC<AddFundsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="obsidian-button obsidian-button--ghost flex-1 px-4 py-3 text-sm font-semibold"
+                className="vacation-action flex-1 px-4 py-3 text-sm font-semibold"
                 disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="obsidian-button obsidian-button--gold flex-1 px-4 py-3 text-sm font-semibold"
+                className="vacation-action vacation-action--sky flex-1 px-4 py-3 text-sm font-semibold"
                 disabled={isSubmitting || !canSubmitFunds()}
               >
                 {isSubmitting ? 'Applying...' : 'Apply Adjustment'}
