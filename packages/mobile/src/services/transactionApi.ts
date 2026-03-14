@@ -12,6 +12,7 @@ export type CreateCategoryPayload = {
   name: string
   type: 'budget' | 'fixed'
   allocated: number
+  dueDayOfMonth?: number
 }
 
 export type CategoryResponse = {
@@ -20,6 +21,7 @@ export type CategoryResponse = {
   type: 'budget' | 'fixed'
   allocated: number
   spent: number
+  dueDayOfMonth?: number | null
   createdAt: string
 }
 

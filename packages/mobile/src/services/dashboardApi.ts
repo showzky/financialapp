@@ -6,6 +6,7 @@ export type CategoryWithSpent = {
   type: 'budget' | 'fixed'
   allocated: number
   monthSpent: number
+  dueDayOfMonth?: number | null
 }
 
 export type DashboardData = {
@@ -35,6 +36,7 @@ type CategoryDto = {
   type: 'budget' | 'fixed'
   allocated: number
   spent: number
+  dueDayOfMonth?: number | null
   createdAt: string
 }
 
@@ -116,6 +118,7 @@ export const dashboardApi = {
       type: c.type,
       allocated: Number.isFinite(c.allocated) ? c.allocated : 0,
       monthSpent: spendByCategory.get(c.id) ?? 0,
+      dueDayOfMonth: Number.isFinite(c.dueDayOfMonth) ? Number(c.dueDayOfMonth) : null,
     }))
 
     return {

@@ -29,25 +29,8 @@ function isWithinRange(target: Date, start: Date, end: Date) {
   return target >= start && target <= end
 }
 
-export function resolveSeasonalTheme(date = new Date()): CustomThemeId {
-  const year = date.getFullYear()
-  const easterSunday = getEasterSunday(year)
-  const easterStart = addDays(easterSunday, -7)
-  const easterEnd = addDays(easterSunday, 1)
-
-  if (isWithinRange(date, easterStart, easterEnd)) {
-    return 'easter'
-  }
-
-  const month = date.getMonth()
-
-  if (month >= 2 && month <= 4) {
-    return 'spring'
-  }
-
-  if (month >= 5 && month <= 7) {
-    return 'summer'
-  }
-
-  return 'winter'
+export function resolveSeasonalTheme(_date = new Date()): CustomThemeId {
+  // ObisidanWealth is the permanent base theme.
+  // Seasonal themes (spring/easter/summer/winter) are available via manual selection.
+  return 'obisidan-wealth'
 }

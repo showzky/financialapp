@@ -31,9 +31,26 @@ CREATE TABLE IF NOT EXISTS budget_categories (
   type TEXT NOT NULL CHECK (type IN ('budget', 'fixed')),
   allocated NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (allocated >= 0),
   spent NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (spent >= 0),
+  due_day_of_month INTEGER CHECK (due_day_of_month BETWEEN 1 AND 31),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, name)
 );
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS due_day_of_month INTEGER;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'budget_categories_due_day_of_month_check'
+  ) THEN
+    ALTER TABLE budget_categories
+    ADD CONSTRAINT budget_categories_due_day_of_month_check
+    CHECK (due_day_of_month BETWEEN 1 AND 31);
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

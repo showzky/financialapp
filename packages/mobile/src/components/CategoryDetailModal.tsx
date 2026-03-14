@@ -179,6 +179,9 @@ export function CategoryDetailModal({ visible, category, onClose, onCategoryUpda
             <View style={styles.fixedCard}>
               <Text style={styles.fixedCardLabel}>Fixed Cost</Text>
               <Text style={styles.fixedCardAmount}>NOK {category.allocated.toLocaleString()}</Text>
+              {category.dueDayOfMonth ? (
+                <Text style={styles.fixedDueText}>Due on day {category.dueDayOfMonth} each month</Text>
+              ) : null}
             </View>
             {safeSpent > 0 && (
               <View style={styles.fixedTransactions}>
@@ -339,6 +342,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#ca8a04',
+  },
+  fixedDueText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400e',
   },
   fixedTransactions: {
     backgroundColor: '#f9fafb',

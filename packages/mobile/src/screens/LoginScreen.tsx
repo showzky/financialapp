@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
     borderRadius: 0,
-    backgroundColor: '#0b1120',
+    backgroundColor: '#0a0a0e',
   },
   eventPill: {
     position: 'absolute',

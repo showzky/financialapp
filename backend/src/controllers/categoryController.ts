@@ -14,6 +14,7 @@ const createCategorySchema = z.object({
   type: categoryTypeSchema,
   allocated: z.number().finite().nonnegative().optional(),
   spent: z.number().finite().nonnegative().optional(),
+  dueDayOfMonth: z.number().int().min(1).max(31).optional(),
 })
 
 const updateCategorySchema = z
@@ -22,13 +23,15 @@ const updateCategorySchema = z
     type: categoryTypeSchema.optional(),
     allocated: z.number().finite().nonnegative().optional(),
     spent: z.number().finite().nonnegative().optional(),
+    dueDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
   })
   .refine(
     (value) =>
       value.name !== undefined ||
       value.type !== undefined ||
       value.allocated !== undefined ||
-      value.spent !== undefined,
+      value.spent !== undefined ||
+      value.dueDayOfMonth !== undefined,
     {
       message: 'At least one field must be provided',
     },

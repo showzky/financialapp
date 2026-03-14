@@ -11,6 +11,7 @@ export type BudgetCategory = {
   type: BudgetCategoryType
   allocated: number
   spent: number
+  dueDayOfMonth: number | null
   createdAt: string
 }
 
@@ -20,6 +21,7 @@ export type CreateCategoryInput = {
   type: BudgetCategoryType
   allocated?: number | undefined
   spent?: number | undefined
+  dueDayOfMonth?: number | undefined
 }
 
 export type UpdateCategoryInput = {
@@ -27,6 +29,7 @@ export type UpdateCategoryInput = {
   type?: BudgetCategoryType | undefined
   allocated?: number | undefined
   spent?: number | undefined
+  dueDayOfMonth?: number | null | undefined
 }
 
 const DUPLICATE_CATEGORY_NAME_ERROR = 'CATEGORY_NAME_EXISTS'
@@ -83,6 +86,7 @@ const categorySelect = `
       THEN COALESCE(ledger.ledger_spent, budget_categories.spent)::float8
     ELSE budget_categories.spent::float8
   END AS spent,
+  budget_categories.due_day_of_month AS "dueDayOfMonth",
   budget_categories.created_at AS "createdAt"
 `
 
@@ -166,8 +170,8 @@ export const categoryModel = {
 
     const result = await db.query<BudgetCategory>(
       `
-      INSERT INTO budget_categories (id, user_id, name, type, allocated, spent, group_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO budget_categories (id, user_id, name, type, allocated, spent, group_id, due_day_of_month)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING
         id,
         user_id AS "userId",
@@ -175,6 +179,7 @@ export const categoryModel = {
         type,
         allocated::float8 AS allocated,
         spent::float8 AS spent,
+        due_day_of_month AS "dueDayOfMonth",
         created_at AS "createdAt"
       `,
       [
@@ -185,6 +190,7 @@ export const categoryModel = {
         input.allocated ?? 0,
         input.spent ?? 0,
         matchingGroup.id,
+        input.dueDayOfMonth ?? null,
       ],
     )
 
@@ -238,7 +244,8 @@ export const categoryModel = {
         name = COALESCE($3, name),
         type = COALESCE($4, type),
         allocated = COALESCE($5, allocated),
-        spent = COALESCE($6, spent)
+        spent = COALESCE($6, spent),
+        due_day_of_month = COALESCE($7, due_day_of_month)
       WHERE id = $1 AND user_id = $2
       RETURNING
         id,
@@ -247,6 +254,7 @@ export const categoryModel = {
         type,
         allocated::float8 AS allocated,
         spent::float8 AS spent,
+        due_day_of_month AS "dueDayOfMonth",
         created_at AS "createdAt"
       `,
       [
@@ -256,6 +264,7 @@ export const categoryModel = {
         input.type ?? null,
         input.allocated ?? null,
         input.spent ?? null,
+        input.dueDayOfMonth ?? null,
       ],
     )
 

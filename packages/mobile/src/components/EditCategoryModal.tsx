@@ -33,6 +33,9 @@ export function EditCategoryModal({
   const [name, setName] = useState(category?.name ?? '')
   const [allocated, setAllocated] = useState(String(category?.allocated ?? ''))
   const [categoryType, setCategoryType] = useState<'budget' | 'fixed'>(category?.type ?? 'budget')
+  const [dueDayOfMonth, setDueDayOfMonth] = useState(
+    category?.dueDayOfMonth ? String(category.dueDayOfMonth) : '',
+  )
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -42,6 +45,7 @@ export function EditCategoryModal({
       setName(category.name)
       setAllocated(String(category.allocated))
       setCategoryType(category.type)
+      setDueDayOfMonth(category.dueDayOfMonth ? String(category.dueDayOfMonth) : '')
       setHasTriedSubmit(false)
       setSubmitError('')
     }
@@ -58,6 +62,14 @@ export function EditCategoryModal({
         ? categoryType === 'budget'
           ? 'Enter a valid budget amount'
           : 'Enter a valid amount'
+        : '',
+    dueDayOfMonth:
+      categoryType === 'fixed' &&
+      dueDayOfMonth.trim().length > 0 &&
+      (!Number.isInteger(Number(dueDayOfMonth)) ||
+        Number(dueDayOfMonth) < 1 ||
+        Number(dueDayOfMonth) > 31)
+        ? 'Enter a day between 1 and 31'
         : '',
   }
 
@@ -79,6 +91,12 @@ export function EditCategoryModal({
         name: name.trim(),
         type: categoryType,
         allocated: Number(allocated),
+        dueDayOfMonth:
+          categoryType === 'fixed'
+            ? dueDayOfMonth.trim().length > 0
+              ? Number(dueDayOfMonth)
+              : null
+            : null,
       })
 
       handleClose()
@@ -222,6 +240,30 @@ export function EditCategoryModal({
               </View>
             )}
 
+            {categoryType === 'fixed' && (
+              <View style={styles.section}>
+                <Text style={styles.label}>Due Day Of Month</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    hasTriedSubmit && errors.dueDayOfMonth && styles.inputError,
+                  ]}
+                  placeholder="e.g. 20"
+                  placeholderTextColor="#d1d5db"
+                  keyboardType="number-pad"
+                  value={dueDayOfMonth}
+                  onChangeText={setDueDayOfMonth}
+                  editable={!submitting}
+                />
+                <Text style={styles.helperText}>
+                  Optional. Used on the dashboard timeline and upcoming cards.
+                </Text>
+                {hasTriedSubmit && errors.dueDayOfMonth && (
+                  <Text style={styles.errorText}>{errors.dueDayOfMonth}</Text>
+                )}
+              </View>
+            )}
+
             {submitError && (
               <View style={styles.errorBox}>
                 <Ionicons name="alert-circle" size={16} color="#ef4444" />
@@ -343,6 +385,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 6,
   },
   roleHintBox: {
     marginTop: 10,

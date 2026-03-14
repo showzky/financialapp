@@ -1,4 +1,4 @@
-export type CustomThemeId = 'default' | 'spring' | 'easter' | 'summer' | 'winter'
+export type CustomThemeId = 'default' | 'spring' | 'easter' | 'summer' | 'winter' | 'obisidan-wealth'
 
 export type ThemeSource = 'auto' | 'manual'
 
@@ -44,6 +44,26 @@ export type CustomThemeDefinition = {
     tabBarBackground: string
     tabBarActive: string
     tabBarInactive: string
+
+    // Atmospheric gradient (4-stop body gradient)
+    gradientStops: [string, string, string, string]
+    gradientLocations: [number, number, number, number]
+    bloomOverlay: string
+
+    // Ghost text (dimmer than subtleText)
+    ghostText: string
+
+    // Accent tint pairs (bg + border)
+    goldTintBg: string
+    goldTintBorder: string
+    sageTintBg: string
+    sageTintBorder: string
+    roseTintBg: string
+    roseTintBorder: string
+    skyTintBg: string
+    skyTintBorder: string
+    amberTintBg: string
+    amberTintBorder: string
   }
 }
 

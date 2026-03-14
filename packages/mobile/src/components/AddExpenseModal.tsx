@@ -45,6 +45,7 @@ export function AddExpenseModal({
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryType, setNewCategoryType] = useState<'budget' | 'fixed'>('budget')
   const [newCategoryAllocated, setNewCategoryAllocated] = useState('')
+  const [newCategoryDueDayOfMonth, setNewCategoryDueDayOfMonth] = useState('')
 
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -70,6 +71,7 @@ export function AddExpenseModal({
     setNewCategoryName('')
     setNewCategoryType('budget')
     setNewCategoryAllocated('')
+    setNewCategoryDueDayOfMonth('')
     setHasTriedSubmit(false)
     setSubmitting(false)
     setSubmitError('')
@@ -96,6 +98,14 @@ export function AddExpenseModal({
     allocated:
       newCategoryType === 'budget' && (!newCategoryAllocated || isNaN(Number(newCategoryAllocated)) || Number(newCategoryAllocated) < 0)
         ? 'Enter a valid budget amount'
+        : '',
+    dueDayOfMonth:
+      newCategoryType === 'fixed' &&
+      newCategoryDueDayOfMonth.trim().length > 0 &&
+      (!Number.isInteger(Number(newCategoryDueDayOfMonth)) ||
+        Number(newCategoryDueDayOfMonth) < 1 ||
+        Number(newCategoryDueDayOfMonth) > 31)
+        ? 'Enter a day between 1 and 31'
         : '',
     amount:
       !amount || isNaN(Number(amount)) || Number(amount) <= 0
@@ -126,6 +136,10 @@ export function AddExpenseModal({
           name: newCategoryName.trim(),
           type: newCategoryType,
           allocated: newCategoryType === 'budget' ? Number(newCategoryAllocated) : Number(amount),
+          dueDayOfMonth:
+            newCategoryType === 'fixed' && newCategoryDueDayOfMonth.trim().length > 0
+              ? Number(newCategoryDueDayOfMonth)
+              : undefined,
         })
         categoryIdToUse = newCategory.id
       }
@@ -342,6 +356,30 @@ export function AddExpenseModal({
                     />
                     {hasTriedSubmit && newCategoryErrors.allocated && (
                       <Text style={styles.errorText}>{newCategoryErrors.allocated}</Text>
+                    )}
+                  </View>
+                )}
+
+                {newCategoryType === 'fixed' && (
+                  <View style={styles.section}>
+                    <Text style={styles.label}>Due Day Of Month</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        hasTriedSubmit && newCategoryErrors.dueDayOfMonth && styles.inputError,
+                      ]}
+                      placeholder="e.g., 20"
+                      placeholderTextColor="#d1d5db"
+                      keyboardType="number-pad"
+                      value={newCategoryDueDayOfMonth}
+                      onChangeText={setNewCategoryDueDayOfMonth}
+                      editable={!submitting}
+                    />
+                    <Text style={styles.charCount}>
+                      Optional. Used for the mobile upcoming timeline.
+                    </Text>
+                    {hasTriedSubmit && newCategoryErrors.dueDayOfMonth && (
+                      <Text style={styles.errorText}>{newCategoryErrors.dueDayOfMonth}</Text>
                     )}
                   </View>
                 )}
