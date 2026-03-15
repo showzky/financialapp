@@ -11,13 +11,12 @@ import {
 } from 'react-native'
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { AddExpenseModal } from '../components/AddExpenseModal'
-import { BudgetCategoriesSheet } from '../components/BudgetCategoriesSheet'
-import { CategoryDetailModal } from '../components/CategoryDetailModal'
 import { MonthPickerModal } from '../components/MonthPickerModal'
 import { SetIncomeModal } from '../components/SetIncomeModal'
+import { CategoryPickerModal } from '../components/categories/CategoryPickerModal'
 import { usePeriod } from '../context/PeriodContext'
 import { useScreenPalette } from '../customthemes'
 import { dashboardApi, type CategoryWithSpent, type DashboardData } from '../services/dashboardApi'
@@ -47,6 +46,7 @@ function getDueDateForMonth(baseMonth: Date, dueDayOfMonth: number) {
 
 export function HomeScreen() {
   useScreenPalette()
+  const navigation = useNavigation<any>()
   const { selectedMonth, setSelectedMonth } = usePeriod()
   const insets = useSafeAreaInsets()
 
@@ -55,10 +55,9 @@ export function HomeScreen() {
   const [error, setError] = useState<string | null>(null)
 
   const [isMonthPickerVisible, setMonthPickerVisible] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<CategoryWithSpent | null>(null)
   const [isAddExpenseModalOpen, setAddExpenseModalOpen] = useState(false)
   const [isSetIncomeModalOpen, setSetIncomeModalOpen] = useState(false)
-  const [budgetSheetVisible, setBudgetSheetVisible] = useState(false)
+  const [categoryManagerVisible, setCategoryManagerVisible] = useState(false)
 
   const [costsExpanded, setCostsExpanded] = useState(true)
   const [fabOpen, setFabOpen] = useState(false)
@@ -140,6 +139,21 @@ export function HomeScreen() {
     [fixedCategories, selectedMonth],
   )
 
+  const handleOpenPlannedExpense = useCallback(
+    (item: CategoryWithSpent & { preview: { date: Date } }) => {
+      navigation.navigate('PlannedExpense', {
+        categoryId: item.id,
+        title: item.name,
+        amount: item.allocated,
+        dueDate: item.preview.date.toISOString().split('T')[0],
+        category: item.parentName,
+        accent: item.iconColor || item.color,
+        recurring: true,
+      })
+    },
+    [navigation],
+  )
+
   if (loading) {
     return (
       <View style={s.centerContainer}>
@@ -177,7 +191,7 @@ export function HomeScreen() {
       <View style={[s.header, { paddingTop: Math.max(insets.top, 12) }]}>
         <View style={s.headerLeft}>
           <Image source={{ uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }} style={s.avatar} />
-          <TouchableOpacity style={s.categoryBtn} onPress={() => setBudgetSheetVisible(true)}>
+          <TouchableOpacity style={s.categoryBtn} onPress={() => setCategoryManagerVisible(true)}>
             <MaterialCommunityIcons name="shape-outline" size={14} color="rgba(201,168,76,0.8)" />
           </TouchableOpacity>
         </View>
@@ -239,8 +253,10 @@ export function HomeScreen() {
 
         <View style={s.section}>
           <View style={s.sectionHdr}>
-            <Text style={s.sectionTitle}>Upcoming</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Timeline')} activeOpacity={0.8}>
+              <Text style={s.sectionTitle}>Upcoming</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Timeline')}>
               <Text style={s.seeAll}>See Timeline</Text>
             </TouchableOpacity>
           </View>
@@ -258,7 +274,7 @@ export function HomeScreen() {
                   <TouchableOpacity
                     key={item.id}
                     style={s.billCard}
-                    onPress={() => setSelectedCategory(item)}
+                    onPress={() => handleOpenPlannedExpense(item)}
                     activeOpacity={0.84}
                   >
                     <LinearGradient
@@ -318,18 +334,16 @@ export function HomeScreen() {
             </TouchableOpacity>
             {costsExpanded &&
               fixedCategories.map((item, index) => (
-                <TouchableOpacity
+                <View
                   key={item.id}
                   style={[s.row, index < fixedCategories.length - 1 && s.rowBorder]}
-                  onPress={() => setSelectedCategory(item)}
-                  activeOpacity={0.75}
                 >
                   <View style={s.rowLeft}>
                     <View style={[s.dotMini, { backgroundColor: 'rgba(255,255,255,0.12)' }]} />
                     <Text style={s.rowLbl}>{item.name}</Text>
                   </View>
                   <Text style={s.rowAmt}>{item.allocated === 0 ? '---' : fmtKr(item.allocated)}</Text>
-                </TouchableOpacity>
+                </View>
               ))}
             {!costsExpanded && (
               <Text style={s.collapsedHint}>{fixedCategories.length} items - {fmtKr(fixedCostsTotal)}</Text>
@@ -405,52 +419,43 @@ export function HomeScreen() {
         onSelectMonth={handleSelectMonth}
       />
 
-      <CategoryDetailModal
-        visible={selectedCategory !== null}
-        category={selectedCategory}
-        onClose={() => setSelectedCategory(null)}
-        onCategoryUpdated={() => {
-          setSelectedCategory(null)
-          void loadDashboard()
-        }}
-        onCategoryDeleted={() => {
-          setSelectedCategory(null)
-          void loadDashboard()
-        }}
-      />
-
-      {dashboard && isSetIncomeModalOpen && (
+      {isSetIncomeModalOpen && (
         <SetIncomeModal
           isOpen={isSetIncomeModalOpen}
-          currentIncome={dashboard.totalIncome}
+          mode="income"
+          selectedMonth={selectedMonth}
           onClose={() => setSetIncomeModalOpen(false)}
-          onIncomeUpdated={() => {
+          onEntryCreated={() => {
             setSetIncomeModalOpen(false)
             void loadDashboard()
           }}
         />
       )}
 
-      {dashboard && (
-        <AddExpenseModal
+      {dashboard && isAddExpenseModalOpen && (
+        <SetIncomeModal
           isOpen={isAddExpenseModalOpen}
-          onClose={() => setAddExpenseModalOpen(false)}
+          mode="expense"
           categories={dashboard.categories}
           selectedMonth={selectedMonth}
-          onTransactionCreated={() => {
+          onClose={() => setAddExpenseModalOpen(false)}
+          onEntryCreated={() => {
             setAddExpenseModalOpen(false)
             void loadDashboard()
           }}
         />
       )}
 
-      <BudgetCategoriesSheet
-        visible={budgetSheetVisible}
-        categories={budgetCategories}
-        onClose={() => setBudgetSheetVisible(false)}
-        onCategoryPress={(cat) => {
-          setBudgetSheetVisible(false)
-          setSelectedCategory(cat)
+      <CategoryPickerModal
+        visible={categoryManagerVisible}
+        initialKind="expense"
+        startInEditMode
+        onClose={() => {
+          setCategoryManagerVisible(false)
+          void loadDashboard()
+        }}
+        onCategoriesChanged={() => {
+          void loadDashboard()
         }}
       />
     </View>

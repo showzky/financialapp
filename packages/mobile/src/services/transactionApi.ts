@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { backendClient } from './backendClient'
+import { categoryApi, type CategoryDto, type CreateCategoryPayload as CreateManagedCategoryPayload } from './categoryApi'
 
 export type CreateTransactionPayload = {
   categoryId: string
@@ -8,40 +8,44 @@ export type CreateTransactionPayload = {
   note?: string
 }
 
-export type CreateCategoryPayload = {
-  name: string
-  type: 'budget' | 'fixed'
-  allocated: number
-  dueDayOfMonth?: number
-}
-
-export type CategoryResponse = {
+export type TransactionResponse = {
   id: string
-  name: string
-  type: 'budget' | 'fixed'
-  allocated: number
-  spent: number
-  dueDayOfMonth?: number | null
+  userId: string
+  categoryId: string
+  amount: number
+  note: string | null
+  transactionDate: string
   createdAt: string
 }
 
+export type CreateCategoryPayload = CreateManagedCategoryPayload
+export type CategoryResponse = CategoryDto
+
 export const transactionApi = {
-  async createTransaction(payload: CreateTransactionPayload): Promise<{ success: boolean }> {
+  async createTransaction(payload: CreateTransactionPayload): Promise<TransactionResponse> {
     return backendClient.post('/transactions', payload)
   },
 
+  async listTransactions(): Promise<TransactionResponse[]> {
+    return backendClient.get('/transactions')
+  },
+
+  async deleteTransaction(id: string): Promise<void> {
+    return backendClient.delete(`/transactions/${id}`)
+  },
+
   async createCategory(payload: CreateCategoryPayload): Promise<CategoryResponse> {
-    return backendClient.post('/categories', payload)
+    return categoryApi.createCategory(payload)
   },
 
   async updateCategory(
     id: string,
     payload: Partial<CreateCategoryPayload>
   ): Promise<CategoryResponse> {
-    return backendClient.patch(`/categories/${id}`, payload)
+    return categoryApi.updateCategory(id, payload)
   },
 
   async deleteCategory(id: string): Promise<void> {
-    return backendClient.delete(`/categories/${id}`)
+    return categoryApi.deleteCategory(id, 'expense')
   },
 }

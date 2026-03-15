@@ -1,10 +1,24 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
+import {
+  CATEGORY_COLOR_OPTIONS,
+  CATEGORY_ICON_COLOR_OPTIONS,
+  CATEGORY_ICON_OPTIONS,
+  EXPENSE_PARENT_CATEGORY_OPTIONS,
+} from '@/constants/categoryCatalog'
 import type { BudgetCategoryType } from '@/types/budget'
 
 type AddCategoryModalProps = {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (name: string, type: BudgetCategoryType) => void
+  onSubmit: (input: {
+    name: string
+    type: BudgetCategoryType
+    parentName?: string
+    icon: string
+    color: string
+    iconColor: string
+    dueDayOfMonth?: number
+  }) => void
   defaultType?: BudgetCategoryType
 }
 
@@ -16,12 +30,22 @@ export const AddCategoryModal = ({
 }: AddCategoryModalProps) => {
   const [categoryName, setCategoryName] = useState('')
   const [categoryType, setCategoryType] = useState<BudgetCategoryType>(defaultType)
+  const [parentName, setParentName] = useState('')
+  const [icon, setIcon] = useState<(typeof CATEGORY_ICON_OPTIONS)[number]>('cart-outline')
+  const [color, setColor] = useState<(typeof CATEGORY_COLOR_OPTIONS)[number]>(CATEGORY_COLOR_OPTIONS[0])
+  const [iconColor, setIconColor] = useState<(typeof CATEGORY_ICON_COLOR_OPTIONS)[number]>(CATEGORY_ICON_COLOR_OPTIONS[0])
+  const [dueDayOfMonth, setDueDayOfMonth] = useState('')
   const categoryNameId = useId()
 
   useEffect(() => {
     if (!isOpen) {
       setCategoryName('')
       setCategoryType(defaultType)
+      setParentName('')
+      setIcon('cart-outline')
+      setColor(CATEGORY_COLOR_OPTIONS[0])
+      setIconColor(CATEGORY_ICON_COLOR_OPTIONS[0])
+      setDueDayOfMonth('')
       return
     }
 
@@ -35,15 +59,27 @@ export const AddCategoryModal = ({
     const trimmedName = categoryName.trim()
     if (!trimmedName) return
 
-    onSubmit(trimmedName, categoryType)
+    onSubmit({
+      name: trimmedName,
+      type: categoryType,
+      parentName: parentName.trim() || undefined,
+      icon,
+      color,
+      iconColor,
+      dueDayOfMonth: categoryType === 'fixed' && dueDayOfMonth.trim() ? Number(dueDayOfMonth) : undefined,
+    })
     setCategoryName('')
     setCategoryType(defaultType)
+    setParentName('')
+    setDueDayOfMonth('')
     onClose()
   }
 
   const handleClose = () => {
     setCategoryName('')
     setCategoryType(defaultType)
+    setParentName('')
+    setDueDayOfMonth('')
     onClose()
   }
 
@@ -104,6 +140,24 @@ export const AddCategoryModal = ({
             />
           </div>
 
+          <div>
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
+              Parent Category
+            </label>
+            <select
+              value={parentName}
+              onChange={(event) => setParentName(event.target.value)}
+              className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.08)]"
+            >
+              <option value="">Parent category</option>
+              {EXPENSE_PARENT_CATEGORY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <fieldset>
             <legend className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
               Category Type
@@ -159,6 +213,74 @@ export const AddCategoryModal = ({
               </button>
             </div>
           </fieldset>
+
+          {categoryType === 'fixed' ? (
+            <div>
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
+                Due Day
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={dueDayOfMonth}
+                onChange={(event) => setDueDayOfMonth(event.target.value)}
+                placeholder="Optional, e.g. 15"
+                className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm font-normal tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 placeholder:text-[#6b6862] focus:border-[rgba(94,189,151,0.22)] focus:bg-[#202026]"
+              />
+            </div>
+          ) : null}
+
+          <div>
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
+              Icon
+            </label>
+            <select
+              value={icon}
+              onChange={(event) => setIcon(event.target.value as (typeof CATEGORY_ICON_OPTIONS)[number])}
+              className="w-full rounded-[12px] border border-[rgba(255,255,255,0.10)] bg-[#18181c] px-4 py-[14px] text-sm tracking-[0.01em] text-[#f0ede8] outline-none transition-all duration-200 focus:border-[rgba(201,168,76,0.22)] focus:bg-[#202026]"
+            >
+              {CATEGORY_ICON_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
+              Color
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_COLOR_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setColor(option)}
+                  className={`h-9 w-9 rounded-[10px] border ${color === option ? 'border-white' : 'border-[rgba(255,255,255,0.10)]'}`}
+                  style={{ backgroundColor: option }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6862]">
+              Icon Color
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_ICON_COLOR_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setIconColor(option)}
+                  className={`h-9 w-9 rounded-[10px] border ${iconColor === option ? 'border-white' : 'border-[rgba(255,255,255,0.10)]'}`}
+                  style={{ backgroundColor: option }}
+                />
+              ))}
+            </div>
+          </div>
 
           <button
             type="submit"

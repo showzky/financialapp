@@ -1,0 +1,6 @@
+ALTER TABLE income_entries
+ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT TRUE;
+
+UPDATE income_entries
+SET is_paid = TRUE
+WHERE is_paid IS NULL;

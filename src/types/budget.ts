@@ -4,9 +4,17 @@ export type BudgetCategoryType = 'budget' | 'fixed'
 export type BudgetCategory = {
   id: string
   name: string
+  parentName: string
+  icon: string
+  color: string
+  iconColor: string
   type: BudgetCategoryType
   allocated: number
   spent: number
+  dueDayOfMonth?: number | null
+  sortOrder?: number
+  isDefault?: boolean
+  isArchived?: boolean
 }
 
 export type BudgetState = {

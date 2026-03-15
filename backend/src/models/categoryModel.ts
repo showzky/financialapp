@@ -1,6 +1,5 @@
-// ADD THIS: category data access layer using parameterized SQL
-import { randomUUID } from 'node:crypto'
 import { db } from '../config/db.js'
+import { DEFAULT_EXPENSE_CATEGORIES, type CategorySeed } from './categoryCatalog.js'
 
 export type BudgetCategoryType = 'budget' | 'fixed'
 
@@ -8,77 +7,61 @@ export type BudgetCategory = {
   id: string
   userId: string
   name: string
+  parentName: string
+  icon: string
+  color: string
+  iconColor: string
   type: BudgetCategoryType
   allocated: number
   spent: number
   dueDayOfMonth: number | null
+  sortOrder: number
+  isDefault: boolean
+  isArchived: boolean
   createdAt: string
 }
 
 export type CreateCategoryInput = {
   userId: string
   name: string
+  parentName: string
+  icon: string
+  color: string
+  iconColor: string
   type: BudgetCategoryType
   allocated?: number | undefined
   spent?: number | undefined
   dueDayOfMonth?: number | undefined
+  sortOrder?: number | undefined
+  isDefault?: boolean | undefined
+  isArchived?: boolean | undefined
 }
 
 export type UpdateCategoryInput = {
   name?: string | undefined
+  parentName?: string | undefined
+  icon?: string | undefined
+  color?: string | undefined
+  iconColor?: string | undefined
   type?: BudgetCategoryType | undefined
   allocated?: number | undefined
   spent?: number | undefined
   dueDayOfMonth?: number | null | undefined
+  sortOrder?: number | undefined
+  isDefault?: boolean | undefined
+  isArchived?: boolean | undefined
 }
 
 const DUPLICATE_CATEGORY_NAME_ERROR = 'CATEGORY_NAME_EXISTS'
-
-type CategoryGroupRow = {
-  id: string
-  name: string
-  sortOrder: number
-}
-
-const DEFAULT_CATEGORY_GROUPS = [
-  { name: 'Housing', sortOrder: 1 },
-  { name: 'Transport', sortOrder: 2 },
-  { name: 'Living', sortOrder: 3 },
-  { name: 'Debt', sortOrder: 4 },
-  { name: 'Savings', sortOrder: 5 },
-  { name: 'Other', sortOrder: 6 },
-] as const
-
-const inferGroupName = (categoryName: string): string => {
-  const normalizedName = categoryName.trim().toLowerCase()
-
-  if (/(rent|mortgage|house|housing|utility|utilities|electric|water|internet|home)/.test(normalizedName)) {
-    return 'Housing'
-  }
-
-  if (/(transport|car|fuel|gas|diesel|uber|taxi|bus|train|parking|toll)/.test(normalizedName)) {
-    return 'Transport'
-  }
-
-  if (/(grocer|food|living|shopping|clothes|phone|mobile|daycare|child)/.test(normalizedName)) {
-    return 'Living'
-  }
-
-  if (/(debt|loan|credit|interest|repayment|installment)/.test(normalizedName)) {
-    return 'Debt'
-  }
-
-  if (/(saving|invest|emergency|retire|buffer|fund)/.test(normalizedName)) {
-    return 'Savings'
-  }
-
-  return 'Other'
-}
 
 const categorySelect = `
   budget_categories.id,
   budget_categories.user_id AS "userId",
   budget_categories.name,
+  budget_categories.parent_name AS "parentName",
+  budget_categories.icon,
+  budget_categories.color,
+  budget_categories.icon_color AS "iconColor",
   budget_categories.type,
   budget_categories.allocated::float8 AS allocated,
   CASE
@@ -87,6 +70,9 @@ const categorySelect = `
     ELSE budget_categories.spent::float8
   END AS spent,
   budget_categories.due_day_of_month AS "dueDayOfMonth",
+  budget_categories.sort_order AS "sortOrder",
+  budget_categories.is_default AS "isDefault",
+  budget_categories.is_archived AS "isArchived",
   budget_categories.created_at AS "createdAt"
 `
 
@@ -110,106 +96,118 @@ const categoryLedgerJoin = `
   ) AS ledger ON TRUE
 `
 
-const ensureDefaultGroupsForUser = async (userId: string): Promise<CategoryGroupRow[]> => {
-  for (const group of DEFAULT_CATEGORY_GROUPS) {
-    await db.query(
-      `
-      INSERT INTO category_groups (user_id, name, sort_order)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (user_id, name)
-      DO UPDATE SET sort_order = EXCLUDED.sort_order
-      `,
-      [userId, group.name, group.sortOrder],
-    )
-  }
-
-  const groupsResult = await db.query<CategoryGroupRow>(
+async function getNextSortOrder(userId: string) {
+  const result = await db.query<{ nextSortOrder: number }>(
     `
-    SELECT id, name, sort_order AS "sortOrder"
-    FROM category_groups
+    SELECT COALESCE(MAX(sort_order), 0) + 1 AS "nextSortOrder"
+    FROM budget_categories
     WHERE user_id = $1
-    ORDER BY sort_order ASC, created_at ASC
     `,
     [userId],
   )
 
-  if (groupsResult.rows.length === 0) {
-    throw new Error('Failed to load category groups')
+  return result.rows[0]?.nextSortOrder ?? 1
+}
+
+async function ensureDefaultCategories(userId: string) {
+  const countResult = await db.query<{ count: string }>(
+    `
+    SELECT COUNT(*)::text AS count
+    FROM budget_categories
+    WHERE user_id = $1
+    `,
+    [userId],
+  )
+
+  if ((Number(countResult.rows[0]?.count ?? '0')) > 0) {
+    return
   }
 
-  return groupsResult.rows
+  for (const seed of DEFAULT_EXPENSE_CATEGORIES) {
+    await categoryModel.create(seedCategoryInput(userId, seed))
+  }
 }
 
 export const categoryModel = {
   async create(input: CreateCategoryInput): Promise<BudgetCategory> {
-    const categoryId = randomUUID()
-    const groups = await ensureDefaultGroupsForUser(input.userId)
-    const inferredGroupName = inferGroupName(input.name)
-    const matchingGroup =
-      groups.find((group) => group.name === inferredGroupName) ??
-      groups.find((group) => group.name === 'Other') ??
-      groups[0]
+    const nextSortOrder = input.sortOrder ?? (await getNextSortOrder(input.userId))
 
-    if (!matchingGroup) {
-      throw new Error('Failed to resolve category group')
+    try {
+      const result = await db.query<BudgetCategory>(
+        `
+        INSERT INTO budget_categories (
+          user_id,
+          name,
+          parent_name,
+          icon,
+          color,
+          icon_color,
+          type,
+          allocated,
+          spent,
+          due_day_of_month,
+          sort_order,
+          is_default,
+          is_archived
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        RETURNING
+          id,
+          user_id AS "userId",
+          name,
+          parent_name AS "parentName",
+          icon,
+          color,
+          icon_color AS "iconColor",
+          type,
+          allocated::float8 AS allocated,
+          spent::float8 AS spent,
+          due_day_of_month AS "dueDayOfMonth",
+          sort_order AS "sortOrder",
+          is_default AS "isDefault",
+          is_archived AS "isArchived",
+          created_at AS "createdAt"
+        `,
+        [
+          input.userId,
+          input.name,
+          input.parentName,
+          input.icon,
+          input.color,
+          input.iconColor,
+          input.type,
+          input.allocated ?? 0,
+          input.spent ?? 0,
+          input.dueDayOfMonth ?? null,
+          nextSortOrder,
+          input.isDefault ?? false,
+          input.isArchived ?? false,
+        ],
+      )
+
+      const row = result.rows[0]
+      if (!row) {
+        throw new Error('Failed to create category')
+      }
+
+      return row
+    } catch (error) {
+      if (error instanceof Error && /duplicate key/i.test(error.message)) {
+        throw new Error(DUPLICATE_CATEGORY_NAME_ERROR)
+      }
+      throw error
     }
-
-    const existingResult = await db.query<{ id: string }>(
-      `
-      SELECT id
-      FROM budget_categories
-      WHERE user_id = $1 AND group_id = $2 AND LOWER(name) = LOWER($3)
-      LIMIT 1
-      `,
-      [input.userId, matchingGroup.id, input.name],
-    )
-
-    if (existingResult.rows[0]) {
-      throw new Error(DUPLICATE_CATEGORY_NAME_ERROR)
-    }
-
-    const result = await db.query<BudgetCategory>(
-      `
-      INSERT INTO budget_categories (id, user_id, name, type, allocated, spent, group_id, due_day_of_month)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING
-        id,
-        user_id AS "userId",
-        name,
-        type,
-        allocated::float8 AS allocated,
-        spent::float8 AS spent,
-        due_day_of_month AS "dueDayOfMonth",
-        created_at AS "createdAt"
-      `,
-      [
-        categoryId,
-        input.userId,
-        input.name,
-        input.type,
-        input.allocated ?? 0,
-        input.spent ?? 0,
-        matchingGroup.id,
-        input.dueDayOfMonth ?? null,
-      ],
-    )
-
-    const row = result.rows[0]
-    if (!row) {
-      throw new Error('Failed to create category')
-    }
-
-    return row
   },
 
   async listByUser(userId: string): Promise<BudgetCategory[]> {
+    await ensureDefaultCategories(userId)
     const result = await db.query<BudgetCategory>(
       `
       SELECT ${categorySelect}
       FROM budget_categories
       ${categoryLedgerJoin}
-      WHERE user_id = $1
-      ORDER BY created_at DESC
+      WHERE user_id = $1 AND is_archived = FALSE
+      ORDER BY sort_order ASC, created_at ASC
       `,
       [userId],
     )
@@ -232,39 +230,56 @@ export const categoryModel = {
     return result.rows[0] ?? null
   },
 
-  async update(
-    id: string,
-    userId: string,
-    input: UpdateCategoryInput,
-  ): Promise<BudgetCategory | null> {
+  async update(id: string, userId: string, input: UpdateCategoryInput): Promise<BudgetCategory | null> {
     const result = await db.query<BudgetCategory>(
       `
       UPDATE budget_categories
       SET
         name = COALESCE($3, name),
-        type = COALESCE($4, type),
-        allocated = COALESCE($5, allocated),
-        spent = COALESCE($6, spent),
-        due_day_of_month = COALESCE($7, due_day_of_month)
+        parent_name = COALESCE($4, parent_name),
+        icon = COALESCE($5, icon),
+        color = COALESCE($6, color),
+        icon_color = COALESCE($7, icon_color),
+        type = COALESCE($8, type),
+        allocated = COALESCE($9, allocated),
+        spent = COALESCE($10, spent),
+        due_day_of_month = COALESCE($11, due_day_of_month),
+        sort_order = COALESCE($12, sort_order),
+        is_default = COALESCE($13, is_default),
+        is_archived = COALESCE($14, is_archived)
       WHERE id = $1 AND user_id = $2
       RETURNING
         id,
         user_id AS "userId",
         name,
+        parent_name AS "parentName",
+        icon,
+        color,
+        icon_color AS "iconColor",
         type,
         allocated::float8 AS allocated,
         spent::float8 AS spent,
         due_day_of_month AS "dueDayOfMonth",
+        sort_order AS "sortOrder",
+        is_default AS "isDefault",
+        is_archived AS "isArchived",
         created_at AS "createdAt"
       `,
       [
         id,
         userId,
         input.name ?? null,
+        input.parentName ?? null,
+        input.icon ?? null,
+        input.color ?? null,
+        input.iconColor ?? null,
         input.type ?? null,
         input.allocated ?? null,
         input.spent ?? null,
         input.dueDayOfMonth ?? null,
+        input.sortOrder ?? null,
+        input.isDefault ?? null,
+        input.isArchived ?? null,
       ],
     )
 
@@ -282,6 +297,34 @@ export const categoryModel = {
 
     return result.rowCount === 1
   },
+
+  async resetDefaults(userId: string): Promise<BudgetCategory[]> {
+    await db.query('DELETE FROM transactions WHERE user_id = $1', [userId])
+    await db.query('DELETE FROM budget_categories WHERE user_id = $1', [userId])
+
+    for (const seed of DEFAULT_EXPENSE_CATEGORIES) {
+      await this.create(seedCategoryInput(userId, seed))
+    }
+
+    return this.listByUser(userId)
+  },
+}
+
+function seedCategoryInput(userId: string, seed: CategorySeed): CreateCategoryInput {
+  return {
+    userId,
+    name: seed.name,
+    parentName: seed.parentName,
+    icon: seed.icon,
+    color: seed.color,
+    iconColor: seed.iconColor,
+    type: 'budget',
+    allocated: 0,
+    spent: 0,
+    sortOrder: seed.sortOrder,
+    isDefault: true,
+    isArchived: false,
+  }
 }
 
 export { DUPLICATE_CATEGORY_NAME_ERROR }

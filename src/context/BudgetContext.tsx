@@ -117,7 +117,15 @@ const BudgetContext = createContext<
   | {
       state: BudgetState
       totals: { allocated: number; spent: number; remaining: number }
-      addCategory: (name: string, type: BudgetCategoryType) => void
+      addCategory: (input: {
+        name: string
+        type: BudgetCategoryType
+        parentName?: string
+        icon: string
+        color: string
+        iconColor: string
+        dueDayOfMonth?: number
+      }) => void
       updateIncome: (income: number) => void
       updateCategoryAmounts: (id: string, updates: { allocated?: number; spent?: number }) => void
       removeCategory: (id: string) => void
@@ -184,9 +192,17 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
       })
   }, [])
 
-  const addCategory = (name: string, type: BudgetCategoryType) => {
+  const addCategory = (input: {
+    name: string
+    type: BudgetCategoryType
+    parentName?: string
+    icon: string
+    color: string
+    iconColor: string
+    dueDayOfMonth?: number
+  }) => {
     // ADD THIS: create category from user input in modal
-    const trimmedName = name.trim()
+    const trimmedName = input.name.trim()
     if (!trimmedName) return
 
     const id = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -208,9 +224,17 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
           {
             id: tempCategoryId,
             name: trimmedName,
-            type,
+            parentName: input.parentName?.trim() || trimmedName,
+            icon: input.icon,
+            color: input.color,
+            iconColor: input.iconColor,
+            type: input.type,
             allocated: 0,
             spent: 0,
+            dueDayOfMonth: input.dueDayOfMonth ?? null,
+            sortOrder: current.categories.length + 1,
+            isDefault: false,
+            isArchived: false,
           },
         ],
       }
@@ -221,10 +245,16 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
     void categoryApi
       .create({
+        kind: 'expense',
         name: trimmedName,
-        type,
+        parentName: input.parentName?.trim() || undefined,
+        icon: input.icon,
+        color: input.color,
+        iconColor: input.iconColor,
+        type: input.type,
         allocated: 0,
         spent: 0,
+        dueDayOfMonth: input.dueDayOfMonth,
       })
       .then((created) => {
         setState((current) => ({

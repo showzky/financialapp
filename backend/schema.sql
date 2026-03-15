@@ -32,12 +32,40 @@ CREATE TABLE IF NOT EXISTS budget_categories (
   allocated NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (allocated >= 0),
   spent NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (spent >= 0),
   due_day_of_month INTEGER CHECK (due_day_of_month BETWEEN 1 AND 31),
+  parent_name TEXT NOT NULL DEFAULT 'Other',
+  icon TEXT NOT NULL DEFAULT 'ellipsis-horizontal',
+  color TEXT NOT NULL DEFAULT '#1f2a3d',
+  icon_color TEXT NOT NULL DEFAULT '#d8d8e6',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  is_archived BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, name)
 );
 
 ALTER TABLE budget_categories
 ADD COLUMN IF NOT EXISTS due_day_of_month INTEGER;
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS parent_name TEXT NOT NULL DEFAULT 'Other';
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS icon TEXT NOT NULL DEFAULT 'ellipsis-horizontal';
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT '#1f2a3d';
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS icon_color TEXT NOT NULL DEFAULT '#d8d8e6';
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE budget_categories
+ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;
 
 DO $$
 BEGIN
@@ -61,6 +89,39 @@ CREATE TABLE IF NOT EXISTS transactions (
   transaction_date DATE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS income_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category TEXT NOT NULL,
+  name TEXT,
+  amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+  received_at TIMESTAMPTZ NOT NULL,
+  account_name TEXT,
+  is_paid BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE income_entries
+ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT TRUE;
+
+CREATE TABLE IF NOT EXISTS income_categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  parent_name TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  color TEXT NOT NULL,
+  icon_color TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, name)
+);
+
+ALTER TABLE income_entries
+ADD COLUMN IF NOT EXISTS income_category_id UUID REFERENCES income_categories(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS wishlist_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -240,11 +301,15 @@ SET normalized_url = url
 WHERE normalized_url IS NULL OR normalized_url = '';
 
 CREATE INDEX IF NOT EXISTS idx_budget_categories_user_id ON budget_categories(user_id);
+CREATE INDEX IF NOT EXISTS idx_budget_categories_user_sort ON budget_categories(user_id, sort_order, created_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_credentials_username_unique ON auth_credentials(LOWER(username));
 CREATE INDEX IF NOT EXISTS idx_borrowed_loans_user_id ON borrowed_loans(user_id);
 CREATE INDEX IF NOT EXISTS idx_borrowed_loans_user_paid_off_payoff ON borrowed_loans(user_id, paid_off_at, payoff_date);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_income_entries_user_received_at ON income_entries(user_id, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_income_entries_income_category_id ON income_entries(income_category_id);
+CREATE INDEX IF NOT EXISTS idx_income_categories_user_sort ON income_categories(user_id, sort_order, created_at);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON wishlist_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_status ON wishlist_items(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_normalized_url ON wishlist_items(user_id, normalized_url);

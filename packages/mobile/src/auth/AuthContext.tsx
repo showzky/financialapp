@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { BackendError } from '../services/backendClient'
 import { authApi, type AuthUser } from '../services/authApi'

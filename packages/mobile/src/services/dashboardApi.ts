@@ -3,10 +3,32 @@ import { backendClient } from './backendClient'
 export type CategoryWithSpent = {
   id: string
   name: string
+  parentName: string
+  icon: string
+  color: string
+  iconColor: string
   type: 'budget' | 'fixed'
   allocated: number
   monthSpent: number
   dueDayOfMonth?: number | null
+  sortOrder: number
+  isDefault: boolean
+  isArchived: boolean
+}
+
+export type IncomeEntry = {
+  id: string
+  incomeCategoryId: string | null
+  category: string
+  parentName: string | null
+  icon: string | null
+  color: string | null
+  iconColor: string | null
+  name: string | null
+  amount: number
+  receivedAt: string
+  accountName: string | null
+  isPaid: boolean
 }
 
 export type DashboardData = {
@@ -20,6 +42,7 @@ export type DashboardData = {
   loanBalance: number
   activeLoans: number
   categories: CategoryWithSpent[]
+  incomeEntries: IncomeEntry[]
 }
 
 type CurrentUserDto = {
@@ -33,10 +56,17 @@ type CurrentUserDto = {
 type CategoryDto = {
   id: string
   name: string
+  parentName: string
+  icon: string
+  color: string
+  iconColor: string
   type: 'budget' | 'fixed'
   allocated: number
   spent: number
   dueDayOfMonth?: number | null
+  sortOrder: number
+  isDefault: boolean
+  isArchived: boolean
   createdAt: string
 }
 
@@ -46,6 +76,22 @@ type TransactionDto = {
   amount: number
   note: string | null
   transactionDate: string
+  createdAt: string
+}
+
+type IncomeEntryDto = {
+  id: string
+  incomeCategoryId: string | null
+  category: string
+  parentName: string | null
+  icon: string | null
+  color: string | null
+  iconColor: string | null
+  name: string | null
+  amount: number
+  receivedAt: string
+  accountName: string | null
+  isPaid: boolean
   createdAt: string
 }
 
@@ -71,6 +117,12 @@ const isInRange = (dateValue: string, start: Date, end: Date) => {
   return parsedDate >= start && parsedDate <= end
 }
 
+const isEffectiveNow = (dateValue: string, now: Date) => {
+  const parsedDate = new Date(dateValue)
+  if (Number.isNaN(parsedDate.getTime())) return true
+  return parsedDate <= now
+}
+
 const ensureValidMonth = (selectedMonth: Date): Date => {
   if (!(selectedMonth instanceof Date) || Number.isNaN(selectedMonth.getTime())) {
     const now = new Date()
@@ -81,20 +133,33 @@ const ensureValidMonth = (selectedMonth: Date): Date => {
 
 export const dashboardApi = {
   async get(selectedMonth: Date): Promise<DashboardData> {
-    const [user, categories, transactions, loanSummary] = await Promise.all([
+    const now = new Date()
+    const [user, categories, transactions, loanSummary, incomeEntries] = await Promise.all([
       backendClient.get<CurrentUserDto>('/users/me'),
-      backendClient.get<CategoryDto[]>('/categories'),
+      backendClient.get<CategoryDto[]>('/categories?kind=expense'),
       backendClient.get<TransactionDto[]>('/transactions'),
       backendClient.get<LoanSummaryDto>('/loans/summary'),
+      backendClient.get<IncomeEntryDto[]>('/income-entries'),
     ])
 
     const { start, end } = toMonthBounds(ensureValidMonth(selectedMonth))
     const monthTransactions = transactions.filter((transaction) =>
-      isInRange(transaction.transactionDate, start, end),
+      isInRange(transaction.transactionDate, start, end) && isEffectiveNow(transaction.transactionDate, now),
+    )
+    const monthIncomeEntries = incomeEntries.filter((incomeEntry) =>
+      isInRange(incomeEntry.receivedAt, start, end),
+    )
+    const paidMonthIncomeEntries = monthIncomeEntries.filter(
+      (incomeEntry) => incomeEntry.isPaid && isEffectiveNow(incomeEntry.receivedAt, now),
     )
     const monthCategoryCount = categories.length // CHANGED THIS - count all categories, not just active
 
-    const totalIncome = Number.isFinite(user.monthlyIncome) ? user.monthlyIncome : 0
+    const totalIncome =
+      monthIncomeEntries.length > 0
+        ? sum(paidMonthIncomeEntries.map((entry) => (Number.isFinite(entry.amount) ? entry.amount : 0)))
+        : Number.isFinite(user.monthlyIncome)
+          ? user.monthlyIncome
+          : 0
     const totalSpent = sum(monthTransactions.map((t) => (Number.isFinite(t.amount) ? t.amount : 0)))
     const fixedCostsTotal = sum(
       categories
@@ -115,10 +180,17 @@ export const dashboardApi = {
     const enrichedCategories: CategoryWithSpent[] = categories.map((c) => ({
       id: c.id,
       name: c.name,
+      parentName: c.parentName,
+      icon: c.icon,
+      color: c.color,
+      iconColor: c.iconColor,
       type: c.type,
       allocated: Number.isFinite(c.allocated) ? c.allocated : 0,
       monthSpent: spendByCategory.get(c.id) ?? 0,
       dueDayOfMonth: Number.isFinite(c.dueDayOfMonth) ? Number(c.dueDayOfMonth) : null,
+      sortOrder: Number.isFinite(c.sortOrder) ? c.sortOrder : 0,
+      isDefault: Boolean(c.isDefault),
+      isArchived: Boolean(c.isArchived),
     }))
 
     return {
@@ -134,6 +206,20 @@ export const dashboardApi = {
         : 0,
       activeLoans: Number.isFinite(loanSummary.activeCount) ? loanSummary.activeCount : 0,
       categories: enrichedCategories,
+      incomeEntries: monthIncomeEntries.map((entry) => ({
+        id: entry.id,
+        incomeCategoryId: entry.incomeCategoryId,
+        category: entry.category,
+        parentName: entry.parentName,
+        icon: entry.icon,
+        color: entry.color,
+        iconColor: entry.iconColor,
+        name: entry.name,
+        amount: Number.isFinite(entry.amount) ? entry.amount : 0,
+        receivedAt: entry.receivedAt,
+        accountName: entry.accountName,
+        isPaid: entry.isPaid,
+      })),
     }
   },
 }

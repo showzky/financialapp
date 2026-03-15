@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react'
 import {
   Modal,
@@ -17,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { transactionApi } from '../services/transactionApi'
 import { addExpenseModalStyles as styles } from './AddExpenseModal.styles'
 import type { CategoryWithSpent } from '../services/dashboardApi'
+import { CATEGORY_COLOR_OPTIONS, CATEGORY_ICON_COLOR_OPTIONS } from '../features/categories/catalog'
 import { getPocketMoneyRoleLabel, inferPocketMoneyRole } from '../utils/pocketMoney'
 
 type Props = {
@@ -28,6 +28,24 @@ type Props = {
 }
 
 type Mode = 'existing' | 'new'
+
+function inferParentCategory(name: string) {
+  const normalized = name.trim().toLowerCase()
+
+  if (/(phone|mobile|telenor|telia|call|data)/.test(normalized)) return 'Mobile'
+  if (/(food|grocery|grocer|supermarket|restaurant|takeaway|dinner)/.test(normalized)) return 'Food'
+  if (/(home|rent|mortgage|electric|water|utility|internet)/.test(normalized)) return 'Home'
+  if (/(car|fuel|transport|bus|train|parking|toll)/.test(normalized)) return 'Transport'
+  if (/(travel|flight|hotel)/.test(normalized)) return 'Travel'
+  if (/(gift)/.test(normalized)) return 'Gifts'
+  if (/(doctor|health|medicine|pharmacy)/.test(normalized)) return 'Health'
+  if (/(work|office)/.test(normalized)) return 'Work'
+  if (/(school|course|education|study)/.test(normalized)) return 'Education'
+  if (/(shop|shopping|clothing|clothes)/.test(normalized)) return 'Shopping'
+  if (/(game|movie|stream|spotify|netflix|entertainment)/.test(normalized)) return 'Entertainment'
+
+  return 'Other'
+}
 
 export function AddExpenseModal({
   isOpen,
@@ -133,7 +151,12 @@ export function AddExpenseModal({
       // If creating a new category first
       if (mode === 'new') {
         const newCategory = await transactionApi.createCategory({
+          kind: 'expense',
           name: newCategoryName.trim(),
+          parentName: inferParentCategory(newCategoryName),
+          icon: newCategoryType === 'fixed' ? 'calendar-outline' : 'wallet-outline',
+          color: CATEGORY_COLOR_OPTIONS[0],
+          iconColor: CATEGORY_ICON_COLOR_OPTIONS[0],
           type: newCategoryType,
           allocated: newCategoryType === 'budget' ? Number(newCategoryAllocated) : Number(amount),
           dueDayOfMonth:
