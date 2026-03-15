@@ -3,9 +3,11 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { FontAwesome5, Ionicons } from '@expo/vector-icons'
 import { useFonts } from 'expo-font'
 import * as SystemUI from 'expo-system-ui'
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display'
 import {
   DMSans_400Regular,
@@ -30,6 +32,7 @@ import { WishlistScreen } from './screens/WishlistScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { LoginScreen } from './screens/LoginScreen'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
@@ -74,7 +77,11 @@ function PrototypeTabBar({ state, descriptors, navigation }: BottomTabBarProps) 
   const bottomInset = Math.max(insets.bottom, 10)
 
   return (
-    <View pointerEvents="box-none" style={[styles.navWrap, { bottom: bottomInset }]}> 
+    <Animated.View
+      pointerEvents="box-none"
+      entering={FadeInDown.duration(380)}
+      style={[styles.navWrap, { bottom: bottomInset }]}
+    >
       <View style={styles.navBar}>
         {state.routes.map((route, index) => {
           const focused = state.index === index
@@ -112,7 +119,7 @@ function PrototypeTabBar({ state, descriptors, navigation }: BottomTabBarProps) 
           )
         })}
       </View>
-    </View>
+    </Animated.View>
   )
 }
 
@@ -164,6 +171,13 @@ function RootNavigator() {
           <Stack.Screen name="PlannedExpense" component={PlannedExpenseScreen} />
           <Stack.Screen name="IncomeEntry" component={IncomeEntryScreen} />
           <Stack.Screen name="EditPlannedExpense" component={EditPlannedExpenseScreen} />
+          <Stack.Screen
+            name="SettingsDetail"
+            component={SettingsScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthFlow} />
@@ -204,35 +218,41 @@ function AppShell() {
   }
 
   return (
-    <NavigationContainer
-      theme={{
-        ...DefaultTheme,
-        colors: {
-          ...DefaultTheme.colors,
-          background: APP_BG,
-          card: APP_BG,
-          border: 'rgba(255,255,255,0.06)',
-          primary: activeTheme.colors.tabBarActive,
-          text: 'rgba(255,255,255,0.92)',
-        },
-      }}
-    >
-      <RootNavigator />
-    </NavigationContainer>
+    <BottomSheetModalProvider>
+      <Animated.View entering={FadeInUp.duration(320)} style={{ flex: 1 }}>
+        <NavigationContainer
+          theme={{
+            ...DefaultTheme,
+            colors: {
+              ...DefaultTheme.colors,
+              background: APP_BG,
+              card: APP_BG,
+              border: 'rgba(255,255,255,0.06)',
+              primary: activeTheme.colors.tabBarActive,
+              text: 'rgba(255,255,255,0.92)',
+            },
+          }}
+        >
+          <RootNavigator />
+        </NavigationContainer>
+      </Animated.View>
+    </BottomSheetModalProvider>
   )
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CustomThemeProvider>
-        <NotificationProvider>
-          <PeriodProvider>
-            <AppShell />
-          </PeriodProvider>
-        </NotificationProvider>
-      </CustomThemeProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <CustomThemeProvider>
+          <NotificationProvider>
+            <PeriodProvider>
+              <AppShell />
+            </PeriodProvider>
+          </NotificationProvider>
+        </CustomThemeProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   )
 }
 

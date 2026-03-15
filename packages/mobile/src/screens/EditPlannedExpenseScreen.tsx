@@ -15,6 +15,7 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native'
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { Controller, useForm } from 'react-hook-form'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CategoryPickerModal } from '../components/categories/CategoryPickerModal'
 import { type CategoryDto } from '../services/categoryApi'
@@ -37,6 +38,13 @@ type EditPlannedExpenseParams = {
     dueDayOfMonth: number | null
     autoFocusField?: 'amount'
   }
+}
+
+type EditEntryFormValues = {
+  selectedCategory: CategoryDto | null
+  nameValue: string
+  amount: string
+  date: Date
 }
 
 function formatDateLabel(date: Date) {
@@ -67,32 +75,39 @@ export function EditPlannedExpenseScreen() {
   const initialDate = useMemo(() => new Date(params.dueDate), [params.dueDate])
   const amountInputRef = useRef<TextInput>(null)
 
-  const [selectedCategory, setSelectedCategory] = useState<CategoryDto | null>(
-    params.categoryId || params.incomeCategoryId
-      ? {
-          id: params.entryType === 'income' ? params.incomeCategoryId ?? '' : params.categoryId ?? '',
-          userId: '',
-          name: params.categoryLabel,
-          parentName: 'Other',
-          icon: 'ellipse-outline',
-          color: params.accent,
-          iconColor: params.accent,
-          sortOrder: 0,
-          isDefault: false,
-          isArchived: false,
-          createdAt: '',
-        }
-      : null,
-  )
-  const [nameValue, setNameValue] = useState(params.titleValue ?? params.categoryLabel)
-  const [amount, setAmount] = useState(String(params.amount))
-  const [date, setDate] = useState(initialDate)
   const [iosPickerMode, setIosPickerMode] = useState<null | 'date' | 'time'>(null)
   const [showMore, setShowMore] = useState(false)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
+  const { control, watch, setValue, getValues } = useForm<EditEntryFormValues>({
+    defaultValues: {
+      selectedCategory:
+        params.categoryId || params.incomeCategoryId
+          ? {
+              id: params.entryType === 'income' ? params.incomeCategoryId ?? '' : params.categoryId ?? '',
+              userId: '',
+              name: params.categoryLabel,
+              parentName: 'Other',
+              icon: 'ellipse-outline',
+              color: params.accent,
+              iconColor: params.accent,
+              sortOrder: 0,
+              isDefault: false,
+              isArchived: false,
+              createdAt: '',
+            }
+          : null,
+      nameValue: params.titleValue ?? params.categoryLabel,
+      amount: String(params.amount),
+      date: initialDate,
+    },
+  })
+  const selectedCategory = watch('selectedCategory')
+  const nameValue = watch('nameValue')
+  const amount = watch('amount')
+  const date = watch('date')
   const categoryLabel = selectedCategory?.name ?? params.categoryLabel
   const categoryAccent = selectedCategory?.iconColor || selectedCategory?.color || params.accent
   const categoryIcon = (selectedCategory?.icon as keyof typeof Ionicons.glyphMap | null) ?? 'ellipse-outline'
@@ -120,7 +135,8 @@ export function EditPlannedExpenseScreen() {
         value: date,
         onChange: (_event, picked) => {
           if (!picked) return
-          setDate((current) => (pickerMode === 'date' ? mergeDatePart(current, picked) : mergeTimePart(current, picked)))
+          const current = getValues('date')
+          setValue('date', pickerMode === 'date' ? mergeDatePart(current, picked) : mergeTimePart(current, picked))
         },
       })
       return
@@ -251,7 +267,7 @@ export function EditPlannedExpenseScreen() {
                   ref={amountInputRef}
                   style={styles.inputText}
                   value={amount}
-                  onChangeText={setAmount}
+                  onChangeText={(value) => setValue('amount', value)}
                   placeholder="0"
                   placeholderTextColor="rgba(255,255,255,0.24)"
                   keyboardType="decimal-pad"
@@ -289,14 +305,14 @@ export function EditPlannedExpenseScreen() {
               <View style={styles.todayGroup}>
                 <TouchableOpacity
                   style={styles.todayButton}
-                  onPress={() => setDate(new Date())}
+                  onPress={() => setValue('date', new Date())}
                   activeOpacity={0.9}
                 >
                   <Text style={styles.todayButtonText}>Today</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.todayChevron}
-                  onPress={() => setDate(new Date(date.getFullYear(), date.getMonth(), Math.min(date.getDate() + 1, 28)))}
+                  onPress={() => setValue('date', new Date(date.getFullYear(), date.getMonth(), Math.min(date.getDate() + 1, 28)))}
                   activeOpacity={0.9}
                 >
                   <Ionicons name="chevron-up" size={14} color="white" />
@@ -325,9 +341,8 @@ export function EditPlannedExpenseScreen() {
                   is24Hour
                   onChange={(_event, picked) => {
                     if (!picked) return
-                    setDate((current) =>
-                      iosPickerMode === 'date' ? mergeDatePart(current, picked) : mergeTimePart(current, picked),
-                    )
+                    const current = getValues('date')
+                    setValue('date', iosPickerMode === 'date' ? mergeDatePart(current, picked) : mergeTimePart(current, picked))
                   }}
                   style={{ flex: 1 }}
                 />
@@ -338,13 +353,19 @@ export function EditPlannedExpenseScreen() {
           <View style={styles.section}>
             <Text style={styles.label}>Name</Text>
             <View style={styles.inputShell}>
-              <TextInput
-                style={styles.inputText}
-                value={nameValue}
-                onChangeText={setNameValue}
-                placeholder="Name"
-                placeholderTextColor="rgba(255,255,255,0.24)"
-                editable={!submitting}
+              <Controller
+                control={control}
+                name="nameValue"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.inputText}
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Name"
+                    placeholderTextColor="rgba(255,255,255,0.24)"
+                    editable={!submitting}
+                  />
+                )}
               />
             </View>
           </View>
@@ -395,7 +416,7 @@ export function EditPlannedExpenseScreen() {
         initialKind={params.entryType === 'income' ? 'income' : 'expense'}
         selectedCategoryId={selectedCategory?.id}
         onClose={() => setCategoryPickerOpen(false)}
-        onSelect={(category) => setSelectedCategory(category)}
+        onSelect={(category) => setValue('selectedCategory', category)}
       />
     </View>
   )

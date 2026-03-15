@@ -9,6 +9,7 @@ export type Transaction = {
   note: string | null
   transactionDate: string
   isPaid: boolean
+  countsTowardBills: boolean
   createdAt: string
 }
 
@@ -19,6 +20,7 @@ export type CreateTransactionInput = {
   note?: string | undefined
   transactionDate: string
   isPaid?: boolean | undefined
+  countsTowardBills?: boolean | undefined
 }
 
 export type UpdateTransactionInput = {
@@ -27,14 +29,15 @@ export type UpdateTransactionInput = {
   note?: string | null | undefined
   transactionDate?: string | undefined
   isPaid?: boolean | undefined
+  countsTowardBills?: boolean | undefined
 }
 
 export const transactionModel = {
   async create(input: CreateTransactionInput): Promise<Transaction> {
     const result = await db.query<Transaction>(
       `
-      INSERT INTO transactions (user_id, category_id, amount, note, transaction_date, is_paid)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO transactions (user_id, category_id, amount, note, transaction_date, is_paid, counts_toward_bills)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING
         id,
         user_id AS "userId",
@@ -43,9 +46,18 @@ export const transactionModel = {
         note,
         transaction_date AS "transactionDate",
         is_paid AS "isPaid",
+        counts_toward_bills AS "countsTowardBills",
         created_at AS "createdAt"
       `,
-      [input.userId, input.categoryId, input.amount, input.note ?? null, input.transactionDate, input.isPaid ?? true],
+      [
+        input.userId,
+        input.categoryId,
+        input.amount,
+        input.note ?? null,
+        input.transactionDate,
+        input.isPaid ?? true,
+        input.countsTowardBills ?? false,
+      ],
     )
 
     const row = result.rows[0]
@@ -67,6 +79,7 @@ export const transactionModel = {
         note,
         transaction_date AS "transactionDate",
         is_paid AS "isPaid",
+        counts_toward_bills AS "countsTowardBills",
         created_at AS "createdAt"
       FROM transactions
       WHERE user_id = $1
@@ -89,6 +102,7 @@ export const transactionModel = {
         note,
         transaction_date AS "transactionDate",
         is_paid AS "isPaid",
+        counts_toward_bills AS "countsTowardBills",
         created_at AS "createdAt"
       FROM transactions
       WHERE id = $1 AND user_id = $2
@@ -113,7 +127,8 @@ export const transactionModel = {
         amount = COALESCE($4, amount),
         note = COALESCE($5, note),
         transaction_date = COALESCE($6, transaction_date),
-        is_paid = COALESCE($7, is_paid)
+        is_paid = COALESCE($7, is_paid),
+        counts_toward_bills = COALESCE($8, counts_toward_bills)
       WHERE id = $1 AND user_id = $2
       RETURNING
         id,
@@ -123,6 +138,7 @@ export const transactionModel = {
         note,
         transaction_date AS "transactionDate",
         is_paid AS "isPaid",
+        counts_toward_bills AS "countsTowardBills",
         created_at AS "createdAt"
       `,
       [
@@ -133,6 +149,7 @@ export const transactionModel = {
         input.note ?? null,
         input.transactionDate ?? null,
         input.isPaid ?? null,
+        input.countsTowardBills ?? null,
       ],
     )
 

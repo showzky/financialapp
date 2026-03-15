@@ -88,8 +88,12 @@ CREATE TABLE IF NOT EXISTS transactions (
   note TEXT,
   transaction_date DATE NOT NULL,
   is_paid BOOLEAN NOT NULL DEFAULT TRUE,
+  counts_toward_bills BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE transactions
+ADD COLUMN IF NOT EXISTS counts_toward_bills BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS income_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

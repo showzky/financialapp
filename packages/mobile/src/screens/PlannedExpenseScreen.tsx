@@ -169,6 +169,7 @@ export function PlannedExpenseScreen() {
                   : undefined
                 : PLANNED_PAYMENT_NOTE,
             isPaid: true,
+            countsTowardBills: true,
           })
         }
       }

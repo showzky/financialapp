@@ -12,11 +12,19 @@ import {
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import Animated, { FadeInUp } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MonthPickerModal } from '../components/MonthPickerModal'
 import { SetIncomeModal } from '../components/SetIncomeModal'
 import { BudgetOverviewModal } from '../components/budget/BudgetOverviewModal'
+import { DashboardBillsCard } from '../components/dashboard/DashboardBillsCard'
+import { DashboardBudgetSnapshot } from '../components/dashboard/DashboardBudgetSnapshot'
+import { DashboardHero } from '../components/dashboard/DashboardHero'
+import { DashboardProfileModal } from '../components/dashboard/DashboardProfileModal'
+import { DashboardSummaryCards } from '../components/dashboard/DashboardSummaryCards'
+import { DashboardUpcomingPreview } from '../components/dashboard/DashboardUpcomingPreview'
+import { useAuth } from '../auth/AuthContext'
 import { usePeriod } from '../context/PeriodContext'
 import { useScreenPalette } from '../customthemes'
 import { dashboardApi, type CategoryWithSpent, type DashboardData } from '../services/dashboardApi'
@@ -44,9 +52,20 @@ function getDueDateForMonth(baseMonth: Date, dueDayOfMonth: number) {
   }
 }
 
+type UpcomingPreviewItem = CategoryWithSpent & {
+  amount: number
+  isDue: boolean
+  preview: {
+    date: Date
+    day: string
+    month: string
+  }
+}
+
 export function HomeScreen() {
   useScreenPalette()
   const navigation = useNavigation<any>()
+  const { user, signOut } = useAuth()
   const { selectedMonth, setSelectedMonth } = usePeriod()
   const insets = useSafeAreaInsets()
 
@@ -58,8 +77,8 @@ export function HomeScreen() {
   const [isAddExpenseModalOpen, setAddExpenseModalOpen] = useState(false)
   const [isSetIncomeModalOpen, setSetIncomeModalOpen] = useState(false)
   const [budgetModalVisible, setBudgetModalVisible] = useState(false)
+  const [profileModalVisible, setProfileModalVisible] = useState(false)
 
-  const [costsExpanded, setCostsExpanded] = useState(true)
   const [fabOpen, setFabOpen] = useState(false)
 
   const selectedMonthLabel = selectedMonth.toLocaleDateString('en-US', {
@@ -129,20 +148,7 @@ export function HomeScreen() {
     [dashboard],
   )
 
-  const budgetCategories = useMemo(
-    () => (dashboard ? dashboard.categories.filter((category) => category.type === 'budget') : []),
-    [dashboard],
-  )
-
-  const allocPct = useMemo(
-    () =>
-      dashboard && dashboard.totalIncome > 0
-        ? Math.round((dashboard.totalAllocated / dashboard.totalIncome) * 100)
-        : 0,
-    [dashboard],
-  )
-
-  const upcomingCards = useMemo(
+  const upcomingCards = useMemo<UpcomingPreviewItem[]>(
     () =>
       fixedCategories
         .filter((item) => item.dueDayOfMonth && item.dueDayOfMonth > 0)
@@ -154,13 +160,14 @@ export function HomeScreen() {
         .slice(0, 5)
         .map((item, index) => ({
           ...item,
+          amount: item.allocated,
           isDue: index === 0,
         })),
     [fixedCategories, selectedMonth],
   )
 
   const handleOpenPlannedExpense = useCallback(
-    (item: CategoryWithSpent & { preview: { date: Date } }) => {
+    (item: UpcomingPreviewItem) => {
       navigation.navigate('PlannedExpense', {
         categoryId: item.id,
         title: item.name,
@@ -196,7 +203,30 @@ export function HomeScreen() {
     )
   }
 
-  const fixedCostsTotal = dashboard.fixedCostsTotal
+  const transferToBills = dashboard.billsTotal ?? 0
+  const summaryItems = [
+    {
+      label: 'Income',
+      value: dashboard.totalIncome,
+      hint: 'This month',
+      icon: 'arrow-up-outline' as const,
+      accent: '#5ebd97',
+    },
+    {
+      label: 'Transfer',
+      value: transferToBills,
+      hint: 'To bills',
+      icon: 'swap-horizontal-outline' as const,
+      accent: '#c9a84c',
+    },
+    {
+      label: 'Free',
+      value: dashboard.freeToAssign,
+      hint: 'Pocket money',
+      icon: 'sparkles-outline' as const,
+      accent: '#5ba3c9',
+    },
+  ]
 
   return (
     <View style={s.root}>
@@ -210,7 +240,12 @@ export function HomeScreen() {
 
       <View style={[s.header, { paddingTop: Math.max(insets.top, 12) }]}>
         <View style={s.headerLeft}>
-          <Image source={{ uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }} style={s.avatar} />
+          <TouchableOpacity activeOpacity={0.88} onPress={() => setProfileModalVisible(true)}>
+            <Image
+              source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(user?.displayName || user?.email || 'OrionLedger')}` }}
+              style={s.avatar}
+            />
+          </TouchableOpacity>
           <TouchableOpacity style={s.categoryBtn} onPress={() => setBudgetModalVisible(true)}>
             <Ionicons name="wallet-outline" size={15} color="rgba(201,168,76,0.84)" />
           </TouchableOpacity>
@@ -237,139 +272,42 @@ export function HomeScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <View style={s.hero}>
-          <Text style={s.heroLbl}>AVAILABLE NOW</Text>
-          <Text style={s.heroAmt}>{fmtKr(dashboard.freeToAssign)}</Text>
-          <View style={s.barTrack}>
-            <LinearGradient
-              colors={['rgba(94,189,151,0.7)', 'rgba(201,168,76,0.7)', 'rgba(212,135,74,0.5)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[s.barFill, { width: `${Math.min(allocPct, 100)}%` }]}
-            />
-          </View>
-          <View style={s.barMeta}>
-            <Text style={s.barMetaTxt}>{fmtKr(dashboard.totalAllocated)} allocated</Text>
-            <Text style={s.barMetaTxt}>{allocPct}% of {fmtKr(dashboard.totalIncome)}</Text>
-          </View>
-        </View>
+        <Animated.View entering={FadeInUp.delay(40).duration(360)}>
+          <DashboardHero
+            availableNow={dashboard.freeToAssign}
+            totalAllocated={dashboard.totalAllocated}
+            totalIncome={dashboard.totalIncome}
+          />
+        </Animated.View>
 
-        <View style={s.statStrip}>
-          <View style={s.statItem}>
-            <Text style={s.statVal}>{dashboard.totalIncome.toLocaleString('nb-NO')}</Text>
-            <Text style={[s.statLbl, { color: 'rgba(94,189,151,0.7)' }]}>INCOME</Text>
-          </View>
-          <View style={s.statDivider} />
-          <View style={s.statItem}>
-            <Text style={s.statVal}>{dashboard.totalAllocated.toLocaleString('nb-NO')}</Text>
-            <Text style={[s.statLbl, { color: 'rgba(201,168,76,0.7)' }]}>ALLOCATED</Text>
-          </View>
-          <View style={s.statDivider} />
-          <View style={s.statItem}>
-            <Text style={s.statVal}>{dashboard.freeToAssign.toLocaleString('nb-NO')}</Text>
-            <Text style={[s.statLbl, { color: 'rgba(91,163,201,0.7)' }]}>FREE</Text>
-          </View>
-        </View>
+        <Animated.View entering={FadeInUp.delay(100).duration(360)}>
+          <DashboardSummaryCards items={summaryItems} />
+        </Animated.View>
 
-        <View style={s.section}>
-          <View style={s.sectionHdr}>
-            <TouchableOpacity onPress={() => navigation.navigate('Timeline')} activeOpacity={0.8}>
-              <Text style={s.sectionTitle}>Upcoming</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Timeline')}>
-              <Text style={s.seeAll}>See Timeline</Text>
-            </TouchableOpacity>
-          </View>
+        <Animated.View entering={FadeInUp.delay(160).duration(360)}>
+          <DashboardBillsCard
+            billsTotal={dashboard.billsTotal ?? 0}
+            transferToBills={transferToBills}
+            billEntries={dashboard.billEntries ?? []}
+            onPressTimeline={() => navigation.navigate('Timeline')}
+          />
+        </Animated.View>
 
-          {upcomingCards.length === 0 ? (
-            <View style={s.emptyCard}>
-              <Text style={s.emptyTitle}>No upcoming expenses</Text>
-              <Text style={s.emptySub}>Set a due day on fixed costs to populate this section.</Text>
-            </View>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.hScroll}>
-              {upcomingCards.map((item) => {
-                const isDue = item.isDue
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={s.billCard}
-                    onPress={() => handleOpenPlannedExpense(item)}
-                    activeOpacity={0.84}
-                  >
-                    <LinearGradient
-                      colors={
-                        isDue
-                          ? ['rgba(212,135,74,0.12)', 'rgba(212,135,74,0.04)']
-                          : ['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.01)']
-                      }
-                      style={s.billCardGrad}
-                    >
-                      <View
-                        style={[
-                          s.dateCircle,
-                          {
-                            backgroundColor: isDue ? 'rgba(212,135,74,0.12)' : 'rgba(91,163,201,0.08)',
-                            borderColor: isDue ? 'rgba(212,135,74,0.25)' : 'rgba(91,163,201,0.18)',
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            s.dateDay,
-                            { color: isDue ? 'rgba(212,135,74,0.9)' : 'rgba(91,163,201,0.8)' },
-                          ]}
-                        >
-                          {item.preview.day}
-                        </Text>
-                        <Text style={s.dateMon}>{item.preview.month}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.billAmt}>{fmtKr(item.allocated)}</Text>
-                        <Text style={s.billLbl} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )
-              })}
-            </ScrollView>
-          )}
-        </View>
+        <Animated.View entering={FadeInUp.delay(220).duration(360)}>
+          <DashboardUpcomingPreview
+            items={upcomingCards.slice(0, 3)}
+            onOpenTimeline={() => navigation.navigate('Timeline')}
+            onOpenItem={handleOpenPlannedExpense}
+          />
+        </Animated.View>
 
-        <View style={s.listCard}>
-          <LinearGradient colors={['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.015)']} style={s.listCardGrad}>
-            <TouchableOpacity style={s.listHdr} onPress={() => setCostsExpanded(!costsExpanded)}>
-              <View style={s.listHdrRow}>
-                <View style={[s.dot, { backgroundColor: 'rgba(212,135,74,0.7)' }]} />
-                <Text style={s.listTitle}>Fixed Costs</Text>
-                <FontAwesome5
-                  name={costsExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={9}
-                  color="rgba(255,255,255,0.25)"
-                />
-              </View>
-              <Text style={s.listTotal}>{fmtKr(fixedCostsTotal)}</Text>
-            </TouchableOpacity>
-            {costsExpanded &&
-              fixedCategories.map((item, index) => (
-                <View
-                  key={item.id}
-                  style={[s.row, index < fixedCategories.length - 1 && s.rowBorder]}
-                >
-                  <View style={s.rowLeft}>
-                    <View style={[s.dotMini, { backgroundColor: 'rgba(255,255,255,0.12)' }]} />
-                    <Text style={s.rowLbl}>{item.name}</Text>
-                  </View>
-                  <Text style={s.rowAmt}>{item.allocated === 0 ? '---' : fmtKr(item.allocated)}</Text>
-                </View>
-              ))}
-            {!costsExpanded && (
-              <Text style={s.collapsedHint}>{fixedCategories.length} items - {fmtKr(fixedCostsTotal)}</Text>
-            )}
-          </LinearGradient>
-        </View>
+        <Animated.View entering={FadeInUp.delay(280).duration(360)}>
+          <DashboardBudgetSnapshot
+            totalBudget={dashboard.totalBudget}
+            budgetAssignments={dashboard.budgetAssignments}
+            onOpenBudget={() => setBudgetModalVisible(true)}
+          />
+        </Animated.View>
       </ScrollView>
 
       {fabOpen && <TouchableOpacity style={s.fabBackdrop} activeOpacity={1} onPress={() => setFabOpen(false)} />}
@@ -479,6 +417,22 @@ export function HomeScreen() {
           void loadDashboard()
         }}
       />
+
+      <DashboardProfileModal
+        visible={profileModalVisible}
+        displayName={user?.displayName || 'Profile'}
+        email={user?.email || 'Signed in'}
+        avatarSeed={user?.displayName || user?.email || 'OrionLedger'}
+        onOpenSettings={() => {
+          setProfileModalVisible(false)
+          navigation.navigate('SettingsDetail')
+        }}
+        onClose={() => setProfileModalVisible(false)}
+        onSignOut={() => {
+          setProfileModalVisible(false)
+          void signOut()
+        }}
+      />
     </View>
   )
 }
@@ -545,113 +499,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   scroll: { paddingBottom: 178 },
-  hero: { alignItems: 'center', paddingTop: 40, paddingBottom: 32 },
-  heroLbl: { color: 'rgba(255,255,255,0.22)', fontSize: 8, letterSpacing: 3, marginBottom: 12 },
-  heroAmt: {
-    color: 'rgba(255,255,255,0.92)',
-    fontSize: 42,
-    fontWeight: '900',
-    letterSpacing: -1,
-    marginBottom: 22,
-  },
-  barTrack: {
-    width: '52%',
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  barFill: { height: '100%', borderRadius: 2 },
-  barMeta: { flexDirection: 'row', justifyContent: 'space-between', width: '52%' },
-  barMetaTxt: { color: 'rgba(255,255,255,0.2)', fontSize: 8, letterSpacing: 0.5 },
-  statStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 32,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 14,
-    paddingVertical: 14,
-  },
-  statItem: { flex: 1, alignItems: 'center' },
-  statVal: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '700' },
-  statLbl: { fontSize: 7, letterSpacing: 1.5, marginTop: 3 },
-  statDivider: { width: 1, height: 26, backgroundColor: 'rgba(255,255,255,0.06)' },
-  section: { marginBottom: 24 },
-  sectionHdr: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 14,
-  },
-  sectionTitle: { color: 'rgba(255,255,255,0.75)', fontSize: 15, fontWeight: '700' },
-  seeAll: { color: 'rgba(201,168,76,0.7)', fontSize: 11, fontWeight: '600' },
-  hScroll: { paddingHorizontal: 20, gap: 10 },
-  billCard: {
-    width: 158,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  billCardGrad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  dateCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateDay: { fontSize: 14, fontWeight: '900' },
-  dateMon: { color: 'rgba(255,255,255,0.2)', fontSize: 7, fontWeight: '700', marginTop: -1 },
-  billAmt: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '800' },
-  billLbl: { color: 'rgba(255,255,255,0.3)', fontSize: 9, marginTop: 2 },
-  emptyCard: {
-    marginHorizontal: 20,
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  emptyTitle: { color: 'rgba(255,255,255,0.7)', fontSize: 15, fontWeight: '700', marginBottom: 6 },
-  emptySub: { color: 'rgba(255,255,255,0.3)', fontSize: 13 },
-  listCard: {
-    marginHorizontal: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  listCardGrad: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-  listHdr: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  listHdrRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 5, height: 5, borderRadius: 2.5 },
-  listTitle: { color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '700' },
-  listTotal: { color: 'rgba(212,135,74,0.8)', fontSize: 12, fontWeight: '700' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dotMini: { width: 3, height: 3, borderRadius: 1.5 },
-  rowLbl: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
-  rowAmt: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '600' },
-  collapsedHint: { color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center', paddingBottom: 8 },
   fabBackdrop: {
     position: 'absolute',
     top: 0,

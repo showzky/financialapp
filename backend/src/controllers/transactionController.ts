@@ -13,6 +13,7 @@ const createTransactionSchema = z.object({
   note: z.string().trim().max(400).optional(),
   transactionDate: z.string().trim().date(),
   isPaid: z.boolean().optional(),
+  countsTowardBills: z.boolean().optional(),
 })
 
 const updateTransactionSchema = z
@@ -22,6 +23,7 @@ const updateTransactionSchema = z
     note: z.string().trim().max(400).nullable().optional(),
     transactionDate: z.string().trim().date().optional(),
     isPaid: z.boolean().optional(),
+    countsTowardBills: z.boolean().optional(),
   })
   .refine(
     (value) =>
@@ -29,7 +31,8 @@ const updateTransactionSchema = z
       value.amount !== undefined ||
       value.note !== undefined ||
       value.transactionDate !== undefined ||
-      value.isPaid !== undefined,
+      value.isPaid !== undefined ||
+      value.countsTowardBills !== undefined,
     {
       message: 'At least one field must be provided',
     },

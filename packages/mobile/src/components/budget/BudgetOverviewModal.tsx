@@ -99,6 +99,7 @@ export function BudgetOverviewModal({
         type: category.type ?? 'budget',
         allocated: 0,
         monthSpent: 0,
+        billCoveredAmount: 0,
         dueDayOfMonth: category.dueDayOfMonth ?? null,
         sortOrder: category.sortOrder,
         isDefault: category.isDefault,

@@ -1,0 +1,2 @@
+ALTER TABLE transactions
+ADD COLUMN IF NOT EXISTS counts_toward_bills BOOLEAN NOT NULL DEFAULT FALSE;

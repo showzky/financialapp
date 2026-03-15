@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Financial App",
-    "slug": "financial-app",
+    "name": "OrionLedger",
+    "slug": "orion-ledger",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",

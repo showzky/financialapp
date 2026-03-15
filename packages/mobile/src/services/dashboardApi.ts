@@ -15,6 +15,7 @@ export type CategoryWithSpent = {
   type: 'budget' | 'fixed'
   allocated: number
   monthSpent: number
+  billCoveredAmount: number
   dueDayOfMonth?: number | null
   sortOrder: number
   isDefault: boolean
@@ -36,11 +37,22 @@ export type IncomeEntry = {
   isPaid: boolean
 }
 
+export type BillEntry = {
+  id: string
+  categoryId: string
+  name: string
+  amount: number
+  transactionDate: string
+  isPaid: boolean
+}
+
 export type DashboardData = {
   totalIncome: number
   totalBudget: number
   totalSpent: number
   fixedCostsTotal: number
+  totalBillCoverage: number
+  billsTotal: number
   remaining: number
   totalAllocated: number
   freeToAssign: number
@@ -50,6 +62,7 @@ export type DashboardData = {
   categories: CategoryWithSpent[]
   budgetAssignments: CategoryWithSpent[]
   incomeEntries: IncomeEntry[]
+  billEntries: BillEntry[]
 }
 
 type CurrentUserDto = {
@@ -84,6 +97,7 @@ type TransactionDto = {
   note: string | null
   transactionDate: string
   isPaid: boolean
+  countsTowardBills: boolean
   createdAt: string
 }
 
@@ -174,10 +188,49 @@ function buildRolledUpSpendByCategory(
   return totals
 }
 
+function buildBillCoverageByCategory(
+  categories: CategoryDto[],
+  monthTransactions: TransactionDto[],
+) {
+  const categoryById = new Map(categories.map((category) => [category.id, category]))
+  const fixedParentByName = new Map(
+    categories
+      .filter((category) => category.type === 'fixed' && category.parentName === category.name)
+      .map((category) => [category.name, category]),
+  )
+  const totals = new Map<string, number>()
+
+  monthTransactions.forEach((transaction) => {
+    if (!transaction.countsTowardBills) {
+      return
+    }
+
+    const sourceCategory = categoryById.get(transaction.categoryId)
+    if (!sourceCategory) {
+      return
+    }
+
+    const amount = Number.isFinite(transaction.amount) ? transaction.amount : 0
+
+    if (sourceCategory.type === 'fixed') {
+      totals.set(sourceCategory.id, (totals.get(sourceCategory.id) ?? 0) + amount)
+      return
+    }
+
+    const fixedParent = fixedParentByName.get(sourceCategory.parentName)
+    if (fixedParent) {
+      totals.set(fixedParent.id, (totals.get(fixedParent.id) ?? 0) + amount)
+    }
+  })
+
+  return totals
+}
+
 function toCategoryWithSpent(
   category: CategoryDto,
   allocated: number,
   spendByCategory: Map<string, number>,
+  billCoverageByCategory: Map<string, number>,
 ): CategoryWithSpent {
   return {
     id: category.id,
@@ -189,6 +242,7 @@ function toCategoryWithSpent(
     type: category.type,
     allocated,
     monthSpent: spendByCategory.get(category.id) ?? 0,
+    billCoveredAmount: billCoverageByCategory.get(category.id) ?? 0,
     dueDayOfMonth: Number.isFinite(category.dueDayOfMonth) ? Number(category.dueDayOfMonth) : null,
     sortOrder: Number.isFinite(category.sortOrder) ? category.sortOrder : 0,
     isDefault: Boolean(category.isDefault),
@@ -200,6 +254,7 @@ function buildAssignedBudgetCategories(
   categories: CategoryDto[],
   assignments: MonthlyBudgetCategoryAssignment[],
   spendByCategory: Map<string, number>,
+  billCoverageByCategory: Map<string, number>,
 ) {
   const categoryById = new Map(categories.map((category) => [category.id, category]))
 
@@ -214,6 +269,7 @@ function buildAssignedBudgetCategories(
         category,
         Number.isFinite(assignment.allocated) ? assignment.allocated : 0,
         spendByCategory,
+        billCoverageByCategory,
       )
     })
     .filter((category): category is CategoryWithSpent => Boolean(category))
@@ -252,12 +308,20 @@ export const dashboardApi = {
     )
 
     const spendByCategory = buildRolledUpSpendByCategory(categories, monthTransactions)
-    const assignedBudgetCategories = buildAssignedBudgetCategories(categories, budgetAssignments, spendByCategory)
+    const billCoverageByCategory = buildBillCoverageByCategory(categories, monthTransactions)
+    const categoryById = new Map(categories.map((category) => [category.id, category]))
+    const assignedBudgetCategories = buildAssignedBudgetCategories(
+      categories,
+      budgetAssignments,
+      spendByCategory,
+      billCoverageByCategory,
+    )
     const enrichedCategories = categories.map((category) =>
       toCategoryWithSpent(
         category,
         Number.isFinite(category.allocated) ? category.allocated : 0,
         spendByCategory,
+        billCoverageByCategory,
       ),
     )
 
@@ -268,6 +332,29 @@ export const dashboardApi = {
           ? user.monthlyIncome
           : 0
     const totalSpent = sum(monthTransactions.map((transaction) => (Number.isFinite(transaction.amount) ? transaction.amount : 0)))
+    const totalBillCoverage = sum(
+      monthTransactions
+        .filter((transaction) => transaction.countsTowardBills)
+        .map((transaction) => (Number.isFinite(transaction.amount) ? transaction.amount : 0)),
+    )
+    const billEntries = transactions
+      .filter((transaction) =>
+        transaction.countsTowardBills &&
+        isInRange(transaction.transactionDate, start, end),
+      )
+      .map((transaction) => {
+        const category = categoryById.get(transaction.categoryId)
+        return {
+          id: transaction.id,
+          categoryId: transaction.categoryId,
+          name: transaction.note?.trim() || category?.name || 'Bill',
+          amount: Number.isFinite(transaction.amount) ? transaction.amount : 0,
+          transactionDate: transaction.transactionDate,
+          isPaid: transaction.isPaid,
+        }
+      })
+      .sort((left, right) => new Date(left.transactionDate).getTime() - new Date(right.transactionDate).getTime())
+    const billsTotal = sum(billEntries.map((entry) => entry.amount))
     const fixedCostsTotal = sum(
       categories
         .filter((category) => category.type === 'fixed')
@@ -289,6 +376,8 @@ export const dashboardApi = {
       totalBudget,
       totalSpent,
       fixedCostsTotal,
+      totalBillCoverage,
+      billsTotal,
       remaining,
       totalAllocated,
       freeToAssign,
@@ -299,6 +388,7 @@ export const dashboardApi = {
       activeLoans: Number.isFinite(loanSummary.activeCount) ? loanSummary.activeCount : 0,
       categories: enrichedCategories,
       budgetAssignments: assignedBudgetCategories,
+      billEntries,
       incomeEntries: monthIncomeEntries.map((entry) => ({
         id: entry.id,
         incomeCategoryId: entry.incomeCategoryId,

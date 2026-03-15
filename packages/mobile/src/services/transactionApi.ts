@@ -7,6 +7,7 @@ export type CreateTransactionPayload = {
   transactionDate: string // YYYY-MM-DD
   note?: string
   isPaid?: boolean
+  countsTowardBills?: boolean
 }
 
 export type TransactionResponse = {
@@ -17,6 +18,7 @@ export type TransactionResponse = {
   note: string | null
   transactionDate: string
   isPaid: boolean
+  countsTowardBills: boolean
   createdAt: string
 }
 

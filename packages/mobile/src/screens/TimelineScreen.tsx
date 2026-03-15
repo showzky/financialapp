@@ -16,8 +16,10 @@ import { TimelineFilterBar } from '../components/timeline/TimelineFilterBar'
 import { TimelineHeroCard } from '../components/timeline/TimelineHeroCard'
 import { TimelineIncomeSection } from '../components/timeline/TimelineIncomeSection'
 import { TimelineMonthSection } from '../components/timeline/TimelineMonthSection'
+import { TimelineOrionInsights } from '../components/timeline/TimelineOrionInsights'
 import type { TimelineEntry, TimelineFilter } from '../features/timeline/types'
 import {
+  buildTimelineInsights,
   buildTimelineSections,
   formatMonthTitle,
   formatTimelineCurrency,
@@ -99,6 +101,11 @@ export function TimelineScreen() {
   const timelineSections = useMemo(
     () => buildTimelineSections(dashboard?.categories ?? [], transactions, selectedMonth, filter, new Date(), paidEntryKeys),
     [dashboard, filter, paidEntryKeys, selectedMonth, transactions],
+  )
+
+  const timelineInsights = useMemo(
+    () => buildTimelineInsights(timelineSections, transactions, dashboard?.incomeEntries ?? []),
+    [dashboard?.incomeEntries, timelineSections, transactions],
   )
 
   const handleOpenPlannedExpense = useCallback(
@@ -192,6 +199,8 @@ export function TimelineScreen() {
           nearestDueLabel={nearestDueLabel}
           plannedCount={plannedCount}
         />
+
+        <TimelineOrionInsights insights={timelineInsights} />
 
         <View style={styles.quickStatsRow}>
           <View style={styles.quickStatCard}>

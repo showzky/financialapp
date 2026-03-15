@@ -31,3 +31,10 @@ export type TimelineSection = {
   nearestDueLabel: string
   entries: TimelineEntry[]
 }
+
+export type TimelineInsight = {
+  id: string
+  title: string
+  detail: string
+  tone: 'info' | 'bill' | 'income'
+}

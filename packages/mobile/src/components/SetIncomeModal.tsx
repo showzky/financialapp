@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -13,6 +14,7 @@ import {
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { Controller, useForm } from 'react-hook-form'
 import { type CategoryWithSpent } from '../services/dashboardApi'
 import { incomeApi } from '../services/incomeApi'
 import { transactionApi } from '../services/transactionApi'
@@ -29,6 +31,17 @@ type Props = {
   categories?: CategoryWithSpent[]
   onClose: () => void
   onEntryCreated: () => void
+}
+
+type EntryFormValues = {
+  amount: string
+  entryName: string
+  selectedCategory: CategoryDto | null
+  selectedDateTime: Date
+  isPaid: boolean
+  countsTowardBills: boolean
+  accountName: string
+  notes: string
 }
 
 function formatDisplayDate(date: Date) {
@@ -125,16 +138,34 @@ export function SetIncomeModal({
     [categories],
   )
 
-  const [amount, setAmount] = useState('')
-  const [entryName, setEntryName] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<CategoryDto | null>(defaultExpenseCategory)
-  const [selectedDateTime, setSelectedDateTime] = useState(() => buildInitialDate(selectedMonth))
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [iosPickerMode, setIosPickerMode] = useState<null | 'date' | 'time'>(null)
+  const [showMore, setShowMore] = useState(false)
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const amountInputRef = useRef<TextInput>(null)
+  const { control, watch, reset, setValue, getValues } = useForm<EntryFormValues>({
+    defaultValues: {
+      amount: '',
+      entryName: '',
+      selectedCategory: mode === 'expense' ? defaultExpenseCategory : null,
+      selectedDateTime: buildInitialDate(selectedMonth),
+      isPaid: true,
+      countsTowardBills: false,
+      accountName: 'None',
+      notes: '',
+    },
+  })
+
+  const amount = watch('amount')
+  const entryName = watch('entryName')
+  const selectedCategory = watch('selectedCategory')
+  const selectedDateTime = watch('selectedDateTime')
+  const isPaid = watch('isPaid')
+  const countsTowardBills = watch('countsTowardBills')
+  const accountName = watch('accountName')
+  const notes = watch('notes')
 
   useEffect(() => {
     if (!isOpen) {
@@ -143,10 +174,17 @@ export function SetIncomeModal({
       return
     }
 
-    setAmount('')
-    setEntryName('')
-    setSelectedCategory(mode === 'expense' ? defaultExpenseCategory : null)
-    setSelectedDateTime(buildInitialDate(selectedMonth))
+    reset({
+      amount: '',
+      entryName: '',
+      selectedCategory: mode === 'expense' ? defaultExpenseCategory : null,
+      selectedDateTime: buildInitialDate(selectedMonth),
+      isPaid: true,
+      countsTowardBills: false,
+      accountName: 'None',
+      notes: '',
+    })
+    setShowMore(false)
     setHasTriedSubmit(false)
     setSubmitting(false)
     setSubmitError('')
@@ -158,7 +196,7 @@ export function SetIncomeModal({
     }, 250)
 
     return () => clearTimeout(timer)
-  }, [defaultExpenseCategory, isOpen, mode, selectedMonth])
+  }, [defaultExpenseCategory, isOpen, mode, reset, selectedMonth])
 
   const amountError =
     amount === '' || isNaN(Number(amount)) || Number(amount) <= 0
@@ -182,7 +220,9 @@ export function SetIncomeModal({
         value: selectedDateTime,
         onChange: (_event, picked) => {
           if (!picked) return
-          setSelectedDateTime((current) =>
+          const current = getValues('selectedDateTime')
+          setValue(
+            'selectedDateTime',
             pickerMode === 'date' ? mergeDatePart(current, picked) : mergeTimePart(current, picked),
           )
         },
@@ -207,15 +247,17 @@ export function SetIncomeModal({
           name: entryName.trim() || selectedCategory.name,
           amount: Number(amount),
           receivedAt: selectedDateTime.toISOString(),
-          isPaid: true,
+          accountName: accountName === 'None' ? undefined : accountName,
+          isPaid,
         })
       } else {
         await transactionApi.createTransaction({
           categoryId: selectedCategory.id,
           amount: Number(amount),
           transactionDate: formatTransactionDate(selectedDateTime),
-          note: entryName.trim() || undefined,
-          isPaid: true,
+          note: notes.trim() || entryName.trim() || undefined,
+          isPaid,
+          countsTowardBills,
         })
       }
 
@@ -240,12 +282,11 @@ export function SetIncomeModal({
           <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose} />
 
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.container}
           >
             <View style={styles.sheet}>
               <LinearGradient colors={['#161524', '#0d0d18']} style={styles.sheetGradient} />
-              <View style={styles.handle} />
 
               <ScrollView contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
                 <View style={styles.header}>
@@ -272,8 +313,8 @@ export function SetIncomeModal({
                           <View
                             style={[
                               styles.selectIcon,
-                              {
-                                backgroundColor: selectedCategory.color,
+              {
+                backgroundColor: selectedCategory.color,
                                 borderColor: 'rgba(255,255,255,0.08)',
                               },
                             ]}
@@ -297,25 +338,48 @@ export function SetIncomeModal({
                   <View style={styles.section}>
                     <Text style={styles.label}>AMOUNT</Text>
                     <View style={styles.amountRow}>
-                      <TextInput
-                        ref={amountInputRef}
-                        style={[
-                          styles.input,
-                          styles.amountInput,
-                          hasTriedSubmit && amountError ? styles.inputError : undefined,
-                        ]}
-                        placeholder="0"
-                        placeholderTextColor="rgba(255,255,255,0.2)"
-                        keyboardType="decimal-pad"
-                        value={amount}
-                        onChangeText={setAmount}
-                        editable={!submitting}
+                      <Controller
+                        control={control}
+                        name="amount"
+                        render={({ field: { onChange, value } }) => (
+                          <TextInput
+                            ref={amountInputRef}
+                            style={[
+                              styles.input,
+                              styles.amountInput,
+                              hasTriedSubmit && amountError ? styles.inputError : undefined,
+                            ]}
+                            placeholder="0"
+                            placeholderTextColor="rgba(255,255,255,0.2)"
+                            keyboardType="decimal-pad"
+                            value={value}
+                            onChangeText={onChange}
+                            editable={!submitting}
+                          />
+                        )}
                       />
                       <View style={styles.currencyPill}>
                         <Text style={styles.currencyText}>NOK</Text>
                       </View>
+                      <View style={styles.paidPill}>
+                        <Text style={styles.paidText}>Paid</Text>
+                        <Switch
+                          value={isPaid}
+                          onValueChange={(value) => setValue('isPaid', value)}
+                          trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(123,82,220,0.4)' }}
+                          thumbColor={isPaid ? '#c65cff' : '#f4f4f8'}
+                        />
+                      </View>
                     </View>
                     {hasTriedSubmit && amountError ? <Text style={styles.errorText}>{amountError}</Text> : null}
+                  </View>
+
+                  <View style={styles.section}>
+                    <Text style={styles.label}>ACCOUNT</Text>
+                    <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
+                      <Text style={styles.dateText}>{accountName}</Text>
+                      <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.section}>
@@ -331,7 +395,7 @@ export function SetIncomeModal({
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.todayPill}
-                        onPress={() => setSelectedDateTime(new Date())}
+                        onPress={() => setValue('selectedDateTime', new Date())}
                         activeOpacity={0.9}
                       >
                         <Text style={styles.todayText}>Today</Text>
@@ -361,7 +425,9 @@ export function SetIncomeModal({
                           is24Hour
                           onChange={(_event, picked) => {
                             if (!picked) return
-                            setSelectedDateTime((current) =>
+                            const current = getValues('selectedDateTime')
+                            setValue(
+                              'selectedDateTime',
                               iosPickerMode === 'date'
                                 ? mergeDatePart(current, picked)
                                 : mergeTimePart(current, picked),
@@ -374,21 +440,108 @@ export function SetIncomeModal({
                   ) : null}
 
                   <View style={styles.section}>
-                    <Text style={styles.label}>{mode === 'income' ? 'NAME (OPTIONAL)' : 'NOTE (OPTIONAL)'}</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder={mode === 'income' ? 'e.g. March salary' : 'e.g. Dinner, Uber, rent'}
-                      placeholderTextColor="rgba(255,255,255,0.2)"
-                      value={entryName}
-                      onChangeText={setEntryName}
-                      editable={!submitting}
+                    <Text style={styles.label}>NAME</Text>
+                    <Controller
+                      control={control}
+                      name="entryName"
+                      render={({ field: { onChange, value } }) => (
+                        <TextInput
+                          style={styles.input}
+                          placeholder={mode === 'income' ? 'e.g. March salary' : 'e.g. Phone bill'}
+                          placeholderTextColor="rgba(255,255,255,0.2)"
+                          value={value}
+                          onChangeText={onChange}
+                          editable={!submitting}
+                        />
+                      )}
                     />
-                    <Text style={styles.hint}>
-                      {mode === 'income'
-                        ? 'Choose any date and time. Future-dated income stays out of totals until that date arrives.'
-                        : 'Choose any date and time. Future-dated expenses stay out of totals until that date arrives.'}
-                    </Text>
                   </View>
+
+                  <TouchableOpacity style={styles.moreToggle} onPress={() => setShowMore((current) => !current)} activeOpacity={0.86}>
+                    <Text style={styles.moreToggleText}>MORE</Text>
+                    <Ionicons name={showMore ? 'chevron-up' : 'chevron-down'} size={14} color="rgba(92,163,255,0.92)" />
+                  </TouchableOpacity>
+
+                  {showMore ? (
+                    <>
+                      <View style={styles.section}>
+                        <Text style={styles.label}>NOTES</Text>
+                        <Controller
+                          control={control}
+                          name="notes"
+                          render={({ field: { onChange, value } }) => (
+                            <TextInput
+                              style={[styles.input, styles.multilineInput]}
+                              placeholder="Add a note"
+                              placeholderTextColor="rgba(255,255,255,0.2)"
+                              value={value}
+                              onChangeText={onChange}
+                              editable={!submitting}
+                              multiline
+                            />
+                          )}
+                        />
+                      </View>
+
+                      <View style={styles.section}>
+                        <Text style={styles.label}>REPEAT</Text>
+                        <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
+                          <Text style={styles.dateText}>Does not repeat</Text>
+                          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.section}>
+                        <Text style={styles.label}>REMIND</Text>
+                        <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
+                          <Text style={styles.dateText}>Don't remind</Text>
+                          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.section}>
+                        <Text style={styles.label}>GOAL OR DEBT</Text>
+                        <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
+                          <Text style={styles.dateText}>None</Text>
+                          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.section}>
+                        <Text style={styles.label}>COLOR</Text>
+                        <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
+                          <Text style={styles.dateText}>Default</Text>
+                          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {mode === 'expense' ? (
+                        <View style={styles.section}>
+                          <Text style={styles.label}>BILLS</Text>
+                          <View style={styles.toggleRow}>
+                            <View style={styles.toggleTextWrap}>
+                              <Text style={styles.toggleTitle}>Counts toward bills</Text>
+                              <Text style={styles.toggleHint}>
+                                Use this for expenses that should reduce what you still need to transfer to bills.
+                              </Text>
+                            </View>
+                            <Switch
+                              value={countsTowardBills}
+                              onValueChange={(value) => setValue('countsTowardBills', value)}
+                              trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(91,163,201,0.45)' }}
+                              thumbColor={countsTowardBills ? '#63aaff' : '#f4f4f8'}
+                            />
+                          </View>
+                        </View>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  <Text style={styles.hint}>
+                    {mode === 'income'
+                      ? 'Choose any date and time. Future-dated income stays out of totals until that date arrives.'
+                      : 'Choose any date and time. Future-dated expenses stay out of totals until that date arrives.'}
+                  </Text>
 
                   {submitError ? (
                     <View style={styles.errorBox}>
@@ -444,7 +597,7 @@ export function SetIncomeModal({
         defaultExpenseType={mode === 'expense' ? 'fixed' : 'budget'}
         onClose={() => setCategoryPickerOpen(false)}
         onSelect={(category) => {
-          setSelectedCategory(category)
+          setValue('selectedCategory', category)
         }}
       />
     </>

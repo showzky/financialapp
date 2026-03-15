@@ -1,6 +1,6 @@
 import type { CategoryWithSpent } from '../../services/dashboardApi'
 import type { TransactionResponse } from '../../services/transactionApi'
-import type { TimelineEntry, TimelineFilter, TimelineSection, TimelineUrgency } from './types'
+import type { TimelineEntry, TimelineFilter, TimelineInsight, TimelineSection, TimelineUrgency } from './types'
 
 const DAY_MS = 1000 * 60 * 60 * 24
 
@@ -262,4 +262,73 @@ export function getTimelinePaymentMeta(status: TimelineEntry['paymentStatus']) {
     dotColor: 'rgba(201,107,107,0.18)',
     textColor: '#ff9892',
   }
+}
+
+export function buildTimelineInsights(
+  sections: TimelineSection[],
+  scheduledExpenses: TransactionResponse[],
+  incomeEntries: Array<{ amount: number; isPaid: boolean; category: string | null; receivedAt: string }>,
+): TimelineInsight[] {
+  const insights: TimelineInsight[] = []
+  const allEntries = sections.flatMap((section) => section.entries)
+
+  const billHeavyDays = new Set(
+    scheduledExpenses
+      .filter((transaction) => transaction.countsTowardBills)
+      .map((transaction) => new Date(transaction.transactionDate).toISOString().split('T')[0]),
+  ).size
+
+  if (billHeavyDays > 0) {
+    insights.push({
+      id: 'bill-heavy-days',
+      title: `Orion noticed ${billHeavyDays} bill-heavy ${billHeavyDays === 1 ? 'day' : 'days'}`,
+      detail: 'Bills-tagged activity is clustering this month, so your transfer planning may matter more than usual.',
+      tone: 'bill',
+    })
+  }
+
+  const paidIncomeEntries = incomeEntries.filter((entry) => entry.isPaid && Number.isFinite(entry.amount))
+  const totalIncome = paidIncomeEntries.reduce((sum, entry) => sum + entry.amount, 0)
+  const topIncome = paidIncomeEntries.reduce<{ amount: number; category: string | null } | null>((max, entry) => {
+    if (!max || entry.amount > max.amount) {
+      return { amount: entry.amount, category: entry.category }
+    }
+    return max
+  }, null)
+
+  if (topIncome && totalIncome > 0 && topIncome.amount / totalIncome >= 0.45) {
+    insights.push({
+      id: 'income-spike',
+      title: 'Income spike detected',
+      detail: `${topIncome.category || 'One income source'} accounts for most of this month’s incoming cashflow.`,
+      tone: 'income',
+    })
+  }
+
+  const diningRelated = scheduledExpenses.filter((transaction) => {
+    const note = transaction.note?.toLowerCase() ?? ''
+    return note.includes('restaurant') || note.includes('food') || note.includes('dinner') || note.includes('lunch') || note.includes('coffee')
+  })
+  const diningTotal = diningRelated.reduce((sum, transaction) => sum + transaction.amount, 0)
+  const expenseTotal = scheduledExpenses.reduce((sum, transaction) => sum + transaction.amount, 0)
+
+  if (diningTotal > 0 && expenseTotal > 0 && diningTotal / expenseTotal >= 0.2) {
+    insights.push({
+      id: 'dining-pattern',
+      title: 'Dining spend is above your usual pattern',
+      detail: 'Food-adjacent spending is taking a larger share of this month’s transaction flow.',
+      tone: 'info',
+    })
+  }
+
+  if (insights.length === 0 && allEntries.length > 0) {
+    insights.push({
+      id: 'timeline-read',
+      title: 'Orion is tracking the month',
+      detail: `There are ${allEntries.length} scheduled money events in view, and the timeline is ready for deeper pattern reading.`,
+      tone: 'info',
+    })
+  }
+
+  return insights.slice(0, 3)
 }

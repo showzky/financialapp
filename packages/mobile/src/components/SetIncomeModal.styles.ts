@@ -10,27 +10,18 @@ export const setIncomeModalStyles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   container: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
   sheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    flex: 1,
     overflow: 'hidden',
-    maxHeight: '88%',
   },
   sheetGradient: {
     ...StyleSheet.absoluteFillObject,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 4,
-  },
   sheetContent: {
+    paddingTop: 18,
     paddingBottom: 40,
   },
   header: {
@@ -64,6 +55,7 @@ export const setIncomeModalStyles = StyleSheet.create({
     color: 'rgba(255,255,255,0.3)',
     fontSize: 12,
     marginBottom: 10,
+    lineHeight: 17,
   },
   selectRow: {
     flexDirection: 'row',
@@ -108,6 +100,7 @@ export const setIncomeModalStyles = StyleSheet.create({
   amountRow: {
     flexDirection: 'row',
     gap: 10,
+    alignItems: 'stretch',
   },
   amountInput: {
     flex: 1,
@@ -124,6 +117,22 @@ export const setIncomeModalStyles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
     fontWeight: '700',
+  },
+  paidPill: {
+    minWidth: 88,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paidText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   inputError: {
     borderColor: 'rgba(201,107,107,0.9)',
@@ -170,6 +179,48 @@ export const setIncomeModalStyles = StyleSheet.create({
     color: 'rgba(91,163,201,0.9)',
     fontSize: 13,
     fontWeight: '700',
+  },
+  moreToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 18,
+  },
+  moreToggleText: {
+    color: 'rgba(92,163,255,0.92)',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  multilineInput: {
+    minHeight: 92,
+    textAlignVertical: 'top',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  toggleTextWrap: {
+    flex: 1,
+  },
+  toggleTitle: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  toggleHint: {
+    color: 'rgba(255,255,255,0.34)',
+    fontSize: 11,
+    marginTop: 4,
+    lineHeight: 16,
   },
   errorBox: {
     flexDirection: 'row',
