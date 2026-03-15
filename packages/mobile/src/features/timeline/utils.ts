@@ -77,6 +77,38 @@ export function getTimelineCategoryMeta(category: {
   }
 }
 
+function formatTimelineEntryTitle(category?: {
+  name?: string | null
+  parentName?: string | null
+}) {
+  const name = category?.name?.trim()
+  const parentName = category?.parentName?.trim()
+
+  if (!name) {
+    return 'Expense'
+  }
+
+  if (parentName && parentName !== name) {
+    return `${parentName} > ${name}`
+  }
+
+  return name
+}
+
+function formatTimelineCategoryLabel(category?: {
+  name?: string | null
+  parentName?: string | null
+}) {
+  const name = category?.name?.trim()
+  const parentName = category?.parentName?.trim()
+
+  if (parentName && name && parentName !== name) {
+    return `${parentName} > ${name}`
+  }
+
+  return parentName || name || 'Other'
+}
+
 function matchesFilter(entry: TimelineEntry, filter: TimelineFilter) {
   if (filter === 'All') return entry.daysLeft >= 0
   const daysLimit = filter === '7 Days' ? 7 : 30
@@ -117,8 +149,8 @@ export function buildTimelineSections(
           id: `${category.id}-${sectionDate.getFullYear()}-${sectionDate.getMonth()}`,
           categoryId: category.id,
           source: 'planned',
-          title: category.name,
-          category: categoryGroup,
+          title: formatTimelineEntryTitle(category),
+          category: formatTimelineCategoryLabel(category),
           icon: category.icon,
           color: category.color,
           iconColor: category.iconColor,
@@ -137,7 +169,7 @@ export function buildTimelineSections(
     .map((transaction) => {
       const dueDate = new Date(transaction.transactionDate)
       const category = categoryMap.get(transaction.categoryId)
-      const title = transaction.note?.trim() || category?.name || 'Expense'
+      const title = transaction.note?.trim() || formatTimelineEntryTitle(category)
       const { group: categoryGroup, accent } = getTimelineCategoryMeta(category ?? {})
       const daysLeft = getDaysUntil(dueDate, now)
 
@@ -147,7 +179,7 @@ export function buildTimelineSections(
         categoryId: transaction.categoryId,
         source: 'scheduled_expense',
         title,
-        category: categoryGroup,
+        category: formatTimelineCategoryLabel(category),
         icon: category?.icon,
         color: category?.color,
         iconColor: category?.iconColor,

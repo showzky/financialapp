@@ -94,6 +94,7 @@ export function CategoryPickerModal({
   const [editMode, setEditMode] = useState(startInEditMode)
   const [editorVisible, setEditorVisible] = useState(false)
   const [editingCategory, setEditingCategory] = useState<CategoryDto | null>(null)
+  const [editorDraftCategory, setEditorDraftCategory] = useState<Partial<CategoryDto> | null>(null)
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({})
 
   const loadCategories = useCallback(async (options?: { showLoader?: boolean }) => {
@@ -175,10 +176,28 @@ export function CategoryPickerModal({
           activeOpacity={0.88}
           onPress={() => {
             if (editMode) {
-              setEditingCategory(group.parent.id.startsWith('virtual-') ? null : group.parent)
-              if (!group.parent.id.startsWith('virtual-')) {
-                setEditorVisible(true)
+              if (group.parent.id.startsWith('virtual-')) {
+                const closestRealCategory =
+                  group.children.find((child) => child.name === group.parent.name) ?? group.children[0] ?? null
+
+                if (closestRealCategory) {
+                  setEditingCategory(closestRealCategory)
+                  setEditorDraftCategory(null)
+                } else {
+                  setEditingCategory(null)
+                  setEditorDraftCategory({
+                    name: group.parent.name,
+                    parentName: '',
+                    icon: group.parent.icon,
+                    color: group.parent.color,
+                    iconColor: group.parent.iconColor,
+                  })
+                }
+              } else {
+                setEditingCategory(group.parent)
+                setEditorDraftCategory(null)
               }
+              setEditorVisible(true)
               return
             }
 
@@ -343,6 +362,7 @@ export function CategoryPickerModal({
                   style={styles.fab}
                   onPress={() => {
                     setEditingCategory(null)
+                    setEditorDraftCategory(null)
                     setEditorVisible(true)
                   }}
                   activeOpacity={0.9}
@@ -361,6 +381,7 @@ export function CategoryPickerModal({
         visible={editorVisible}
         kind={kind}
         category={editingCategory}
+        draftCategory={editorDraftCategory}
         onClose={() => setEditorVisible(false)}
         onSaved={() => {
           setEditorVisible(false)

@@ -1,4 +1,5 @@
 import { backendClient } from './backendClient'
+import { monthlyBudgetTargetApi } from './monthlyBudgetTargetApi'
 
 export type CategoryWithSpent = {
   id: string
@@ -33,6 +34,7 @@ export type IncomeEntry = {
 
 export type DashboardData = {
   totalIncome: number
+  totalBudget: number
   totalSpent: number
   fixedCostsTotal: number
   remaining: number
@@ -134,12 +136,13 @@ const ensureValidMonth = (selectedMonth: Date): Date => {
 export const dashboardApi = {
   async get(selectedMonth: Date): Promise<DashboardData> {
     const now = new Date()
-    const [user, categories, transactions, loanSummary, incomeEntries] = await Promise.all([
+    const [user, categories, transactions, loanSummary, incomeEntries, monthlyBudgetTarget] = await Promise.all([
       backendClient.get<CurrentUserDto>('/users/me'),
       backendClient.get<CategoryDto[]>('/categories?kind=expense'),
       backendClient.get<TransactionDto[]>('/transactions'),
       backendClient.get<LoanSummaryDto>('/loans/summary'),
       backendClient.get<IncomeEntryDto[]>('/income-entries'),
+      monthlyBudgetTargetApi.get(selectedMonth),
     ])
 
     const { start, end } = toMonthBounds(ensureValidMonth(selectedMonth))
@@ -161,6 +164,14 @@ export const dashboardApi = {
           ? user.monthlyIncome
           : 0
     const totalSpent = sum(monthTransactions.map((t) => (Number.isFinite(t.amount) ? t.amount : 0)))
+    const totalBudget =
+      typeof monthlyBudgetTarget === 'number'
+        ? monthlyBudgetTarget
+        : sum(
+            categories
+              .filter((category) => category.type === 'budget')
+              .map((category) => (Number.isFinite(category.allocated) ? category.allocated : 0)),
+          )
     const fixedCostsTotal = sum(
       categories
         .filter((category) => category.type === 'fixed')
@@ -195,6 +206,7 @@ export const dashboardApi = {
 
     return {
       totalIncome,
+      totalBudget,
       totalSpent,
       fixedCostsTotal,
       remaining,

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MonthPickerModal } from '../components/MonthPickerModal'
 import { SetIncomeModal } from '../components/SetIncomeModal'
-import { CategoryPickerModal } from '../components/categories/CategoryPickerModal'
+import { BudgetOverviewModal } from '../components/budget/BudgetOverviewModal'
 import { usePeriod } from '../context/PeriodContext'
 import { useScreenPalette } from '../customthemes'
 import { dashboardApi, type CategoryWithSpent, type DashboardData } from '../services/dashboardApi'
@@ -57,7 +57,7 @@ export function HomeScreen() {
   const [isMonthPickerVisible, setMonthPickerVisible] = useState(false)
   const [isAddExpenseModalOpen, setAddExpenseModalOpen] = useState(false)
   const [isSetIncomeModalOpen, setSetIncomeModalOpen] = useState(false)
-  const [categoryManagerVisible, setCategoryManagerVisible] = useState(false)
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false)
 
   const [costsExpanded, setCostsExpanded] = useState(true)
   const [fabOpen, setFabOpen] = useState(false)
@@ -191,8 +191,8 @@ export function HomeScreen() {
       <View style={[s.header, { paddingTop: Math.max(insets.top, 12) }]}>
         <View style={s.headerLeft}>
           <Image source={{ uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }} style={s.avatar} />
-          <TouchableOpacity style={s.categoryBtn} onPress={() => setCategoryManagerVisible(true)}>
-            <MaterialCommunityIcons name="shape-outline" size={14} color="rgba(201,168,76,0.8)" />
+          <TouchableOpacity style={s.categoryBtn} onPress={() => setBudgetModalVisible(true)}>
+            <Ionicons name="wallet-outline" size={15} color="rgba(201,168,76,0.84)" />
           </TouchableOpacity>
         </View>
 
@@ -446,15 +446,15 @@ export function HomeScreen() {
         />
       )}
 
-      <CategoryPickerModal
-        visible={categoryManagerVisible}
-        initialKind="expense"
-        startInEditMode
-        onClose={() => {
-          setCategoryManagerVisible(false)
-          void loadDashboard()
-        }}
-        onCategoriesChanged={() => {
+      <BudgetOverviewModal
+        visible={budgetModalVisible}
+        selectedMonth={selectedMonth}
+        totalIncome={dashboard.totalIncome}
+        totalBudget={dashboard.totalBudget}
+        freeToAssign={dashboard.freeToAssign}
+        categories={dashboard.categories}
+        onClose={() => setBudgetModalVisible(false)}
+        onBudgetChanged={() => {
           void loadDashboard()
         }}
       />
@@ -494,9 +494,9 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(201,168,76,0.08)',
+    backgroundColor: 'rgba(201,168,76,0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(201,168,76,0.2)',
+    borderColor: 'rgba(201,168,76,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },

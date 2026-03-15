@@ -9,6 +9,7 @@ import {
 } from '@/types/transaction'
 import { hasBackendConfig } from '@/services/backendClient'
 import { categoryApi } from '@/services/categoryApi'
+import { incomeEntryApi } from '@/services/incomeEntryApi'
 import { transactionApi } from '@/services/transactionApi'
 import { userApi } from '@/services/userApi'
 
@@ -113,6 +114,25 @@ const readRecurringFromStorage = (): RecurringTransaction[] => {
   }
 }
 
+const getCurrentMonthBounds = () => {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+  return { start, end, now }
+}
+
+const isInRange = (dateValue: string, start: Date, end: Date) => {
+  const parsedDate = new Date(dateValue)
+  if (Number.isNaN(parsedDate.getTime())) return false
+  return parsedDate >= start && parsedDate <= end
+}
+
+const isEffectiveNow = (dateValue: string, now: Date) => {
+  const parsedDate = new Date(dateValue)
+  if (Number.isNaN(parsedDate.getTime())) return true
+  return parsedDate <= now
+}
+
 const BudgetContext = createContext<
   | {
       state: BudgetState
@@ -156,40 +176,56 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     // ADD THIS: hydrate local categories from backend when api + access token are available
     if (!hasBackendConfig()) return
 
-    void userApi
-      .getMe()
-      .then((remoteUser) => {
-        setState((current) => ({
-          ...current,
-          income: Number.isFinite(remoteUser.monthlyIncome)
-            ? Math.max(0, remoteUser.monthlyIncome)
-            : current.income,
-        }))
-      })
-      .catch(() => {
-        // ADD THIS: keep local income if backend user profile is unavailable
-      })
+    void Promise.allSettled([
+      userApi.getMe(),
+      categoryApi.list(),
+      transactionApi.list(),
+      incomeEntryApi.list(),
+    ]).then(([userResult, categoriesResult, transactionsResult, incomeEntriesResult]) => {
+      const remoteUser = userResult.status === 'fulfilled' ? userResult.value : null
+      const remoteCategories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : []
+      const remoteTransactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : []
+      const remoteIncomeEntries = incomeEntriesResult.status === 'fulfilled' ? incomeEntriesResult.value : []
 
-    void categoryApi
-      .list()
-      .then((remoteCategories) => {
-        setState((current) => ({
-          ...current,
-          categories: remoteCategories,
-        }))
-      })
-      .catch(() => {
-        // ADD THIS: keep local state if backend is unreachable or token is invalid
-      })
+      setTransactions(remoteTransactions)
 
-    void transactionApi
-      .list()
-      .then((remoteTransactions) => {
-        setTransactions(remoteTransactions)
-      })
-      .catch(() => {
-        // ADD THIS: keep local transaction history empty if backend is unreachable or token is invalid
-      })
+      const { start, end, now } = getCurrentMonthBounds()
+      const currentMonthTransactions = remoteTransactions.filter(
+        (transaction) =>
+          isInRange(transaction.transactionDate, start, end) &&
+          isEffectiveNow(transaction.transactionDate, now),
+      )
+
+      const spendByCategory = new Map<string, number>()
+      for (const transaction of currentMonthTransactions) {
+        const previous = spendByCategory.get(transaction.categoryId) ?? 0
+        spendByCategory.set(transaction.categoryId, previous + (Number.isFinite(transaction.amount) ? transaction.amount : 0))
+      }
+
+      const currentMonthIncomeEntries = remoteIncomeEntries.filter((entry) =>
+        isInRange(entry.receivedAt, start, end),
+      )
+
+      const paidCurrentMonthIncome = currentMonthIncomeEntries
+        .filter((entry) => entry.isPaid && isEffectiveNow(entry.receivedAt, now))
+        .reduce((sum, entry) => sum + (Number.isFinite(entry.amount) ? entry.amount : 0), 0)
+
+      setState((current) => ({
+        ...current,
+        income:
+          currentMonthIncomeEntries.length > 0
+            ? paidCurrentMonthIncome
+            : Number.isFinite(remoteUser?.monthlyIncome)
+              ? Math.max(0, remoteUser?.monthlyIncome ?? 0)
+              : current.income,
+        categories: remoteCategories.map((category) => ({
+          ...category,
+          spent: spendByCategory.get(category.id) ?? 0,
+        })),
+      }))
+    }).catch(() => {
+      // ADD THIS: keep local state if backend is unreachable or token is invalid
+    })
   }, [])
 
   const addCategory = (input: {

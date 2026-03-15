@@ -25,6 +25,8 @@ type Props = {
   visible: boolean
   kind: CategoryKind
   category?: CategoryDto | null
+  draftCategory?: Partial<CategoryDto> | null
+  showSubcategorySection?: boolean
   onClose: () => void
   onSaved: () => void
 }
@@ -75,7 +77,23 @@ function PickerSheet({
   )
 }
 
-export function CategoryEditorModal({ visible, kind, category, onClose, onSaved }: Props) {
+function getIoniconName(icon: string | null | undefined): keyof typeof Ionicons.glyphMap {
+  if (icon && icon in Ionicons.glyphMap) {
+    return icon as keyof typeof Ionicons.glyphMap
+  }
+
+  return 'ellipse-outline'
+}
+
+export function CategoryEditorModal({
+  visible,
+  kind,
+  category,
+  draftCategory,
+  showSubcategorySection = true,
+  onClose,
+  onSaved,
+}: Props) {
   const insets = useSafeAreaInsets()
   const [name, setName] = useState('')
   const [parentName, setParentName] = useState('')
@@ -85,17 +103,43 @@ export function CategoryEditorModal({ visible, kind, category, onClose, onSaved 
   const [pickerKey, setPickerKey] = useState<PickerKey>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [childCategories, setChildCategories] = useState<CategoryDto[]>([])
+  const [childEditorVisible, setChildEditorVisible] = useState(false)
+  const [editingChildCategory, setEditingChildCategory] = useState<CategoryDto | null>(null)
 
   useEffect(() => {
     if (!visible) return
-    setName(category?.name ?? '')
-    setParentName(category && category.parentName !== category.name ? category.parentName : '')
-    setIcon((category?.icon as CategoryIconName) ?? 'ellipse-outline')
-    setColor(category?.color ?? CATEGORY_COLOR_OPTIONS[0])
-    setIconColor(category?.iconColor ?? CATEGORY_ICON_COLOR_OPTIONS[0])
+    setName(category?.name ?? draftCategory?.name ?? '')
+    setParentName(category && category.parentName !== category.name ? category.parentName : draftCategory?.parentName ?? '')
+    setIcon((category?.icon as CategoryIconName) ?? (draftCategory?.icon as CategoryIconName) ?? 'ellipse-outline')
+    setColor(category?.color ?? draftCategory?.color ?? CATEGORY_COLOR_OPTIONS[0])
+    setIconColor(category?.iconColor ?? draftCategory?.iconColor ?? CATEGORY_ICON_COLOR_OPTIONS[0])
     setPickerKey(null)
     setSubmitting(false)
     setError('')
+    setChildCategories([])
+    setEditingChildCategory(null)
+    setChildEditorVisible(false)
+  }, [category, draftCategory, kind, visible])
+
+  useEffect(() => {
+    if (!visible || !category) return
+
+    let active = true
+
+    void categoryApi.listCategories(kind).then((categories) => {
+      if (!active) return
+      setChildCategories(
+        categories.filter((item) => item.parentName === category.name && item.id !== category.id),
+      )
+    }).catch(() => {
+      if (!active) return
+      setChildCategories([])
+    })
+
+    return () => {
+      active = false
+    }
   }, [category, kind, visible])
 
   const title = category ? 'Edit category' : 'Add category'
@@ -137,6 +181,21 @@ export function CategoryEditorModal({ visible, kind, category, onClose, onSaved 
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save category')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!category) return
+
+    try {
+      setSubmitting(true)
+      setError('')
+      await categoryApi.deleteCategory(category.id, kind)
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove category')
     } finally {
       setSubmitting(false)
     }
@@ -205,6 +264,46 @@ export function CategoryEditorModal({ visible, kind, category, onClose, onSaved 
               ))}
             </View>
 
+            {category && showSubcategorySection ? (
+              <View style={styles.subcategorySection}>
+                <View style={styles.subcategoryHeader}>
+                  <Text style={styles.subcategoryTitle}>Subcategories</Text>
+                  <TouchableOpacity
+                    style={styles.subcategoryAddButton}
+                    activeOpacity={0.88}
+                    onPress={() => {
+                      setEditingChildCategory(null)
+                      setChildEditorVisible(true)
+                    }}
+                  >
+                    <Text style={styles.subcategoryAddText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {childCategories.length > 0 ? (
+                  childCategories.map((child) => (
+                    <TouchableOpacity
+                      key={child.id}
+                      style={styles.subcategoryRow}
+                      activeOpacity={0.88}
+                      onPress={() => {
+                        setEditingChildCategory(child)
+                        setChildEditorVisible(true)
+                      }}
+                    >
+                      <View style={[styles.subcategoryIconWrap, { backgroundColor: child.color }]}>
+                        <Ionicons name={getIoniconName(child.icon)} size={14} color={child.iconColor} />
+                      </View>
+                      <Text style={styles.subcategoryRowText}>{child.name}</Text>
+                      <Ionicons name="reorder-three-outline" size={18} color="rgba(255,255,255,0.28)" />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.subcategoryEmpty}>No subcategories yet</Text>
+                )}
+              </View>
+            ) : null}
+
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </ScrollView>
 
@@ -214,9 +313,15 @@ export function CategoryEditorModal({ visible, kind, category, onClose, onSaved 
                 {submitting ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.saveText}>{cta}</Text>}
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.82}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+            {category ? (
+              <TouchableOpacity onPress={() => void handleDelete()} activeOpacity={0.82} disabled={submitting}>
+                <Text style={styles.removeText}>Remove</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={onClose} activeOpacity={0.82}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -237,6 +342,30 @@ export function CategoryEditorModal({ visible, kind, category, onClose, onSaved 
         onSelect={(value) => setIcon(value as CategoryIconName)}
         onClose={() => setPickerKey(null)}
       />
+
+      {showSubcategorySection ? (
+        <CategoryEditorModal
+          visible={childEditorVisible}
+          kind={kind}
+          category={editingChildCategory}
+          draftCategory={
+            editingChildCategory
+              ? null
+              : {
+                  parentName: category?.name ?? '',
+                  color,
+                  iconColor,
+                  icon,
+                }
+          }
+          showSubcategorySection={false}
+          onClose={() => setChildEditorVisible(false)}
+          onSaved={() => {
+            setChildEditorVisible(false)
+            onSaved()
+          }}
+        />
+      ) : null}
     </>
   )
 }
@@ -326,11 +455,72 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'DMSans_500Medium',
   },
+  subcategorySection: {
+    marginTop: 22,
+  },
+  subcategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  subcategoryTitle: {
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 22,
+    fontFamily: 'DMSans_700Bold',
+  },
+  subcategoryAddButton: {
+    minWidth: 64,
+    height: 38,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 14,
+  },
+  subcategoryAddText: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+  },
+  subcategoryRow: {
+    minHeight: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  subcategoryIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subcategoryRowText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 15,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  subcategoryEmpty: {
+    color: 'rgba(255,255,255,0.34)',
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+  },
   footer: { paddingHorizontal: 20, gap: 14 },
   saveButton: { borderRadius: 22, overflow: 'hidden' },
   saveGradient: { minHeight: 58, alignItems: 'center', justifyContent: 'center' },
   saveText: { color: 'white', fontSize: 20, fontFamily: 'DMSans_700Bold' },
   cancelText: { textAlign: 'center', color: 'rgba(255,255,255,0.82)', fontSize: 16, fontFamily: 'DMSans_700Bold' },
+  removeText: { textAlign: 'center', color: '#ff6f61', fontSize: 16, fontFamily: 'DMSans_700Bold' },
   sheetOverlay: {
     flex: 1,
     justifyContent: 'center',
