@@ -18,4 +18,10 @@ export const transactionApi = {
       method: 'DELETE',
     })
   },
+
+  async removeByCategory(categoryId: string): Promise<{ removedCount: number }> {
+    return backendRequest<{ removedCount: number }>(`/transactions/by-category/${categoryId}`, {
+      method: 'DELETE',
+    })
+  },
 }

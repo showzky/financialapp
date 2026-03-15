@@ -189,7 +189,7 @@ export function buildTimelineSections(
         accent,
         urgency: getUrgency(daysLeft),
         daysLeft,
-        paymentStatus: dueDate <= now ? 'paid' : 'unpaid',
+        paymentStatus: transaction.isPaid && dueDate <= now ? 'paid' : 'unpaid',
       } satisfies TimelineEntry
     })
     .filter((entry) => entry.dueDate >= new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1) && entry.dueDate <= lastMonth)

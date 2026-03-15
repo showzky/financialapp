@@ -14,12 +14,14 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { categoryApi, type CategoryDto, type CategoryKind } from '../../services/categoryApi'
 import { CategoryEditorModal } from './CategoryEditorModal'
+import type { ExpenseCategoryType } from '../../services/categoryApi'
 
 type Props = {
   visible: boolean
   initialKind: CategoryKind
   selectedCategoryId?: string | null
   startInEditMode?: boolean
+  defaultExpenseType?: ExpenseCategoryType
   onClose: () => void
   onSelect?: (category: CategoryDto, kind: CategoryKind) => void
   onCategoriesChanged?: () => void
@@ -82,6 +84,7 @@ export function CategoryPickerModal({
   initialKind,
   selectedCategoryId,
   startInEditMode = false,
+  defaultExpenseType = 'budget',
   onClose,
   onSelect,
   onCategoriesChanged,
@@ -362,7 +365,7 @@ export function CategoryPickerModal({
                   style={styles.fab}
                   onPress={() => {
                     setEditingCategory(null)
-                    setEditorDraftCategory(null)
+                    setEditorDraftCategory(kind === 'expense' ? { type: defaultExpenseType } : null)
                     setEditorVisible(true)
                   }}
                   activeOpacity={0.9}

@@ -9,8 +9,11 @@ import {
 } from 'react-native'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useNavigation } from '@react-navigation/native'
+import { CategoryPickerModal } from '../categories/CategoryPickerModal'
 
 import type { CategoryWithSpent } from '../../services/dashboardApi'
+import type { CategoryDto } from '../../services/categoryApi'
 import { SetupBudgetModal } from './SetupBudgetModal'
 
 type Props = {
@@ -20,6 +23,7 @@ type Props = {
   totalBudget: number
   freeToAssign: number
   categories: CategoryWithSpent[]
+  budgetAssignments: CategoryWithSpent[]
   onClose: () => void
   onBudgetChanged: () => void
 }
@@ -55,14 +59,19 @@ export function BudgetOverviewModal({
   totalBudget,
   freeToAssign,
   categories,
+  budgetAssignments,
   onClose,
   onBudgetChanged,
 }: Props) {
+  const navigation = useNavigation<any>()
   const [selectedCategory, setSelectedCategory] = React.useState<CategoryWithSpent | null>(null)
+  const [selectedCategoryCanDelete, setSelectedCategoryCanDelete] = React.useState(true)
   const [summaryTargetVisible, setSummaryTargetVisible] = React.useState(false)
+  const [categoryPickerVisible, setCategoryPickerVisible] = React.useState(false)
+  const [exampleInfoVisible, setExampleInfoVisible] = React.useState(false)
   const budgetCategories = useMemo(
-    () => categories.filter((category) => category.type === 'budget').slice(0, 5),
-    [categories],
+    () => budgetAssignments,
+    [budgetAssignments],
   )
 
   const spentBudget = useMemo(
@@ -73,6 +82,30 @@ export function BudgetOverviewModal({
   const budgetUsage = totalBudget > 0 ? Math.round((spentBudget / totalBudget) * 100) : 0
   const budgetRemaining = Math.max(0, 100 - Math.max(0, Math.min(budgetUsage, 100)))
   const periodLabel = formatPeriod(selectedMonth)
+
+  const handleSelectBudgetCategory = (category: CategoryDto) => {
+    const existingCategory = budgetAssignments.find((item) => item.id === category.id)
+
+    setCategoryPickerVisible(false)
+    setSelectedCategoryCanDelete(Boolean(existingCategory))
+    setSelectedCategory(
+      existingCategory ?? {
+        id: category.id,
+        name: category.name,
+        parentName: category.parentName,
+        icon: category.icon,
+        color: category.color,
+        iconColor: category.iconColor,
+        type: category.type ?? 'budget',
+        allocated: 0,
+        monthSpent: 0,
+        dueDayOfMonth: category.dueDayOfMonth ?? null,
+        sortOrder: category.sortOrder,
+        isDefault: category.isDefault,
+        isArchived: category.isArchived,
+      },
+    )
+  }
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -144,7 +177,56 @@ export function BudgetOverviewModal({
             </TouchableOpacity>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
-              {budgetCategories.map((category) => {
+              {budgetCategories.length === 0
+                ? EXAMPLE_BUDGET_ROWS.map((category) => {
+                    const fillPercent = Math.max(0, 100 - Math.max(0, Math.min(category.usage, 100)))
+
+                    return (
+                      <View key={category.id} style={styles.categoryRowWrap}>
+                        <TouchableOpacity
+                          style={styles.categoryCard}
+                          activeOpacity={0.88}
+                          onPress={() => setExampleInfoVisible(true)}
+                        >
+                          <View style={styles.categoryFillTrack}>
+                            {fillPercent > 0 ? (
+                              <View
+                                style={[
+                                  styles.categoryFill,
+                                  { width: `${fillPercent}%` as const },
+                                ]}
+                              />
+                            ) : null}
+                          </View>
+
+                          <View style={[styles.categoryIconWrap, { backgroundColor: category.color }]}>
+                            <Ionicons name={category.icon} size={16} color={category.iconColor} />
+                          </View>
+
+                          <View style={styles.categoryTextWrap}>
+                            <Text style={styles.categoryName} numberOfLines={1}>
+                              {category.name}
+                            </Text>
+                            <Text style={styles.categoryMeta}>{fmtKr(category.allocated)}</Text>
+                          </View>
+
+                          <View style={styles.categoryAmountWrap}>
+                            <Text style={styles.categoryPercent}>{category.usage}%</Text>
+                            <Text style={styles.categoryAmount}>{fmtKr(category.spent)}</Text>
+                          </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.cogButton}
+                          activeOpacity={0.8}
+                          onPress={() => setExampleInfoVisible(true)}
+                        >
+                          <Ionicons name="settings-outline" size={16} color="rgba(197,212,255,0.88)" />
+                        </TouchableOpacity>
+                      </View>
+                    )
+                  })
+                : budgetCategories.map((category) => {
                 const usage = category.allocated > 0 ? Math.round((category.monthSpent / category.allocated) * 100) : 0
                 const accent = category.iconColor || category.color || '#78d89c'
                 const fillPercent = Math.max(0, 100 - Math.max(0, Math.min(usage, 100)))
@@ -154,7 +236,14 @@ export function BudgetOverviewModal({
                     <TouchableOpacity
                       style={styles.categoryCard}
                       activeOpacity={0.88}
-                      onPress={() => setSelectedCategory(category)}
+                      onPress={() => {
+                        onClose()
+                        navigation.navigate('BudgetCategoryAnalytics', {
+                          categoryId: category.id,
+                          categoryName: category.name,
+                          accent,
+                        })
+                      }}
                     >
                       <View style={styles.categoryFillTrack}>
                         {fillPercent > 0 ? (
@@ -187,7 +276,10 @@ export function BudgetOverviewModal({
                     <TouchableOpacity
                       style={styles.cogButton}
                       activeOpacity={0.8}
-                      onPress={() => setSelectedCategory(category)}
+                      onPress={() => {
+                        setSelectedCategoryCanDelete(true)
+                        setSelectedCategory(category)
+                      }}
                     >
                       <Ionicons name="settings-outline" size={16} color="rgba(197,212,255,0.88)" />
                     </TouchableOpacity>
@@ -196,7 +288,11 @@ export function BudgetOverviewModal({
               })}
             </ScrollView>
 
-            <TouchableOpacity style={styles.addButton} activeOpacity={0.9}>
+            <TouchableOpacity
+              style={styles.addButton}
+              activeOpacity={0.9}
+              onPress={() => setCategoryPickerVisible(true)}
+            >
               <LinearGradient
                 colors={['#70b5ff', '#4c97f3']}
                 start={{ x: 0, y: 0 }}
@@ -215,6 +311,7 @@ export function BudgetOverviewModal({
         <SetupBudgetModal
           visible={visible && selectedCategory !== null}
           category={selectedCategory}
+          canDeleteCategoryBudget={selectedCategoryCanDelete}
           selectedMonth={selectedMonth}
           onClose={() => setSelectedCategory(null)}
           onSaved={onBudgetChanged}
@@ -236,10 +333,95 @@ export function BudgetOverviewModal({
           onClose={() => setSummaryTargetVisible(false)}
           onSaved={onBudgetChanged}
         />
+
+        <CategoryPickerModal
+          visible={categoryPickerVisible}
+          initialKind="expense"
+          defaultExpenseType="budget"
+          onClose={() => setCategoryPickerVisible(false)}
+          onSelect={(category) => {
+            handleSelectBudgetCategory(category)
+          }}
+          onCategoriesChanged={() => {
+            onBudgetChanged()
+          }}
+        />
+
+        <Modal visible={visible && exampleInfoVisible} transparent animationType="fade" onRequestClose={() => setExampleInfoVisible(false)}>
+          <View style={styles.infoOverlay}>
+            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setExampleInfoVisible(false)} />
+            <View style={styles.infoCard}>
+              <TouchableOpacity style={styles.infoClose} onPress={() => setExampleInfoVisible(false)} activeOpacity={0.85}>
+                <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+              <Text style={styles.infoText}>
+                This is the example state. You can add real category budgets from your category list.
+              </Text>
+              <View style={styles.infoActions}>
+                <TouchableOpacity style={styles.infoSecondaryButton} onPress={() => setExampleInfoVisible(false)} activeOpacity={0.85}>
+                  <Text style={styles.infoSecondaryText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.infoPrimaryButton}
+                  onPress={() => {
+                    setExampleInfoVisible(false)
+                    setCategoryPickerVisible(true)
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.infoPrimaryText}>Add category budget</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </Modal>
   )
 }
+
+const EXAMPLE_BUDGET_ROWS = [
+  {
+    id: 'example-supermarket',
+    name: 'Supermarket (Example)',
+    allocated: 500,
+    spent: 81.85,
+    usage: 88,
+    icon: 'cart-outline' as keyof typeof Ionicons.glyphMap,
+    color: '#4a2b2c',
+    iconColor: '#ff7b63',
+  },
+  {
+    id: 'example-clothing',
+    name: 'Clothing (Example)',
+    allocated: 1000,
+    spent: 733.51,
+    usage: 27,
+    icon: 'shirt-outline' as keyof typeof Ionicons.glyphMap,
+    color: '#3a4d8b',
+    iconColor: '#82a7ff',
+  },
+  {
+    id: 'example-house',
+    name: 'House (Example)',
+    allocated: 1500,
+    spent: 974.85,
+    usage: 36,
+    icon: 'home-outline' as keyof typeof Ionicons.glyphMap,
+    color: '#575766',
+    iconColor: '#efeff6',
+  },
+  {
+    id: 'example-entertainment',
+    name: 'Entertainment (Example)',
+    allocated: 600,
+    spent: 588.36,
+    usage: 98,
+    icon: 'umbrella-outline' as keyof typeof Ionicons.glyphMap,
+    color: '#6a3a5e',
+    iconColor: '#ff96bb',
+  },
+]
 
 const styles = StyleSheet.create({
   overlay: {
@@ -497,5 +679,72 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.28)',
     fontSize: 11,
     marginTop: 12,
+  },
+  infoOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(7,7,12,0.64)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  infoCard: {
+    width: '100%',
+    borderRadius: 22,
+    backgroundColor: '#262538',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+  },
+  infoClose: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoText: {
+    color: '#ffffff',
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: '800',
+    marginRight: 20,
+  },
+  infoActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 22,
+    gap: 12,
+  },
+  infoSecondaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoSecondaryText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  infoPrimaryButton: {
+    flex: 1.4,
+    minHeight: 52,
+    borderRadius: 18,
+    backgroundColor: '#ff5f63',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  infoPrimaryText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+    textAlign: 'center',
   },
 })

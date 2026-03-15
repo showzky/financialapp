@@ -24,6 +24,7 @@ export const Home = () => {
     addCategory,
     updateIncome,
     updateCategoryAmounts,
+    purgeCategoryExpenses,
     removeCategory,
     reorderCategories,
     resetDashboard,
@@ -43,7 +44,7 @@ export const Home = () => {
   const [isLoanSummaryLoading, setIsLoanSummaryLoading] = useState(true)
   const [loanSummaryError, setLoanSummaryError] = useState('')
   const [currencySymbol, setCurrencySymbol] = useState<'KR' | '$' | '€'>('KR')
-  const [defaultCategoryType, setDefaultCategoryType] = useState<BudgetCategoryType>('budget')
+  const [defaultCategoryType, setDefaultCategoryType] = useState<BudgetCategoryType>('fixed')
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null)
   const [publicRegistrationEnabled, setPublicRegistrationEnabled] = useState(true)
   const [isAuthSettingsBusy, setIsAuthSettingsBusy] = useState(false)
@@ -461,6 +462,7 @@ export const Home = () => {
               <BudgetCategoryCard
                 category={category}
                 onChangeAmounts={updateCategoryAmounts}
+                onPurgeExpenses={purgeCategoryExpenses}
                 isEditing={isEditing}
                 isDeleting={deletingCategoryId === category.id}
                 onDelete={handleDeleteCategory}
@@ -496,6 +498,7 @@ export const Home = () => {
               <BudgetCategoryCard
                 category={category}
                 onChangeAmounts={updateCategoryAmounts}
+                onPurgeExpenses={purgeCategoryExpenses}
                 isEditing={isEditing}
                 isDeleting={deletingCategoryId === category.id}
                 onDelete={handleDeleteCategory}

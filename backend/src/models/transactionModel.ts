@@ -8,6 +8,7 @@ export type Transaction = {
   amount: number
   note: string | null
   transactionDate: string
+  isPaid: boolean
   createdAt: string
 }
 
@@ -17,6 +18,7 @@ export type CreateTransactionInput = {
   amount: number
   note?: string | undefined
   transactionDate: string
+  isPaid?: boolean | undefined
 }
 
 export type UpdateTransactionInput = {
@@ -24,14 +26,15 @@ export type UpdateTransactionInput = {
   amount?: number | undefined
   note?: string | null | undefined
   transactionDate?: string | undefined
+  isPaid?: boolean | undefined
 }
 
 export const transactionModel = {
   async create(input: CreateTransactionInput): Promise<Transaction> {
     const result = await db.query<Transaction>(
       `
-      INSERT INTO transactions (user_id, category_id, amount, note, transaction_date)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO transactions (user_id, category_id, amount, note, transaction_date, is_paid)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING
         id,
         user_id AS "userId",
@@ -39,9 +42,10 @@ export const transactionModel = {
         amount::float8 AS amount,
         note,
         transaction_date AS "transactionDate",
+        is_paid AS "isPaid",
         created_at AS "createdAt"
       `,
-      [input.userId, input.categoryId, input.amount, input.note ?? null, input.transactionDate],
+      [input.userId, input.categoryId, input.amount, input.note ?? null, input.transactionDate, input.isPaid ?? true],
     )
 
     const row = result.rows[0]
@@ -62,6 +66,7 @@ export const transactionModel = {
         amount::float8 AS amount,
         note,
         transaction_date AS "transactionDate",
+        is_paid AS "isPaid",
         created_at AS "createdAt"
       FROM transactions
       WHERE user_id = $1
@@ -83,6 +88,7 @@ export const transactionModel = {
         amount::float8 AS amount,
         note,
         transaction_date AS "transactionDate",
+        is_paid AS "isPaid",
         created_at AS "createdAt"
       FROM transactions
       WHERE id = $1 AND user_id = $2
@@ -106,7 +112,8 @@ export const transactionModel = {
         category_id = COALESCE($3, category_id),
         amount = COALESCE($4, amount),
         note = COALESCE($5, note),
-        transaction_date = COALESCE($6, transaction_date)
+        transaction_date = COALESCE($6, transaction_date),
+        is_paid = COALESCE($7, is_paid)
       WHERE id = $1 AND user_id = $2
       RETURNING
         id,
@@ -115,6 +122,7 @@ export const transactionModel = {
         amount::float8 AS amount,
         note,
         transaction_date AS "transactionDate",
+        is_paid AS "isPaid",
         created_at AS "createdAt"
       `,
       [
@@ -124,6 +132,7 @@ export const transactionModel = {
         input.amount ?? null,
         input.note ?? null,
         input.transactionDate ?? null,
+        input.isPaid ?? null,
       ],
     )
 
@@ -140,5 +149,17 @@ export const transactionModel = {
     )
 
     return result.rowCount === 1
+  },
+
+  async removeByCategory(categoryId: string, userId: string): Promise<number> {
+    const result = await db.query(
+      `
+      DELETE FROM transactions
+      WHERE category_id = $1 AND user_id = $2
+      `,
+      [categoryId, userId],
+    )
+
+    return result.rowCount ?? 0
   },
 }

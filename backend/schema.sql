@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   amount NUMERIC(12, 2) NOT NULL CHECK (amount >= 0),
   note TEXT,
   transaction_date DATE NOT NULL,
+  is_paid BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -128,6 +129,17 @@ CREATE TABLE IF NOT EXISTS monthly_budget_targets (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, month_start)
+);
+
+CREATE TABLE IF NOT EXISTS monthly_budget_category_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category_id UUID NOT NULL REFERENCES budget_categories(id) ON DELETE CASCADE,
+  month_start DATE NOT NULL,
+  allocated NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (allocated >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, category_id, month_start)
 );
 
 ALTER TABLE income_entries
@@ -320,6 +332,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(tra
 CREATE INDEX IF NOT EXISTS idx_income_entries_user_received_at ON income_entries(user_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_income_entries_income_category_id ON income_entries(income_category_id);
 CREATE INDEX IF NOT EXISTS idx_income_categories_user_sort ON income_categories(user_id, sort_order, created_at);
+CREATE INDEX IF NOT EXISTS idx_monthly_budget_category_assignments_user_month ON monthly_budget_category_assignments(user_id, month_start);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON wishlist_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_status ON wishlist_items(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_normalized_url ON wishlist_items(user_id, normalized_url);

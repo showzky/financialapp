@@ -23,6 +23,8 @@ const PLANNED_PAYMENT_NOTE = '[planned-payment]'
 type PlannedExpenseParams = {
   PlannedExpense: {
     categoryId: string
+    transactionId?: string
+    source?: 'planned' | 'scheduled_expense'
     title: string
     amount: number
     dueDate: string
@@ -68,11 +70,13 @@ export function PlannedExpenseScreen() {
 
       setCategory(dashboard.categories.find((item) => item.id === plannedExpense.categoryId) ?? null)
       setMatchingTransaction(
-        transactions.find(
-          (transaction) =>
-            transaction.categoryId === plannedExpense.categoryId &&
-            isSameMonth(transaction.transactionDate, dueDate),
-        ) ?? null,
+        plannedExpense.transactionId
+          ? transactions.find((transaction) => transaction.id === plannedExpense.transactionId) ?? null
+          : transactions.find(
+              (transaction) =>
+                transaction.categoryId === plannedExpense.categoryId &&
+                isSameMonth(transaction.transactionDate, dueDate),
+            ) ?? null,
       )
     } catch (err) {
       console.error('Planned expense load error:', err)
@@ -85,17 +89,31 @@ export function PlannedExpenseScreen() {
   useFocusEffect(
     useCallback(() => {
       void loadExpenseContext()
+
+      const intervalId = setInterval(() => {
+        void loadExpenseContext()
+      }, 30000)
+
+      return () => {
+        clearInterval(intervalId)
+      }
     }, [loadExpenseContext]),
   )
 
-  const paid = matchingTransaction !== null
-  const canMarkUnpaid = Boolean(matchingTransaction?.note?.startsWith(PLANNED_PAYMENT_NOTE))
+  const paid = Boolean(matchingTransaction?.isPaid)
+  const canMarkUnpaid =
+    plannedExpense.source === 'scheduled_expense'
+      ? paid
+      : Boolean(matchingTransaction?.note?.startsWith(PLANNED_PAYMENT_NOTE))
   const primaryLabel = paid ? (canMarkUnpaid ? 'CANCEL PAYMENT' : 'PAID') : 'PAY'
   const actionHelperText = paid
     ? 'This planned expense has been recorded for this month.'
     : 'Create the payment entry for this month using the planned amount and due date.'
   const displayTitle = category?.name ?? plannedExpense.title
-  const displayAmount = category?.allocated ?? plannedExpense.amount
+  const displayAmount =
+    plannedExpense.source === 'scheduled_expense'
+      ? matchingTransaction?.amount ?? plannedExpense.amount
+      : category?.allocated ?? plannedExpense.amount
   const accent = category?.iconColor || category?.color || plannedExpense.accent
   const categoryLabel = category?.parentName || plannedExpense.category
   const iconName = (category?.icon as keyof typeof Ionicons.glyphMap | null) ?? 'ellipse-outline'
@@ -114,6 +132,7 @@ export function PlannedExpenseScreen() {
         accent,
         recurring: plannedExpense.recurring,
         dueDayOfMonth: category.dueDayOfMonth ?? null,
+        transactionId: plannedExpense.source === 'scheduled_expense' ? matchingTransaction?.id : undefined,
         autoFocusField,
       })
     },
@@ -130,14 +149,28 @@ export function PlannedExpenseScreen() {
     try {
       setBusy(true)
       if (paid && matchingTransaction) {
-        await transactionApi.deleteTransaction(matchingTransaction.id)
-      } else {
-        await transactionApi.createTransaction({
-          categoryId: plannedExpense.categoryId,
-          amount: displayAmount,
-          transactionDate: plannedExpense.dueDate,
-          note: PLANNED_PAYMENT_NOTE,
+        await transactionApi.updateTransaction(matchingTransaction.id, {
+          isPaid: false,
         })
+      } else {
+        if (plannedExpense.source === 'scheduled_expense' && matchingTransaction) {
+          await transactionApi.updateTransaction(matchingTransaction.id, {
+            isPaid: true,
+          })
+        } else {
+          await transactionApi.createTransaction({
+            categoryId: plannedExpense.categoryId,
+            amount: displayAmount,
+            transactionDate: plannedExpense.dueDate,
+            note:
+              plannedExpense.source === 'scheduled_expense'
+                ? plannedExpense.title !== displayTitle
+                  ? plannedExpense.title
+                  : undefined
+                : PLANNED_PAYMENT_NOTE,
+            isPaid: true,
+          })
+        }
       }
 
       await loadExpenseContext()
@@ -145,6 +178,36 @@ export function PlannedExpenseScreen() {
       console.error('Planned expense action failed:', err)
       setError(paid ? 'Failed to mark expense as unpaid' : 'Failed to record payment')
     } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (busy) return
+
+    try {
+      setBusy(true)
+      setError(null)
+
+      if (plannedExpense.source === 'scheduled_expense') {
+        const transactionId = matchingTransaction?.id ?? plannedExpense.transactionId
+        if (!transactionId) {
+          throw new Error('Missing transaction id')
+        }
+
+        await transactionApi.deleteTransaction(transactionId)
+      } else {
+        await transactionApi.deleteCategory(plannedExpense.categoryId)
+      }
+
+      navigation.goBack()
+    } catch (err) {
+      console.error('Planned expense delete failed:', err)
+      setError(
+        plannedExpense.source === 'scheduled_expense'
+          ? 'Failed to delete expense'
+          : 'Failed to delete planned expense',
+      )
       setBusy(false)
     }
   }
@@ -236,6 +299,19 @@ export function PlannedExpenseScreen() {
               <Text style={styles.detailValue}>{plannedExpense.recurring ? 'Recurring' : 'One-time'}</Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            activeOpacity={0.82}
+            onPress={() => void handleDelete()}
+            disabled={busy}
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color="#ff6f61" />
+            ) : (
+              <Ionicons name="trash-outline" size={24} color="#ff6f61" />
+            )}
+          </TouchableOpacity>
 
           {error ? <Text style={styles.inlineError}>{error}</Text> : null}
         </View>
@@ -438,6 +514,12 @@ const styles = StyleSheet.create({
   },
   unpaidText: {
     color: '#ff9892',
+  },
+  deleteButton: {
+    marginTop: 24,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingRight: 8,
   },
   inlineError: {
     marginTop: 18,

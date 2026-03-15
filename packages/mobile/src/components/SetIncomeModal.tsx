@@ -112,7 +112,16 @@ export function SetIncomeModal({
   onEntryCreated,
 }: Props) {
   const defaultExpenseCategory = useMemo(
-    () => (categories.length > 0 ? toCategoryDto(categories[0]) : null),
+    () => {
+      if (categories.length === 0) {
+        return null
+      }
+
+      const preferredExpenseCategory =
+        categories.find((category) => category.type === 'fixed') ?? categories[0]
+
+      return toCategoryDto(preferredExpenseCategory)
+    },
     [categories],
   )
 
@@ -206,6 +215,7 @@ export function SetIncomeModal({
           amount: Number(amount),
           transactionDate: formatTransactionDate(selectedDateTime),
           note: entryName.trim() || undefined,
+          isPaid: true,
         })
       }
 
@@ -431,6 +441,7 @@ export function SetIncomeModal({
         visible={categoryPickerOpen}
         initialKind={mode === 'income' ? 'income' : 'expense'}
         selectedCategoryId={selectedCategory?.id}
+        defaultExpenseType={mode === 'expense' ? 'fixed' : 'budget'}
         onClose={() => setCategoryPickerOpen(false)}
         onSelect={(category) => {
           setSelectedCategory(category)

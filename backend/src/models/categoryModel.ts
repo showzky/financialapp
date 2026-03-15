@@ -91,8 +91,20 @@ const categoryLedgerJoin = `
       0
     ) AS ledger_spent
     FROM transactions
+    INNER JOIN budget_categories AS source_categories
+      ON source_categories.id = transactions.category_id
     WHERE transactions.user_id = budget_categories.user_id
-      AND transactions.category_id = budget_categories.id
+      AND (
+        transactions.category_id = budget_categories.id
+        OR (
+          budget_categories.type = 'budget'
+          AND budget_categories.parent_name = budget_categories.name
+          AND source_categories.user_id = budget_categories.user_id
+          AND source_categories.parent_name = budget_categories.name
+          AND source_categories.name <> budget_categories.name
+          AND source_categories.type = 'budget'
+        )
+      )
   ) AS ledger ON TRUE
 `
 
@@ -318,9 +330,10 @@ function seedCategoryInput(userId: string, seed: CategorySeed): CreateCategoryIn
     icon: seed.icon,
     color: seed.color,
     iconColor: seed.iconColor,
-    type: 'budget',
+    type: seed.type ?? 'budget',
     allocated: 0,
     spent: 0,
+    dueDayOfMonth: seed.dueDayOfMonth,
     sortOrder: seed.sortOrder,
     isDefault: true,
     isArchived: false,

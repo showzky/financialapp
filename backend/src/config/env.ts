@@ -48,6 +48,8 @@ const envSchema = z
     BROWSERLESS_BASE_URL: z.string().url().default('https://production-sfo.browserless.io'),
     BROWSERLESS_MODE: z.enum(['content', 'unblock', 'auto']).default('unblock'),
     BROWSERLESS_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(20000),
+    GLOBAL_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).max(60 * 60 * 1000).optional(),
+    GLOBAL_RATE_LIMIT_MAX: z.coerce.number().int().min(10).max(100000).optional(),
   })
   .superRefine((value, ctx) => {
     // ADD THIS: strict conditional auth configuration validation

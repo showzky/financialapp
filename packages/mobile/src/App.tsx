@@ -21,6 +21,7 @@ import { NotificationProvider } from './context/NotificationContext'
 import { PeriodProvider } from './context/PeriodContext'
 import { HomeScreen } from './screens/HomeScreen'
 import { TimelineScreen } from './screens/TimelineScreen'
+import { BudgetCategoryAnalyticsScreen } from './screens/BudgetCategoryAnalyticsScreen'
 import { PlannedExpenseScreen } from './screens/PlannedExpenseScreen'
 import { EditPlannedExpenseScreen } from './screens/EditPlannedExpenseScreen'
 import { IncomeEntryScreen } from './screens/IncomeEntryScreen'
@@ -159,6 +160,7 @@ function RootNavigator() {
         <>
           <Stack.Screen name="MainTabs" component={HomeTabs} />
           <Stack.Screen name="Timeline" component={TimelineScreen} />
+          <Stack.Screen name="BudgetCategoryAnalytics" component={BudgetCategoryAnalyticsScreen} />
           <Stack.Screen name="PlannedExpense" component={PlannedExpenseScreen} />
           <Stack.Screen name="IncomeEntry" component={IncomeEntryScreen} />
           <Stack.Screen name="EditPlannedExpense" component={EditPlannedExpenseScreen} />

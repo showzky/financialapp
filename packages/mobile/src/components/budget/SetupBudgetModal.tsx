@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 
 import type { CategoryWithSpent } from '../../services/dashboardApi'
-import { categoryApi } from '../../services/categoryApi'
+import { monthlyBudgetCategoryAssignmentApi } from '../../services/monthlyBudgetCategoryAssignmentApi'
 import { monthlyBudgetTargetApi } from '../../services/monthlyBudgetTargetApi'
 
 type BudgetSetupTarget = {
@@ -28,6 +28,7 @@ type BudgetSetupTarget = {
 type Props = {
   visible: boolean
   category: CategoryWithSpent | null
+  canDeleteCategoryBudget?: boolean
   target?: BudgetSetupTarget | null
   selectedMonth?: Date
   onClose: () => void
@@ -42,7 +43,15 @@ function getIoniconName(icon: string | null | undefined): keyof typeof Ionicons.
   return 'ellipse-outline'
 }
 
-export function SetupBudgetModal({ visible, category, target, selectedMonth, onClose, onSaved }: Props) {
+export function SetupBudgetModal({
+  visible,
+  category,
+  canDeleteCategoryBudget = true,
+  target,
+  selectedMonth,
+  onClose,
+  onSaved,
+}: Props) {
   const [amount, setAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -54,7 +63,7 @@ export function SetupBudgetModal({ visible, category, target, selectedMonth, onC
         color: category.color,
         iconColor: category.iconColor,
         allocated: category.allocated,
-        canDelete: true,
+        canDelete: canDeleteCategoryBudget,
       }
     : null)
   const targetKey = resolvedTarget ? `${resolvedTarget.id ?? 'summary'}:${resolvedTarget.allocated}` : 'none'
@@ -101,15 +110,16 @@ export function SetupBudgetModal({ visible, category, target, selectedMonth, onC
       return
     }
 
+    if (!selectedMonth) {
+      setError('Missing month for category budget')
+      return
+    }
+
     setSubmitting(true)
     setError('')
 
     try {
-      await categoryApi.updateCategory(resolvedTarget.id, {
-        kind: 'expense',
-        allocated: parsedAmount,
-        type: 'budget',
-      })
+      await monthlyBudgetCategoryAssignmentApi.set(selectedMonth, resolvedTarget.id, parsedAmount)
       onSaved()
       onClose()
     } catch (err) {
@@ -124,15 +134,20 @@ export function SetupBudgetModal({ visible, category, target, selectedMonth, onC
       return
     }
 
+    if (!selectedMonth) {
+      setError('Missing month for category budget')
+      return
+    }
+
     setSubmitting(true)
     setError('')
 
     try {
-      await categoryApi.deleteCategory(resolvedTarget.id, 'expense')
+      await monthlyBudgetCategoryAssignmentApi.remove(selectedMonth, resolvedTarget.id)
       onSaved()
       onClose()
     } catch (err) {
-      setError('Failed to delete category budget')
+      setError('Failed to remove category budget')
     } finally {
       setSubmitting(false)
     }

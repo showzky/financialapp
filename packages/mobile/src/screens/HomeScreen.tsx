@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { MonthPickerModal } from '../components/MonthPickerModal'
@@ -67,9 +67,13 @@ export function HomeScreen() {
     year: 'numeric',
   })
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
+
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      }
       setError(null)
       const data = await dashboardApi.get(selectedMonth)
       setDashboard(data)
@@ -78,7 +82,9 @@ export function HomeScreen() {
       setError('Failed to load dashboard')
       setDashboard(null)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [selectedMonth])
 
@@ -103,6 +109,20 @@ export function HomeScreen() {
   useEffect(() => {
     void loadDashboard()
   }, [loadDashboard])
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDashboard({ silent: true })
+
+      const intervalId = setInterval(() => {
+        void loadDashboard({ silent: true })
+      }, 30000)
+
+      return () => {
+        clearInterval(intervalId)
+      }
+    }, [loadDashboard]),
+  )
 
   const fixedCategories = useMemo(
     () => (dashboard ? dashboard.categories.filter((category) => category.type === 'fixed') : []),
@@ -169,7 +189,7 @@ export function HomeScreen() {
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0e" />
         <Ionicons name="alert-circle" size={48} color="rgba(201,107,107,0.9)" />
         <Text style={s.errorText}>{error ?? 'Failed to load dashboard'}</Text>
-        <TouchableOpacity style={s.retryButton} onPress={loadDashboard}>
+        <TouchableOpacity style={s.retryButton} onPress={() => void loadDashboard()}>
           <Text style={s.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -453,6 +473,7 @@ export function HomeScreen() {
         totalBudget={dashboard.totalBudget}
         freeToAssign={dashboard.freeToAssign}
         categories={dashboard.categories}
+        budgetAssignments={dashboard.budgetAssignments}
         onClose={() => setBudgetModalVisible(false)}
         onBudgetChanged={() => {
           void loadDashboard()

@@ -5,6 +5,7 @@ import { categoryRouter } from './categoryRoutes.js'
 import { incomeEntryRouter } from './incomeEntryRoutes.js'
 import { loanRouter } from './loanRoutes.js'
 import { monthlyBudgetTargetRouter } from './monthlyBudgetTargetRoutes.js'
+import { monthlyBudgetCategoryAssignmentRouter } from './monthlyBudgetCategoryAssignmentRoutes.js'
 import { notificationRouter } from './notificationRoutes.js'
 import { revolutImportStateRouter } from './revolutImportStateRoutes.js'
 import { transactionRouter } from './transactionRoutes.js'
@@ -20,6 +21,7 @@ apiRouter.use('/categories', categoryRouter)
 apiRouter.use('/income-entries', incomeEntryRouter)
 apiRouter.use('/loans', loanRouter)
 apiRouter.use('/monthly-budget-targets', monthlyBudgetTargetRouter)
+apiRouter.use('/monthly-budget-category-assignments', monthlyBudgetCategoryAssignmentRouter)
 apiRouter.use('/notifications', notificationRouter)
 apiRouter.use('/revolut-import-state', revolutImportStateRouter)
 apiRouter.use('/transactions', transactionRouter)

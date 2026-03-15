@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0a0a0e",
+    "icon": "./src/assets/AppIconV1.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -15,7 +16,11 @@
     },
     "android": {
       "package": "com.yourcompany.financialapp",
-      "backgroundColor": "#0a0a0e"
+      "backgroundColor": "#0a0a0e",
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/AppIconV1.png",
+        "backgroundColor": "#0a0a0e"
+      }
     },
     "splash": {
       "backgroundColor": "#0a0a0e"

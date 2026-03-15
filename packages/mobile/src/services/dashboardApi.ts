@@ -1,4 +1,8 @@
 import { backendClient } from './backendClient'
+import {
+  monthlyBudgetCategoryAssignmentApi,
+  type MonthlyBudgetCategoryAssignment,
+} from './monthlyBudgetCategoryAssignmentApi'
 import { monthlyBudgetTargetApi } from './monthlyBudgetTargetApi'
 
 export type CategoryWithSpent = {
@@ -44,6 +48,7 @@ export type DashboardData = {
   loanBalance: number
   activeLoans: number
   categories: CategoryWithSpent[]
+  budgetAssignments: CategoryWithSpent[]
   incomeEntries: IncomeEntry[]
 }
 
@@ -78,6 +83,7 @@ type TransactionDto = {
   amount: number
   note: string | null
   transactionDate: string
+  isPaid: boolean
   createdAt: string
 }
 
@@ -105,7 +111,7 @@ type LoanSummaryDto = {
   repaidCount: number
 }
 
-const sum = (values: number[]) => values.reduce((acc, v) => acc + v, 0)
+const sum = (values: number[]) => values.reduce((acc, value) => acc + value, 0)
 
 const toMonthBounds = (selectedMonth: Date) => {
   const start = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1, 0, 0, 0, 0)
@@ -133,21 +139,110 @@ const ensureValidMonth = (selectedMonth: Date): Date => {
   return selectedMonth
 }
 
+function buildRolledUpSpendByCategory(
+  categories: CategoryDto[],
+  monthTransactions: TransactionDto[],
+) {
+  const categoryById = new Map(categories.map((category) => [category.id, category]))
+  const parentCategoryByName = new Map(
+    categories
+      .filter((category) => category.parentName === category.name)
+      .map((category) => [category.name, category]),
+  )
+  const totals = new Map<string, number>()
+
+  monthTransactions.forEach((transaction) => {
+    const sourceCategory = categoryById.get(transaction.categoryId)
+    if (!sourceCategory) {
+      return
+    }
+
+    const amount = Number.isFinite(transaction.amount) ? transaction.amount : 0
+    totals.set(sourceCategory.id, (totals.get(sourceCategory.id) ?? 0) + amount)
+
+    if (
+      sourceCategory.parentName !== sourceCategory.name &&
+      sourceCategory.type === 'budget'
+    ) {
+      const parentCategory = parentCategoryByName.get(sourceCategory.parentName)
+      if (parentCategory) {
+        totals.set(parentCategory.id, (totals.get(parentCategory.id) ?? 0) + amount)
+      }
+    }
+  })
+
+  return totals
+}
+
+function toCategoryWithSpent(
+  category: CategoryDto,
+  allocated: number,
+  spendByCategory: Map<string, number>,
+): CategoryWithSpent {
+  return {
+    id: category.id,
+    name: category.name,
+    parentName: category.parentName,
+    icon: category.icon,
+    color: category.color,
+    iconColor: category.iconColor,
+    type: category.type,
+    allocated,
+    monthSpent: spendByCategory.get(category.id) ?? 0,
+    dueDayOfMonth: Number.isFinite(category.dueDayOfMonth) ? Number(category.dueDayOfMonth) : null,
+    sortOrder: Number.isFinite(category.sortOrder) ? category.sortOrder : 0,
+    isDefault: Boolean(category.isDefault),
+    isArchived: Boolean(category.isArchived),
+  }
+}
+
+function buildAssignedBudgetCategories(
+  categories: CategoryDto[],
+  assignments: MonthlyBudgetCategoryAssignment[],
+  spendByCategory: Map<string, number>,
+) {
+  const categoryById = new Map(categories.map((category) => [category.id, category]))
+
+  return assignments
+    .map((assignment) => {
+      const category = categoryById.get(assignment.categoryId)
+      if (!category) {
+        return null
+      }
+
+      return toCategoryWithSpent(
+        category,
+        Number.isFinite(assignment.allocated) ? assignment.allocated : 0,
+        spendByCategory,
+      )
+    })
+    .filter((category): category is CategoryWithSpent => Boolean(category))
+    .sort(
+      (left, right) =>
+        (left.sortOrder ?? 0) - (right.sortOrder ?? 0) || left.name.localeCompare(right.name),
+    )
+}
+
 export const dashboardApi = {
   async get(selectedMonth: Date): Promise<DashboardData> {
     const now = new Date()
-    const [user, categories, transactions, loanSummary, incomeEntries, monthlyBudgetTarget] = await Promise.all([
-      backendClient.get<CurrentUserDto>('/users/me'),
-      backendClient.get<CategoryDto[]>('/categories?kind=expense'),
-      backendClient.get<TransactionDto[]>('/transactions'),
-      backendClient.get<LoanSummaryDto>('/loans/summary'),
-      backendClient.get<IncomeEntryDto[]>('/income-entries'),
-      monthlyBudgetTargetApi.get(selectedMonth),
-    ])
+    const validMonth = ensureValidMonth(selectedMonth)
+    const [user, categories, transactions, loanSummary, incomeEntries, monthlyBudgetTarget, budgetAssignments] =
+      await Promise.all([
+        backendClient.get<CurrentUserDto>('/users/me'),
+        backendClient.get<CategoryDto[]>('/categories?kind=expense'),
+        backendClient.get<TransactionDto[]>('/transactions'),
+        backendClient.get<LoanSummaryDto>('/loans/summary'),
+        backendClient.get<IncomeEntryDto[]>('/income-entries'),
+        monthlyBudgetTargetApi.get(validMonth),
+        monthlyBudgetCategoryAssignmentApi.list(validMonth),
+      ])
 
-    const { start, end } = toMonthBounds(ensureValidMonth(selectedMonth))
+    const { start, end } = toMonthBounds(validMonth)
     const monthTransactions = transactions.filter((transaction) =>
-      isInRange(transaction.transactionDate, start, end) && isEffectiveNow(transaction.transactionDate, now),
+      transaction.isPaid &&
+      isInRange(transaction.transactionDate, start, end) &&
+      isEffectiveNow(transaction.transactionDate, now),
     )
     const monthIncomeEntries = incomeEntries.filter((incomeEntry) =>
       isInRange(incomeEntry.receivedAt, start, end),
@@ -155,7 +250,16 @@ export const dashboardApi = {
     const paidMonthIncomeEntries = monthIncomeEntries.filter(
       (incomeEntry) => incomeEntry.isPaid && isEffectiveNow(incomeEntry.receivedAt, now),
     )
-    const monthCategoryCount = categories.length // CHANGED THIS - count all categories, not just active
+
+    const spendByCategory = buildRolledUpSpendByCategory(categories, monthTransactions)
+    const assignedBudgetCategories = buildAssignedBudgetCategories(categories, budgetAssignments, spendByCategory)
+    const enrichedCategories = categories.map((category) =>
+      toCategoryWithSpent(
+        category,
+        Number.isFinite(category.allocated) ? category.allocated : 0,
+        spendByCategory,
+      ),
+    )
 
     const totalIncome =
       monthIncomeEntries.length > 0
@@ -163,46 +267,22 @@ export const dashboardApi = {
         : Number.isFinite(user.monthlyIncome)
           ? user.monthlyIncome
           : 0
-    const totalSpent = sum(monthTransactions.map((t) => (Number.isFinite(t.amount) ? t.amount : 0)))
-    const totalBudget =
-      typeof monthlyBudgetTarget === 'number'
-        ? monthlyBudgetTarget
-        : sum(
-            categories
-              .filter((category) => category.type === 'budget')
-              .map((category) => (Number.isFinite(category.allocated) ? category.allocated : 0)),
-          )
+    const totalSpent = sum(monthTransactions.map((transaction) => (Number.isFinite(transaction.amount) ? transaction.amount : 0)))
     const fixedCostsTotal = sum(
       categories
         .filter((category) => category.type === 'fixed')
         .map((category) => (Number.isFinite(category.allocated) ? category.allocated : 0)),
     )
+    const assignedBudgetTotal = sum(
+      budgetAssignments.map((assignment) => (Number.isFinite(assignment.allocated) ? assignment.allocated : 0)),
+    )
+    const totalBudget =
+      typeof monthlyBudgetTarget === 'number'
+        ? monthlyBudgetTarget
+        : assignedBudgetTotal
+    const totalAllocated = fixedCostsTotal + assignedBudgetTotal
     const remaining = totalIncome - totalSpent
-    const totalAllocated = sum(categories.map((c) => (Number.isFinite(c.allocated) ? c.allocated : 0)))
     const freeToAssign = totalIncome - totalAllocated
-
-    // Build a per-category spending map for the selected month
-    const spendByCategory = new Map<string, number>()
-    for (const t of monthTransactions) {
-      const prev = spendByCategory.get(t.categoryId) ?? 0
-      spendByCategory.set(t.categoryId, prev + (Number.isFinite(t.amount) ? t.amount : 0))
-    }
-
-    const enrichedCategories: CategoryWithSpent[] = categories.map((c) => ({
-      id: c.id,
-      name: c.name,
-      parentName: c.parentName,
-      icon: c.icon,
-      color: c.color,
-      iconColor: c.iconColor,
-      type: c.type,
-      allocated: Number.isFinite(c.allocated) ? c.allocated : 0,
-      monthSpent: spendByCategory.get(c.id) ?? 0,
-      dueDayOfMonth: Number.isFinite(c.dueDayOfMonth) ? Number(c.dueDayOfMonth) : null,
-      sortOrder: Number.isFinite(c.sortOrder) ? c.sortOrder : 0,
-      isDefault: Boolean(c.isDefault),
-      isArchived: Boolean(c.isArchived),
-    }))
 
     return {
       totalIncome,
@@ -212,12 +292,13 @@ export const dashboardApi = {
       remaining,
       totalAllocated,
       freeToAssign,
-      categoryCount: monthCategoryCount,
+      categoryCount: categories.length,
       loanBalance: Number.isFinite(loanSummary.totalOutstandingAmount)
         ? loanSummary.totalOutstandingAmount
         : 0,
       activeLoans: Number.isFinite(loanSummary.activeCount) ? loanSummary.activeCount : 0,
       categories: enrichedCategories,
+      budgetAssignments: assignedBudgetCategories,
       incomeEntries: monthIncomeEntries.map((entry) => ({
         id: entry.id,
         incomeCategoryId: entry.incomeCategoryId,

@@ -6,6 +6,7 @@ export type CreateTransactionPayload = {
   amount: number
   transactionDate: string // YYYY-MM-DD
   note?: string
+  isPaid?: boolean
 }
 
 export type TransactionResponse = {
@@ -15,6 +16,7 @@ export type TransactionResponse = {
   amount: number
   note: string | null
   transactionDate: string
+  isPaid: boolean
   createdAt: string
 }
 
@@ -28,6 +30,13 @@ export const transactionApi = {
 
   async listTransactions(): Promise<TransactionResponse[]> {
     return backendClient.get('/transactions')
+  },
+
+  async updateTransaction(
+    id: string,
+    payload: Partial<CreateTransactionPayload> & { note?: string | null }
+  ): Promise<TransactionResponse> {
+    return backendClient.patch(`/transactions/${id}`, payload)
   },
 
   async deleteTransaction(id: string): Promise<void> {

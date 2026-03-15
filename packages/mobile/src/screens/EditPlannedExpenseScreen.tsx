@@ -25,6 +25,7 @@ type EditPlannedExpenseParams = {
   EditPlannedExpense: {
     entryType: 'expense' | 'income'
     entryId?: string
+    transactionId?: string
     incomeCategoryId?: string | null
     categoryId?: string
     categoryLabel: string
@@ -148,22 +149,35 @@ export function EditPlannedExpenseScreen() {
           receivedAt: date.toISOString(),
         })
       } else {
-        if (!params.categoryId || !selectedCategory) {
+        if (!selectedCategory) {
           throw new Error('Missing category id')
         }
 
-        await transactionApi.updateCategory(params.categoryId, {
-          kind: 'expense',
-          name: selectedCategory.name,
-          parentName: selectedCategory.parentName,
-          icon: selectedCategory.icon,
-          color: selectedCategory.color,
-          iconColor: selectedCategory.iconColor,
-          sortOrder: selectedCategory.sortOrder,
-          type: 'fixed',
-          allocated: Number(amount),
-          dueDayOfMonth: date.getDate(),
-        })
+        if (params.transactionId) {
+          await transactionApi.updateTransaction(params.transactionId, {
+            categoryId: selectedCategory.id,
+            amount: Number(amount),
+            note: nameValue.trim() || undefined,
+            transactionDate: date.toISOString().split('T')[0],
+          })
+        } else {
+          if (!params.categoryId) {
+            throw new Error('Missing category id')
+          }
+
+          await transactionApi.updateCategory(params.categoryId, {
+            kind: 'expense',
+            name: selectedCategory.name,
+            parentName: selectedCategory.parentName,
+            icon: selectedCategory.icon,
+            color: selectedCategory.color,
+            iconColor: selectedCategory.iconColor,
+            sortOrder: selectedCategory.sortOrder,
+            type: 'fixed',
+            allocated: Number(amount),
+            dueDayOfMonth: date.getDate(),
+          })
+        }
       }
 
       navigation.goBack()

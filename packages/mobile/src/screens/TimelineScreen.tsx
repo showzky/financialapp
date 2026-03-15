@@ -41,9 +41,13 @@ export function TimelineScreen() {
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<TimelineFilter>('All')
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
+
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      }
       setError(null)
       const [data, transactions] = await Promise.all([
         dashboardApi.get(selectedMonth),
@@ -53,18 +57,24 @@ export function TimelineScreen() {
       setTransactions(transactions)
       setPaidEntryKeys(
         new Set(
-          transactions.map((transaction) => {
+          transactions
+            .filter((transaction) => transaction.isPaid)
+            .map((transaction) => {
             const date = new Date(transaction.transactionDate)
             return `${transaction.categoryId}-${date.getFullYear()}-${date.getMonth()}`
-          }),
+            }),
         ),
       )
     } catch (err) {
       console.error('Timeline dashboard load error:', err)
       setError('Failed to load timeline')
-      setDashboard(null)
+      if (!silent) {
+        setDashboard(null)
+      }
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [selectedMonth])
 
@@ -74,7 +84,15 @@ export function TimelineScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadDashboard()
+      void loadDashboard({ silent: true })
+
+      const intervalId = setInterval(() => {
+        void loadDashboard({ silent: true })
+      }, 30000)
+
+      return () => {
+        clearInterval(intervalId)
+      }
     }, [loadDashboard]),
   )
 
@@ -85,15 +103,13 @@ export function TimelineScreen() {
 
   const handleOpenPlannedExpense = useCallback(
     (entry: TimelineEntry) => {
-      if (entry.source !== 'planned') {
-        return
-      }
-
       const matchingCategory = dashboard?.categories.find((category) => category.id === entry.categoryId)
       if (!matchingCategory) return
 
       navigation.navigate('PlannedExpense', {
         categoryId: matchingCategory.id,
+        transactionId: entry.transactionId,
+        source: entry.source,
         title: entry.title,
         amount: entry.amount,
         dueDate: entry.dueDate.toISOString().split('T')[0],
@@ -135,7 +151,7 @@ export function TimelineScreen() {
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0e" />
         <Ionicons name="alert-circle" size={48} color="rgba(201,107,107,0.9)" />
         <Text style={styles.errorTitle}>{error ?? 'Failed to load timeline'}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadDashboard}>
+        <TouchableOpacity style={styles.retryButton} onPress={() => void loadDashboard()}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>

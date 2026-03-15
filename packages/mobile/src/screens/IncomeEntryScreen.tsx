@@ -81,6 +81,21 @@ export function IncomeEntryScreen() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!incomeEntry || busy) return
+
+    try {
+      setBusy(true)
+      setError(null)
+      await incomeApi.deleteIncomeEntry(incomeEntry.id)
+      navigation.goBack()
+    } catch (err) {
+      console.error('Income entry delete error:', err)
+      setError('Failed to delete income entry')
+      setBusy(false)
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -223,6 +238,19 @@ export function IncomeEntryScreen() {
               {effectivePaid ? 'Paid' : 'Unpaid'}
             </Text>
           </View>
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            activeOpacity={0.82}
+            onPress={() => void handleDelete()}
+            disabled={busy}
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color="#ff6f61" />
+            ) : (
+              <Ionicons name="trash-outline" size={24} color="#ff6f61" />
+            )}
+          </TouchableOpacity>
 
           {error ? <Text style={styles.inlineError}>{error}</Text> : null}
         </View>
@@ -398,6 +426,12 @@ const styles = StyleSheet.create({
   },
   statusUnpaid: {
     color: '#f0c45a',
+  },
+  deleteButton: {
+    marginTop: 24,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingRight: 8,
   },
   inlineError: {
     marginTop: 18,

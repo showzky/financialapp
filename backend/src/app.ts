@@ -17,6 +17,8 @@ import { errorHandler, notFoundHandler } from './utils/errorHandler.js'
 const pinoHttp = pinoHttpModule.default ?? pinoHttpModule
 
 const app = express()
+const globalRateLimitWindowMs = env.GLOBAL_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000
+const globalRateLimitMax = env.GLOBAL_RATE_LIMIT_MAX ?? (env.NODE_ENV === 'development' ? 2500 : 1200)
 
 app.set('trust proxy', 1)
 app.set('etag', false)
@@ -26,8 +28,8 @@ app.use(uptimeRouter)
 
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 300,
+    windowMs: globalRateLimitWindowMs,
+    max: globalRateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false },

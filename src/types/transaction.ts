@@ -5,6 +5,7 @@ export type BudgetTransaction = {
   amount: number
   note: string | null
   transactionDate: string
+  isPaid: boolean
   createdAt: string
 }
 

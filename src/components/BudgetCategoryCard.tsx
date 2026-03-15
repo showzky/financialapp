@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/currency'
 type BudgetCategoryCardProps = {
   category: BudgetCategory
   onChangeAmounts: (id: string, updates: { allocated?: number; spent?: number }) => void
+  onPurgeExpenses?: (id: string) => void
   isEditing?: boolean
   isDeleting?: boolean
   onDelete?: (id: string) => void
@@ -16,6 +17,7 @@ type BudgetCategoryCardProps = {
 export const BudgetCategoryCard = ({
   category,
   onChangeAmounts,
+  onPurgeExpenses,
   isEditing = false,
   isDeleting = false,
   onDelete,
@@ -90,9 +92,20 @@ export const BudgetCategoryCard = ({
         <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#b8b4ae]">
           {category.name}
         </p>
-        <span className="rounded-full border border-[rgba(91,163,201,0.2)] bg-[rgba(91,163,201,0.10)] px-2.5 py-1 font-['DM_Mono',monospace] text-[10px] font-medium tracking-[0.06em] text-[#5ba3c9]">
-          {isFixed ? 'Fixed' : `${utilizationPct}% used`}
-        </span>
+        <div className="flex items-center gap-2">
+          {onPurgeExpenses ? (
+            <button
+              type="button"
+              onClick={() => onPurgeExpenses(category.id)}
+              className="rounded-full border border-[rgba(201,107,107,0.22)] bg-[rgba(201,107,107,0.08)] px-2.5 py-1 font-['DM_Mono',monospace] text-[10px] font-medium tracking-[0.06em] text-[#d88989] transition hover:border-[rgba(201,107,107,0.38)] hover:bg-[rgba(201,107,107,0.12)] hover:text-[#f0aaaa]"
+            >
+              Reset
+            </button>
+          ) : null}
+          <span className="rounded-full border border-[rgba(91,163,201,0.2)] bg-[rgba(91,163,201,0.10)] px-2.5 py-1 font-['DM_Mono',monospace] text-[10px] font-medium tracking-[0.06em] text-[#5ba3c9]">
+            {isFixed ? 'Fixed' : `${utilizationPct}% used`}
+          </span>
+        </div>
       </div>
 
       {/* Amount */}

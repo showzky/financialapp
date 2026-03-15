@@ -10,6 +10,7 @@ import {
 import { hasBackendConfig } from '@/services/backendClient'
 import { categoryApi } from '@/services/categoryApi'
 import { incomeEntryApi } from '@/services/incomeEntryApi'
+import { monthlyBudgetCategoryAssignmentApi } from '@/services/monthlyBudgetCategoryAssignmentApi'
 import { transactionApi } from '@/services/transactionApi'
 import { userApi } from '@/services/userApi'
 
@@ -133,6 +134,41 @@ const isEffectiveNow = (dateValue: string, now: Date) => {
   return parsedDate <= now
 }
 
+const buildRolledUpSpendByCategory = (
+  categories: BudgetState['categories'],
+  currentMonthTransactions: BudgetTransaction[],
+) => {
+  const categoryById = new Map(categories.map((category) => [category.id, category]))
+  const parentCategoryByName = new Map(
+    categories
+      .filter((category) => category.parentName === category.name)
+      .map((category) => [category.name, category]),
+  )
+  const totals = new Map<string, number>()
+
+  currentMonthTransactions.forEach((transaction) => {
+    const sourceCategory = categoryById.get(transaction.categoryId)
+    if (!sourceCategory) {
+      return
+    }
+
+    const amount = Number.isFinite(transaction.amount) ? transaction.amount : 0
+    totals.set(sourceCategory.id, (totals.get(sourceCategory.id) ?? 0) + amount)
+
+    if (
+      sourceCategory.parentName !== sourceCategory.name &&
+      sourceCategory.type === 'budget'
+    ) {
+      const parentCategory = parentCategoryByName.get(sourceCategory.parentName)
+      if (parentCategory) {
+        totals.set(parentCategory.id, (totals.get(parentCategory.id) ?? 0) + amount)
+      }
+    }
+  })
+
+  return totals
+}
+
 const BudgetContext = createContext<
   | {
       state: BudgetState
@@ -148,6 +184,7 @@ const BudgetContext = createContext<
       }) => void
       updateIncome: (income: number) => void
       updateCategoryAmounts: (id: string, updates: { allocated?: number; spent?: number }) => void
+      purgeCategoryExpenses: (categoryId: string) => void
       removeCategory: (id: string) => void
       reorderCategories: (orderedIds: string[]) => void
       resetDashboard: () => void
@@ -181,26 +218,32 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
       categoryApi.list(),
       transactionApi.list(),
       incomeEntryApi.list(),
-    ]).then(([userResult, categoriesResult, transactionsResult, incomeEntriesResult]) => {
+      monthlyBudgetCategoryAssignmentApi.list(new Date()),
+    ]).then(([
+      userResult,
+      categoriesResult,
+      transactionsResult,
+      incomeEntriesResult,
+      budgetAssignmentsResult,
+    ]) => {
       const remoteUser = userResult.status === 'fulfilled' ? userResult.value : null
       const remoteCategories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : []
       const remoteTransactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : []
       const remoteIncomeEntries = incomeEntriesResult.status === 'fulfilled' ? incomeEntriesResult.value : []
+      const remoteBudgetAssignments =
+        budgetAssignmentsResult.status === 'fulfilled' ? budgetAssignmentsResult.value : []
 
       setTransactions(remoteTransactions)
 
       const { start, end, now } = getCurrentMonthBounds()
       const currentMonthTransactions = remoteTransactions.filter(
         (transaction) =>
+          transaction.isPaid &&
           isInRange(transaction.transactionDate, start, end) &&
           isEffectiveNow(transaction.transactionDate, now),
       )
 
-      const spendByCategory = new Map<string, number>()
-      for (const transaction of currentMonthTransactions) {
-        const previous = spendByCategory.get(transaction.categoryId) ?? 0
-        spendByCategory.set(transaction.categoryId, previous + (Number.isFinite(transaction.amount) ? transaction.amount : 0))
-      }
+      const spendByCategory = buildRolledUpSpendByCategory(remoteCategories, currentMonthTransactions)
 
       const currentMonthIncomeEntries = remoteIncomeEntries.filter((entry) =>
         isInRange(entry.receivedAt, start, end),
@@ -210,6 +253,26 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         .filter((entry) => entry.isPaid && isEffectiveNow(entry.receivedAt, now))
         .reduce((sum, entry) => sum + (Number.isFinite(entry.amount) ? entry.amount : 0), 0)
 
+      const assignmentByCategoryId = new Map(
+        remoteBudgetAssignments.map((assignment) => [assignment.categoryId, assignment]),
+      )
+      const displayedCategories = remoteCategories
+        .filter((category) => {
+          if (category.type === 'fixed') {
+            return true
+          }
+
+          return assignmentByCategoryId.has(category.id)
+        })
+        .map((category) => ({
+          ...category,
+          allocated:
+            category.type === 'budget'
+              ? assignmentByCategoryId.get(category.id)?.allocated ?? 0
+              : category.allocated,
+          spent: spendByCategory.get(category.id) ?? 0,
+        }))
+
       setState((current) => ({
         ...current,
         income:
@@ -218,10 +281,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
             : Number.isFinite(remoteUser?.monthlyIncome)
               ? Math.max(0, remoteUser?.monthlyIncome ?? 0)
               : current.income,
-        categories: remoteCategories.map((category) => ({
-          ...category,
-          spent: spendByCategory.get(category.id) ?? 0,
-        })),
+        categories: displayedCategories,
       }))
     }).catch(() => {
       // ADD THIS: keep local state if backend is unreachable or token is invalid
@@ -365,6 +425,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     // ADD THIS: sync amount updates to backend when configured
     if (!hasBackendConfig()) return
 
+    const currentMonth = new Date()
     const payload: { allocated?: number; spent?: number } = {}
     if (updates.allocated !== undefined) {
       payload.allocated = Math.max(0, Number(updates.allocated) || 0)
@@ -375,9 +436,21 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
     if (payload.allocated === undefined && payload.spent === undefined) return
 
-    void categoryApi
-      .update(id, payload)
+    const category = state.categories.find((item) => item.id === id)
+
+    const allocationSync =
+      payload.allocated === undefined
+        ? Promise.resolve()
+        : category?.type === 'budget'
+          ? monthlyBudgetCategoryAssignmentApi.set(currentMonth, id, payload.allocated)
+          : categoryApi.update(id, { allocated: payload.allocated })
+
+    void Promise.resolve(allocationSync)
       .then(() => {
+        if (payload.spent === undefined && (!transactionDelta || !transactionNote)) {
+          return
+        }
+
         if (!transactionDelta || !transactionNote) {
           return
         }
@@ -400,6 +473,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
   const removeCategory = (id: string) => {
     // ADD THIS: remove category from state array
+    const category = state.categories.find((item) => item.id === id)
     setState((current) => ({
       ...current,
       categories: current.categories.filter((category) => category.id !== id),
@@ -408,8 +482,35 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     // ADD THIS: remove category in backend when configured
     if (!hasBackendConfig()) return
 
-    void categoryApi.remove(id).catch(() => {
+    const removePromise =
+      category?.type === 'budget'
+        ? monthlyBudgetCategoryAssignmentApi.remove(new Date(), id)
+        : categoryApi.remove(id)
+
+    void removePromise.catch(() => {
       // ADD THIS: keep local deletion to avoid UI blocking if backend call fails
+    })
+  }
+
+  const purgeCategoryExpenses = (categoryId: string) => {
+    setTransactions((current) => current.filter((transaction) => transaction.categoryId !== categoryId))
+
+    setState((current) => ({
+      ...current,
+      categories: current.categories.map((category) =>
+        category.id === categoryId
+          ? {
+              ...category,
+              spent: 0,
+            }
+          : category,
+      ),
+    }))
+
+    if (!hasBackendConfig()) return
+
+    void transactionApi.removeByCategory(categoryId).catch(() => {
+      // ADD THIS: keep optimistic reset even if backend sync fails
     })
   }
 
@@ -635,6 +736,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         addCategory,
         updateIncome,
         updateCategoryAmounts,
+        purgeCategoryExpenses,
         removeCategory,
         reorderCategories,
         resetDashboard,

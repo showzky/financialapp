@@ -6,6 +6,8 @@ export type CategorySeed = {
   icon: string
   color: string
   iconColor: string
+  type?: 'budget' | 'fixed'
+  dueDayOfMonth?: number
   sortOrder: number
 }
 

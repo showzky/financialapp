@@ -100,6 +100,8 @@ export function CategoryEditorModal({
   const [icon, setIcon] = useState<CategoryIconName>('ellipse-outline')
   const [color, setColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0])
   const [iconColor, setIconColor] = useState<string>(CATEGORY_ICON_COLOR_OPTIONS[0])
+  const [expenseType, setExpenseType] = useState<'budget' | 'fixed'>('budget')
+  const [dueDayOfMonth, setDueDayOfMonth] = useState('')
   const [pickerKey, setPickerKey] = useState<PickerKey>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -114,6 +116,16 @@ export function CategoryEditorModal({
     setIcon((category?.icon as CategoryIconName) ?? (draftCategory?.icon as CategoryIconName) ?? 'ellipse-outline')
     setColor(category?.color ?? draftCategory?.color ?? CATEGORY_COLOR_OPTIONS[0])
     setIconColor(category?.iconColor ?? draftCategory?.iconColor ?? CATEGORY_ICON_COLOR_OPTIONS[0])
+    setExpenseType(
+      kind === 'expense'
+        ? (category?.type ?? draftCategory?.type ?? 'budget')
+        : 'budget',
+    )
+    setDueDayOfMonth(
+      kind === 'expense'
+        ? category?.dueDayOfMonth?.toString() ?? draftCategory?.dueDayOfMonth?.toString() ?? ''
+        : '',
+    )
     setPickerKey(null)
     setSubmitting(false)
     setError('')
@@ -145,6 +157,19 @@ export function CategoryEditorModal({
   const title = category ? 'Edit category' : 'Add category'
   const cta = category ? 'Save' : 'Add'
   const nameError = !name.trim() ? 'Name is required' : ''
+  const isSubcategoryFlow =
+    kind === 'expense' &&
+    Boolean(
+      parentName.trim() ||
+      (category && category.parentName !== category.name) ||
+      draftCategory?.parentName?.trim(),
+    )
+  const dueDayError =
+    isSubcategoryFlow && expenseType === 'fixed' && dueDayOfMonth.trim().length > 0
+      ? !Number.isInteger(Number(dueDayOfMonth)) || Number(dueDayOfMonth) < 1 || Number(dueDayOfMonth) > 31
+        ? 'Due day must be between 1 and 31'
+        : ''
+      : ''
 
   const iconOptions = useMemo(() => CATEGORY_ICON_OPTIONS.map(String), [])
 
@@ -153,6 +178,20 @@ export function CategoryEditorModal({
       setError(nameError)
       return
     }
+
+    if (dueDayError) {
+      setError(dueDayError)
+      return
+    }
+
+    const resolvedDueDay =
+      kind === 'expense'
+        ? expenseType === 'fixed'
+          ? dueDayOfMonth.trim().length > 0
+            ? Number(dueDayOfMonth)
+            : null
+          : null
+        : undefined
 
     try {
       setSubmitting(true)
@@ -165,6 +204,8 @@ export function CategoryEditorModal({
           icon,
           color,
           iconColor,
+          type: kind === 'expense' ? expenseType : undefined,
+          dueDayOfMonth: isSubcategoryFlow ? resolvedDueDay : undefined,
         })
       } else {
         await categoryApi.createCategory({
@@ -174,8 +215,9 @@ export function CategoryEditorModal({
           icon,
           color,
           iconColor,
-          type: kind === 'expense' ? 'budget' : undefined,
+          type: kind === 'expense' ? expenseType : undefined,
           allocated: kind === 'expense' ? 0 : undefined,
+          dueDayOfMonth: isSubcategoryFlow ? resolvedDueDay : undefined,
         })
       }
       onSaved()
@@ -232,6 +274,48 @@ export function CategoryEditorModal({
               </Text>
               <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.38)" />
             </TouchableOpacity>
+
+            {isSubcategoryFlow ? (
+              <>
+                <Text style={styles.fieldLabel}>Category type</Text>
+                <View style={styles.typeToggle}>
+                  <TouchableOpacity
+                    style={[styles.typeButton, expenseType === 'budget' && styles.typeButtonActive]}
+                    activeOpacity={0.88}
+                    onPress={() => setExpenseType('budget')}
+                  >
+                    <Text style={[styles.typeButtonText, expenseType === 'budget' && styles.typeButtonTextActive]}>
+                      Budget
+                    </Text>
+                    <Text style={styles.typeButtonHint}>Track spending</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.typeButton, expenseType === 'fixed' && styles.typeButtonActiveGreen]}
+                    activeOpacity={0.88}
+                    onPress={() => setExpenseType('fixed')}
+                  >
+                    <Text style={[styles.typeButtonText, expenseType === 'fixed' && styles.typeButtonTextActiveGreen]}>
+                      Fixed
+                    </Text>
+                    <Text style={styles.typeButtonHint}>Set amount</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {expenseType === 'fixed' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Due day</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={dueDayOfMonth}
+                      onChangeText={setDueDayOfMonth}
+                      keyboardType="number-pad"
+                      placeholder="Optional, e.g. 15"
+                      placeholderTextColor="rgba(255,255,255,0.24)"
+                    />
+                  </>
+                ) : null}
+              </>
+            ) : null}
 
             <Text style={styles.fieldLabel}>Choose an icon</Text>
             <TouchableOpacity style={styles.selectRow} onPress={() => setPickerKey('icon')} activeOpacity={0.88}>
@@ -350,12 +434,16 @@ export function CategoryEditorModal({
           category={editingChildCategory}
           draftCategory={
             editingChildCategory
-              ? null
+                ? null
               : {
                   parentName: category?.name ?? '',
                   color,
                   iconColor,
                   icon,
+                  type: kind === 'expense' ? expenseType : undefined,
+                  dueDayOfMonth: kind === 'expense' && expenseType === 'fixed' && dueDayOfMonth.trim()
+                    ? Number(dueDayOfMonth)
+                    : undefined,
                 }
           }
           showSubcategorySection={false}
@@ -448,6 +536,46 @@ const styles = StyleSheet.create({
   swatchSelected: {
     borderColor: 'white',
     borderWidth: 2,
+  },
+  typeToggle: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  typeButton: {
+    flex: 1,
+    minHeight: 74,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  typeButtonActive: {
+    backgroundColor: 'rgba(201,168,76,0.12)',
+    borderColor: 'rgba(201,168,76,0.24)',
+  },
+  typeButtonActiveGreen: {
+    backgroundColor: 'rgba(94,189,151,0.12)',
+    borderColor: 'rgba(94,189,151,0.24)',
+  },
+  typeButtonText: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 16,
+    fontFamily: 'DMSans_700Bold',
+  },
+  typeButtonTextActive: {
+    color: '#e2c06a',
+  },
+  typeButtonTextActiveGreen: {
+    color: '#78d89c',
+  },
+  typeButtonHint: {
+    marginTop: 4,
+    color: 'rgba(255,255,255,0.34)',
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
   },
   errorText: {
     marginTop: 16,

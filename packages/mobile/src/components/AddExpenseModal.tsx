@@ -61,7 +61,7 @@ export function AddExpenseModal({
 
   // New category fields
   const [newCategoryName, setNewCategoryName] = useState('')
-  const [newCategoryType, setNewCategoryType] = useState<'budget' | 'fixed'>('budget')
+  const [newCategoryType, setNewCategoryType] = useState<'budget' | 'fixed'>('fixed')
   const [newCategoryAllocated, setNewCategoryAllocated] = useState('')
   const [newCategoryDueDayOfMonth, setNewCategoryDueDayOfMonth] = useState('')
 
@@ -87,7 +87,7 @@ export function AddExpenseModal({
     setAmount('')
     setNote('')
     setNewCategoryName('')
-    setNewCategoryType('budget')
+    setNewCategoryType('fixed')
     setNewCategoryAllocated('')
     setNewCategoryDueDayOfMonth('')
     setHasTriedSubmit(false)

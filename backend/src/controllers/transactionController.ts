@@ -12,6 +12,7 @@ const createTransactionSchema = z.object({
   amount: z.number().finite().nonnegative(),
   note: z.string().trim().max(400).optional(),
   transactionDate: z.string().trim().date(),
+  isPaid: z.boolean().optional(),
 })
 
 const updateTransactionSchema = z
@@ -20,19 +21,22 @@ const updateTransactionSchema = z
     amount: z.number().finite().nonnegative().optional(),
     note: z.string().trim().max(400).nullable().optional(),
     transactionDate: z.string().trim().date().optional(),
+    isPaid: z.boolean().optional(),
   })
   .refine(
     (value) =>
       value.categoryId !== undefined ||
       value.amount !== undefined ||
       value.note !== undefined ||
-      value.transactionDate !== undefined,
+      value.transactionDate !== undefined ||
+      value.isPaid !== undefined,
     {
       message: 'At least one field must be provided',
     },
   )
 
 const transactionIdSchema = z.object({ id: z.string().trim().min(1) })
+const categoryIdSchema = z.object({ categoryId: z.string().trim().min(1) })
 
 export const createTransaction = asyncHandler(async (req: Request, res: Response) => {
   if (!req.auth) {
@@ -119,4 +123,15 @@ export const deleteTransaction = asyncHandler(async (req: Request, res: Response
   }
 
   res.status(204).send()
+})
+
+export const deleteTransactionsByCategory = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.auth) {
+    throw new AppError('Unauthorized', 401)
+  }
+
+  const { categoryId } = categoryIdSchema.parse(req.params)
+  const removedCount = await transactionModel.removeByCategory(categoryId, req.auth.userId)
+
+  res.status(200).json({ removedCount })
 })
