@@ -27,8 +27,8 @@ import { BudgetCategoryAnalyticsScreen } from './screens/BudgetCategoryAnalytics
 import { PlannedExpenseScreen } from './screens/PlannedExpenseScreen'
 import { EditPlannedExpenseScreen } from './screens/EditPlannedExpenseScreen'
 import { IncomeEntryScreen } from './screens/IncomeEntryScreen'
-import { LoansScreen } from './screens/LoansScreen'
-import { WishlistScreen } from './screens/WishlistScreen'
+import { BalanceScreen } from './screens/BalanceScreen'
+import { PlansScreen } from './screens/PlansScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { LoginScreen } from './screens/LoginScreen'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -46,10 +46,10 @@ function renderTabIcon(routeName: string, focused: boolean) {
   switch (routeName) {
     case 'Home':
       return <FontAwesome5 name="home" size={14} color={focused ? activeColor : inactiveColor} />
-    case 'Loans':
-      return <FontAwesome5 name="calendar-alt" size={15} color={focused ? activeColor : inactiveColor} />
-    case 'Wishlist':
-      return <Ionicons name="wallet-outline" size={17} color={focused ? activeColor : inactiveColor} />
+    case 'Plans':
+      return <Ionicons name="sparkles-outline" size={17} color={focused ? activeColor : inactiveColor} />
+    case 'Balance':
+      return <Ionicons name="card-outline" size={18} color={focused ? activeColor : inactiveColor} />
     case 'Settings':
       return <FontAwesome5 name="cog" size={15} color={focused ? activeColor : inactiveColor} />
     default:
@@ -61,10 +61,10 @@ function getTabLabel(routeName: string) {
   switch (routeName) {
     case 'Home':
       return 'Dashboard'
-    case 'Loans':
-      return 'Loans'
-    case 'Wishlist':
-      return 'Wishlist'
+    case 'Plans':
+      return 'Plans'
+    case 'Balance':
+      return 'Balance'
     case 'Settings':
       return 'Settings'
     default:
@@ -146,8 +146,8 @@ function HomeTabs() {
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Loans" component={LoansScreen} />
-      <Tab.Screen name="Wishlist" component={WishlistScreen} />
+      <Tab.Screen name="Plans" component={PlansScreen} />
+      <Tab.Screen name="Balance" component={BalanceScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   )

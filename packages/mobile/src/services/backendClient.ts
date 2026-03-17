@@ -1,3 +1,5 @@
+import Constants from 'expo-constants'
+
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
 export type BackendClientOptions = {
@@ -16,8 +18,30 @@ export type BackendRequestOptions = {
 
 const developmentFallbackBaseUrl = 'http://10.0.2.2:4000/api/v1'
 
+type ExpoExtraConfig = {
+  backendUrl?: string
+  backendAuthToken?: string
+}
+
+const getExpoExtraConfig = (): ExpoExtraConfig => {
+  const expoConfigExtra = Constants.expoConfig?.extra as ExpoExtraConfig | undefined
+  if (expoConfigExtra) return expoConfigExtra
+
+  const constantsWithManifest = Constants as typeof Constants & {
+    manifest2?: {
+      extra?: {
+        expoClient?: {
+          extra?: ExpoExtraConfig
+        }
+      }
+    }
+  }
+
+  return constantsWithManifest.manifest2?.extra?.expoClient?.extra ?? {}
+}
+
 const defaultBaseUrl = (): string => {
-  const raw = process.env.EXPO_PUBLIC_BACKEND_URL?.trim()
+  const raw = getExpoExtraConfig().backendUrl?.trim() ?? process.env.EXPO_PUBLIC_BACKEND_URL?.trim()
   if (raw) return raw.replace(/\/+$/, '')
 
   if (__DEV__) {
@@ -28,7 +52,9 @@ const defaultBaseUrl = (): string => {
 }
 
 const defaultAuthToken = (): string | undefined => {
-  const raw = process.env.EXPO_PUBLIC_BACKEND_AUTH_TOKEN?.trim()
+  const raw =
+    getExpoExtraConfig().backendAuthToken?.trim() ??
+    process.env.EXPO_PUBLIC_BACKEND_AUTH_TOKEN?.trim()
   return raw && raw.length > 0 ? raw : undefined
 }
 

@@ -4,6 +4,7 @@ export type IncomeEntry = {
   id: string
   userId: string
   incomeCategoryId: string | null
+  accountId: string | null
   category: string
   parentName: string | null
   icon: string | null
@@ -19,6 +20,7 @@ export type IncomeEntry = {
 
 export type CreateIncomeEntryPayload = {
   incomeCategoryId?: string
+  accountId?: string
   category: string
   name?: string
   amount: number

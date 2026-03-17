@@ -3,6 +3,7 @@ import { categoryApi, type CategoryDto, type CreateCategoryPayload as CreateMana
 
 export type CreateTransactionPayload = {
   categoryId: string
+  accountId?: string
   amount: number
   transactionDate: string // YYYY-MM-DD
   note?: string
@@ -14,6 +15,9 @@ export type TransactionResponse = {
   id: string
   userId: string
   categoryId: string
+  categoryName: string | null
+  accountId: string | null
+  accountName: string | null
   amount: number
   note: string | null
   transactionDate: string

@@ -8,6 +8,7 @@ import { AppError } from '../utils/appError.js'
 
 const createIncomeEntrySchema = z.object({
   incomeCategoryId: z.string().trim().min(1).optional(),
+  accountId: z.string().trim().min(1).optional(),
   category: z.string().trim().min(1).max(100),
   name: z.string().trim().max(200).optional(),
   amount: z.number().finite().positive(),
@@ -20,6 +21,7 @@ const updateIncomeEntrySchema = z
   .object({
     category: z.string().trim().min(1).max(100).optional(),
     incomeCategoryId: z.string().trim().min(1).nullable().optional(),
+    accountId: z.string().trim().min(1).nullable().optional(),
     name: z.string().trim().max(200).nullable().optional(),
     amount: z.number().finite().positive().optional(),
     receivedAt: z.string().trim().datetime().optional(),
@@ -30,6 +32,7 @@ const updateIncomeEntrySchema = z
     (value) =>
       value.category !== undefined ||
       value.incomeCategoryId !== undefined ||
+      value.accountId !== undefined ||
       value.name !== undefined ||
       value.amount !== undefined ||
       value.receivedAt !== undefined ||
@@ -58,6 +61,7 @@ export const createIncomeEntry = asyncHandler(async (req: Request, res: Response
   const created = await incomeEntryModel.create({
     userId: req.auth.userId,
     incomeCategoryId: payload.incomeCategoryId,
+    accountId: payload.accountId,
     category: payload.category,
     name: payload.name,
     amount: payload.amount,

@@ -639,6 +639,10 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
           categoryById.set(fallbackId, {
             id: fallbackId,
             name: item.name,
+            parentName: '',
+            icon: '',
+            color: '',
+            iconColor: '',
             type: 'fixed',
             allocated: Math.max(0, item.amount),
             spent: 0,

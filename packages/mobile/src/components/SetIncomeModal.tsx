@@ -16,9 +16,12 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Controller, useForm } from 'react-hook-form'
 import { type CategoryWithSpent } from '../services/dashboardApi'
+import { FinancialAccountPickerModal } from './balance/FinancialAccountPickerModal'
+import { financialAccountApi } from '../services/financialAccountApi'
 import { incomeApi } from '../services/incomeApi'
 import { transactionApi } from '../services/transactionApi'
 import { type CategoryDto } from '../services/categoryApi'
+import type { FinancialAccount } from '../shared/contracts/accounts'
 import { CategoryPickerModal } from './categories/CategoryPickerModal'
 import { setIncomeModalStyles as styles } from './SetIncomeModal.styles'
 
@@ -40,7 +43,7 @@ type EntryFormValues = {
   selectedDateTime: Date
   isPaid: boolean
   countsTowardBills: boolean
-  accountName: string
+  selectedAccountId: string | null
   notes: string
 }
 
@@ -139,11 +142,13 @@ export function SetIncomeModal({
   )
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
+  const [accountPickerOpen, setAccountPickerOpen] = useState(false)
   const [iosPickerMode, setIosPickerMode] = useState<null | 'date' | 'time'>(null)
   const [showMore, setShowMore] = useState(false)
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const amountInputRef = useRef<TextInput>(null)
   const { control, watch, reset, setValue, getValues } = useForm<EntryFormValues>({
     defaultValues: {
@@ -153,7 +158,7 @@ export function SetIncomeModal({
       selectedDateTime: buildInitialDate(selectedMonth),
       isPaid: true,
       countsTowardBills: false,
-      accountName: 'None',
+      selectedAccountId: null,
       notes: '',
     },
   })
@@ -164,12 +169,17 @@ export function SetIncomeModal({
   const selectedDateTime = watch('selectedDateTime')
   const isPaid = watch('isPaid')
   const countsTowardBills = watch('countsTowardBills')
-  const accountName = watch('accountName')
+  const selectedAccountId = watch('selectedAccountId')
   const notes = watch('notes')
+  const selectedAccount = useMemo(
+    () => accounts.find((account) => account.id === selectedAccountId) ?? null,
+    [accounts, selectedAccountId],
+  )
 
   useEffect(() => {
     if (!isOpen) {
       setCategoryPickerOpen(false)
+      setAccountPickerOpen(false)
       setIosPickerMode(null)
       return
     }
@@ -181,7 +191,7 @@ export function SetIncomeModal({
       selectedDateTime: buildInitialDate(selectedMonth),
       isPaid: true,
       countsTowardBills: false,
-      accountName: 'None',
+      selectedAccountId: null,
       notes: '',
     })
     setShowMore(false)
@@ -189,6 +199,7 @@ export function SetIncomeModal({
     setSubmitting(false)
     setSubmitError('')
     setCategoryPickerOpen(false)
+    setAccountPickerOpen(false)
     setIosPickerMode(null)
 
     const timer = setTimeout(() => {
@@ -197,6 +208,20 @@ export function SetIncomeModal({
 
     return () => clearTimeout(timer)
   }, [defaultExpenseCategory, isOpen, mode, reset, selectedMonth])
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    void financialAccountApi
+      .listAccounts()
+      .then(setAccounts)
+      .catch((err) => {
+        console.error('Failed to load accounts for entry modal:', err)
+        setAccounts([])
+      })
+  }, [isOpen])
 
   const amountError =
     amount === '' || isNaN(Number(amount)) || Number(amount) <= 0
@@ -247,12 +272,14 @@ export function SetIncomeModal({
           name: entryName.trim() || selectedCategory.name,
           amount: Number(amount),
           receivedAt: selectedDateTime.toISOString(),
-          accountName: accountName === 'None' ? undefined : accountName,
+          accountId: selectedAccount?.id,
+          accountName: selectedAccount?.name,
           isPaid,
         })
       } else {
         await transactionApi.createTransaction({
           categoryId: selectedCategory.id,
+          accountId: selectedAccount?.id ?? undefined,
           amount: Number(amount),
           transactionDate: formatTransactionDate(selectedDateTime),
           note: notes.trim() || entryName.trim() || undefined,
@@ -376,8 +403,12 @@ export function SetIncomeModal({
 
                   <View style={styles.section}>
                     <Text style={styles.label}>ACCOUNT</Text>
-                    <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
-                      <Text style={styles.dateText}>{accountName}</Text>
+                    <TouchableOpacity
+                      style={styles.inlineField}
+                      activeOpacity={0.9}
+                      onPress={() => setAccountPickerOpen(true)}
+                    >
+                      <Text style={styles.dateText}>{selectedAccount?.name ?? 'None'}</Text>
                       <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
                     </TouchableOpacity>
                   </View>
@@ -598,6 +629,17 @@ export function SetIncomeModal({
         onClose={() => setCategoryPickerOpen(false)}
         onSelect={(category) => {
           setValue('selectedCategory', category)
+        }}
+      />
+
+      <FinancialAccountPickerModal
+        visible={accountPickerOpen}
+        accounts={accounts}
+        selectedAccountId={selectedAccountId}
+        onClose={() => setAccountPickerOpen(false)}
+        onSelect={(account) => {
+          setValue('selectedAccountId', account?.id ?? null)
+          setAccountPickerOpen(false)
         }}
       />
     </>

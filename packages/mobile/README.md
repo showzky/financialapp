@@ -79,14 +79,16 @@ eas build -p ios --non-interactive
 
 Requires [Expo Account](https://expo.dev) and `eas-cli` installed.
 
-For a local Gradle release APK on Windows, set the backend URL first:
+For a local Gradle release APK on Windows, set the backend URL first and build from the Expo project root so the Expo config is evaluated with the same environment:
 
 ```powershell
 $env:EXPO_PUBLIC_BACKEND_URL="https://your-render-service.onrender.com/api/v1"
 $env:NODE_ENV="production"
-Set-Location packages/mobile/android
-.\gradlew.bat app:assembleRelease
+Set-Location packages/mobile
+.\android\gradlew.bat clean app:assembleRelease
 ```
+
+The release APK now embeds `EXPO_PUBLIC_BACKEND_URL` into Expo app config and reads it from there at runtime. If you rebuild after changing the URL, install the newly generated APK from `packages/mobile/android/app/build/outputs/apk/release/`.
 
 ## Dashboard Month Picker
 

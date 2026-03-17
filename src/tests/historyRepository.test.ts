@@ -10,6 +10,10 @@ const buildSnapshot = (month = 'March 2026') => ({
     {
       id: 'rent',
       name: 'Rent',
+      parentName: 'Fixed',
+      icon: 'home',
+      color: '#666',
+      iconColor: '#fff',
       type: 'fixed' as const,
       allocated: 10000,
       spent: 0,
@@ -17,6 +21,10 @@ const buildSnapshot = (month = 'March 2026') => ({
     {
       id: 'food',
       name: 'Food',
+      parentName: 'Variable',
+      icon: 'cart',
+      color: '#666',
+      iconColor: '#fff',
       type: 'budget' as const,
       allocated: 5000,
       spent: 1200,

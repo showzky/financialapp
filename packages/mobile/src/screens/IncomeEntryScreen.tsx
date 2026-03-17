@@ -239,6 +239,13 @@ export function IncomeEntryScreen() {
             </Text>
           </View>
 
+          {incomeEntry.accountName ? (
+            <View style={styles.metaBlock}>
+              <Text style={styles.metaLabel}>Balance</Text>
+              <Text style={styles.metaValue}>{incomeEntry.accountName}</Text>
+            </View>
+          ) : null}
+
           <TouchableOpacity
             style={styles.deleteButton}
             activeOpacity={0.82}

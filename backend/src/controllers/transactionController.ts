@@ -9,6 +9,7 @@ import { env } from '../config/env.js'
 
 const createTransactionSchema = z.object({
   categoryId: z.string().trim().min(1),
+  accountId: z.string().trim().min(1).optional(),
   amount: z.number().finite().nonnegative(),
   note: z.string().trim().max(400).optional(),
   transactionDate: z.string().trim().date(),
@@ -19,6 +20,7 @@ const createTransactionSchema = z.object({
 const updateTransactionSchema = z
   .object({
     categoryId: z.string().trim().min(1).optional(),
+    accountId: z.string().trim().min(1).nullable().optional(),
     amount: z.number().finite().nonnegative().optional(),
     note: z.string().trim().max(400).nullable().optional(),
     transactionDate: z.string().trim().date().optional(),
@@ -28,6 +30,7 @@ const updateTransactionSchema = z
   .refine(
     (value) =>
       value.categoryId !== undefined ||
+      value.accountId !== undefined ||
       value.amount !== undefined ||
       value.note !== undefined ||
       value.transactionDate !== undefined ||

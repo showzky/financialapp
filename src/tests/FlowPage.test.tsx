@@ -62,6 +62,10 @@ const createBudgetContext = (
     categories: Array<{
       id: string
       name: string
+      parentName?: string
+      icon?: string
+      color?: string
+      iconColor?: string
       type: 'budget' | 'fixed'
       allocated: number
       spent: number
@@ -74,18 +78,23 @@ const createBudgetContext = (
       note: string | null
       transactionDate: string
       createdAt: string
+      isPaid?: boolean
     }>
   }>,
 ): ReturnType<typeof useBudgets> => {
   const state = {
     month: overrides?.month ?? 'March 2026',
     income: overrides?.income ?? 37_210,
-    categories:
+    categories: (
       overrides?.categories ??
       [
         {
           id: 'rent',
           name: 'Husleie',
+          parentName: 'Fixed',
+          icon: 'home',
+          color: '#666',
+          iconColor: '#fff',
           type: 'fixed' as const,
           allocated: 6_500,
           spent: 0,
@@ -93,11 +102,16 @@ const createBudgetContext = (
         {
           id: 'transport',
           name: 'Transport',
+          parentName: 'Variable',
+          icon: 'car',
+          color: '#666',
+          iconColor: '#fff',
           type: 'budget' as const,
           allocated: 4_000,
           spent: 3_280,
         },
-      ],
+      ]
+    ).map((c) => ({ parentName: '', icon: '', color: '#666', iconColor: '#fff', ...c })),
   }
 
   const totals = {
@@ -118,7 +132,7 @@ const createBudgetContext = (
     removeCategory: vi.fn(),
     reorderCategories: vi.fn(),
     resetDashboard: vi.fn(),
-    transactions: overrides?.transactions ?? [],
+    transactions: (overrides?.transactions ?? []).map((t) => ({ isPaid: false, ...t })),
     recurringTransactions: [],
     addRecurringTransaction: vi.fn(),
     updateRecurringTransaction: vi.fn(),
@@ -126,6 +140,7 @@ const createBudgetContext = (
     checkAndApplyRecurring: vi.fn().mockReturnValue({ appliedCount: 0, appliedNames: [] }),
     appendTransaction: vi.fn(), // ADDED THIS
     removeTransaction: vi.fn(),
+    purgeCategoryExpenses: vi.fn(),
   }
 }
 
@@ -179,6 +194,7 @@ describe('Flow page', () => {
             note: DASHBOARD_EXPENSE_NOTE,
             transactionDate: '2026-03-08',
             createdAt: '2026-03-08T12:00:00.000Z',
+            isPaid: false,
           },
         ],
       }),
@@ -753,7 +769,7 @@ describe('Flow page', () => {
 
     mockedUseBudgets.mockReturnValue(
       createBudgetContext({
-        categories: [{ id: 'food', name: 'Food', type: 'budget', allocated: 6000, spent: 2050 }],
+        categories: [{ id: 'food', name: 'Food', parentName: 'Variable', icon: 'cart', color: '#666', iconColor: '#fff', type: 'budget' as const, allocated: 6000, spent: 2050 }],
         transactions: [
           {
             id: 'tx-import-1',
@@ -763,6 +779,7 @@ describe('Flow page', () => {
             note: '[revolut-import] Rema 1000',
             transactionDate: '2026-03-08',
             createdAt: '2026-03-08T12:00:00.000Z',
+            isPaid: false,
           },
         ],
       }),
@@ -789,7 +806,7 @@ describe('Flow page', () => {
   it('shows a live cleanup page with imported transactions grouped by affected node', () => {
     mockedUseBudgets.mockReturnValue(
       createBudgetContext({
-        categories: [{ id: 'food', name: 'Food', type: 'budget', allocated: 6000, spent: 2050 }],
+        categories: [{ id: 'food', name: 'Food', parentName: 'Variable', icon: 'cart', color: '#666', iconColor: '#fff', type: 'budget' as const, allocated: 6000, spent: 2050 }],
         transactions: [
           {
             id: 'tx-import-1',
@@ -799,6 +816,7 @@ describe('Flow page', () => {
             note: '[revolut-import] Rema 1000',
             transactionDate: '2026-03-08',
             createdAt: '2026-03-08T12:00:00.000Z',
+            isPaid: false,
           },
           {
             id: 'tx-import-2',
@@ -808,6 +826,7 @@ describe('Flow page', () => {
             note: '[revolut-import] Coop Prix',
             transactionDate: '2026-03-07',
             createdAt: '2026-03-07T11:00:00.000Z',
+            isPaid: false,
           },
         ],
       }),
