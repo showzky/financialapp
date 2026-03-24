@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { FontAwesome5, Ionicons } from '@expo/vector-icons'
 import type { TimelineSection } from '../../features/timeline/types'
-import { formatDayHeader, formatTimelineCurrency, getTimelinePaymentMeta } from '../../features/timeline/utils'
+import { buildWeekBands, formatTimelineCurrency, getTimelinePaymentMeta } from '../../features/timeline/utils'
 import { TimelineLandscapeBanner } from './TimelineLandscapeBanner'
 
 type Props = {
@@ -11,122 +11,109 @@ type Props = {
   now?: Date
 }
 
-type DayGroup = {
-  dayDate: Date
-  label: string
-  entries: TimelineSection['entries']
-}
-
 export function TimelineMonthSection({ section, onEntryPress, now }: Props) {
   const today = useMemo(() => now ?? new Date(), [now])
+  const [year, month] = section.id.split('-').map(Number)
 
-  // Group entries by calendar day, preserving sorted order
-  const dayGroups = useMemo<DayGroup[]>(() => {
-    const groups: DayGroup[] = []
-    const keyToIndex = new Map<string, number>()
-
-    for (const entry of section.entries) {
-      const key = entry.dueDate.toDateString()
-      const idx = keyToIndex.get(key)
-      if (idx !== undefined) {
-        groups[idx].entries.push(entry)
-      } else {
-        keyToIndex.set(key, groups.length)
-        groups.push({
-          dayDate: entry.dueDate,
-          label: formatDayHeader(entry.dueDate, today),
-          entries: [entry],
-        })
-      }
-    }
-    return groups
-  }, [section.entries, today])
+  const weekBands = useMemo(
+    () => buildWeekBands(year, month, section.entries, today),
+    [year, month, section.entries, today],
+  )
 
   return (
     <View style={styles.section}>
       <TimelineLandscapeBanner section={section} />
 
-      <View style={styles.metaRow}>
-        <Text style={styles.metaText}>{section.itemCount} planned this month</Text>
-      </View>
-
       <View style={styles.stack}>
-        {dayGroups.map((group, groupIndex) => {
-          const isLastGroup = groupIndex === dayGroups.length - 1
+        {weekBands.map((band, bandIndex) => {
+          const isLastBand = bandIndex === weekBands.length - 1
 
           return (
-            <View key={group.dayDate.toDateString()}>
-              {/* Day header */}
-              <View style={styles.dayHeaderRow}>
-                <View style={styles.railSpacer}>
-                  <View style={styles.dayDot} />
-                  <View style={styles.timelineLine} />
-                </View>
-                <Text style={styles.dayHeaderText}>{group.label}</Text>
+            <View key={band.key} style={styles.bandGroup}>
+              {/* Week header */}
+              <View style={styles.weekHeaderRow}>
+                <View style={[styles.weekDot, band.isCurrentWeek && styles.weekDotActive]} />
+                <Text style={[styles.weekHeaderText, band.isCurrentWeek && styles.weekHeaderTextActive]}>
+                  {band.label}
+                </Text>
+                {band.isCurrentWeek && (
+                  <View style={styles.nowPill}>
+                    <Text style={styles.nowPillText}>now</Text>
+                  </View>
+                )}
               </View>
 
-              {/* Entries for this day */}
-              {group.entries.map((entry, entryIndex) => {
-                const paymentMeta = getTimelinePaymentMeta(entry.paymentStatus)
-                const isLastEntry = isLastGroup && entryIndex === group.entries.length - 1
-                const iconName = (entry.icon as keyof typeof Ionicons.glyphMap | null) ?? 'ellipse-outline'
+              {band.entries.length === 0 ? (
+                /* Empty week — subtle dashed divider */
+                <View style={styles.emptyBand}>
+                  <View style={styles.emptyDash} />
+                  <Text style={styles.emptyBandText}>No payments</Text>
+                  <View style={styles.emptyDash} />
+                </View>
+              ) : (
+                /* Entry cards for this week */
+                band.entries.map((entry, entryIndex) => {
+                  const paymentMeta = getTimelinePaymentMeta(entry.paymentStatus)
+                  const isLastEntry = isLastBand && entryIndex === band.entries.length - 1
+                  const iconName = (entry.icon as keyof typeof Ionicons.glyphMap | null) ?? 'ellipse-outline'
 
-                return (
-                  <View key={entry.id} style={styles.timelineRow}>
-                    <View style={styles.railSpacer}>
-                      <View
-                        style={[
-                          styles.timelineDot,
-                          {
-                            backgroundColor: paymentMeta.dotColor,
-                            borderColor: entry.accent,
-                          },
-                        ]}
-                      />
-                      {!isLastEntry ? <View style={styles.timelineLine} /> : null}
-                    </View>
+                  return (
+                    <View key={entry.id} style={styles.timelineRow}>
+                      <View style={styles.rail}>
+                        <View
+                          style={[
+                            styles.timelineDot,
+                            {
+                              backgroundColor: paymentMeta.dotColor,
+                              borderColor: entry.accent,
+                            },
+                          ]}
+                        />
+                        {!isLastEntry ? <View style={styles.timelineLine} /> : null}
+                      </View>
 
-                    <TouchableOpacity
-                      style={styles.card}
-                      activeOpacity={0.88}
-                      onPress={() => onEntryPress?.(entry)}
-                    >
-                      <View style={styles.cardTop}>
-                        <View style={styles.categoryPill}>
-                          <View style={[styles.categoryIconWrap, { backgroundColor: `${entry.accent}1d` }]}>
-                            <Ionicons name={iconName} size={12} color={entry.accent} />
+                      <TouchableOpacity
+                        style={styles.card}
+                        activeOpacity={0.88}
+                        onPress={() => onEntryPress?.(entry)}
+                      >
+                        <View style={styles.cardTop}>
+                          <View style={styles.categoryPill}>
+                            <View style={[styles.categoryIconWrap, { backgroundColor: `${entry.accent}1d` }]}>
+                              <Ionicons name={iconName} size={12} color={entry.accent} />
+                            </View>
+                            <Text style={styles.categoryText}>{entry.category}</Text>
                           </View>
-                          <Text style={styles.categoryText}>{entry.category}</Text>
+                          <Text style={[styles.badge, { color: paymentMeta.textColor }]}>{paymentMeta.label}</Text>
                         </View>
-                        <Text style={[styles.badge, { color: paymentMeta.textColor }]}>{paymentMeta.label}</Text>
-                      </View>
 
-                      <View style={styles.cardMiddle}>
-                        <View style={styles.cardTextBlock}>
-                          <Text style={styles.cardTitle}>{entry.title}</Text>
+                        <View style={styles.cardMiddle}>
+                          <View style={styles.cardTextBlock}>
+                            <Text style={styles.cardTitle}>{entry.title}</Text>
+                          </View>
+                          <Text style={styles.cardAmount}>{formatTimelineCurrency(entry.amount)}</Text>
                         </View>
-                        <Text style={styles.cardAmount}>{formatTimelineCurrency(entry.amount)}</Text>
-                      </View>
 
-                      <View style={styles.cardBottom}>
-                        <View style={styles.recurringPill}>
-                          <FontAwesome5 name="sync-alt" size={10} color="rgba(255,255,255,0.36)" />
-                          <Text style={styles.recurringText}>{entry.recurring ? 'Recurring' : 'One-time'}</Text>
+                        <View style={styles.cardBottom}>
+                          <View style={styles.recurringPill}>
+                            <FontAwesome5 name="sync-alt" size={10} color="rgba(255,255,255,0.36)" />
+                            <Text style={styles.recurringText}>{entry.recurring ? 'Recurring' : 'One-time'}</Text>
+                          </View>
+                          <Text style={styles.daysLeftText}>
+                            {entry.daysLeft === 0
+                              ? 'Due today'
+                              : entry.daysLeft === 1
+                                ? '1 day left'
+                                : entry.daysLeft < 0
+                                  ? `${Math.abs(entry.daysLeft)}d overdue`
+                                  : `${entry.daysLeft} days left`}
+                          </Text>
                         </View>
-                        <Text style={styles.daysLeftText}>
-                          {entry.daysLeft === 0
-                            ? 'Due today'
-                            : entry.daysLeft === 1
-                              ? '1 day left'
-                              : entry.daysLeft < 0
-                                ? `${Math.abs(entry.daysLeft)}d overdue`
-                                : `${entry.daysLeft} days left`}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                )
-              })}
+                      </TouchableOpacity>
+                    </View>
+                  )
+                })
+              )}
             </View>
           )
         })}
@@ -139,48 +126,84 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
   },
-  metaRow: {
-    marginTop: 12,
-    marginHorizontal: 24,
-  },
-  metaText: {
-    color: 'rgba(255,255,255,0.36)',
-    fontSize: 13,
-    fontFamily: 'DMSans_500Medium',
-  },
   stack: {
-    marginTop: 16,
+    marginTop: 14,
     paddingHorizontal: 20,
   },
-  // Day header row
-  dayHeaderRow: {
+  bandGroup: {
+    marginBottom: 4,
+  },
+
+  // Week header
+  weekHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
-  dayHeaderText: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 12,
-    fontFamily: 'DMSans_700Bold',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginLeft: 10,
-  },
-  dayDot: {
+  weekDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    zIndex: 2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  // Shared rail column
-  railSpacer: {
-    width: 26,
+  weekDotActive: {
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  weekHeaderText: {
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  weekHeaderTextActive: {
+    color: 'rgba(255,255,255,0.78)',
+  },
+  nowPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  nowPillText: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+    letterSpacing: 0.4,
+  },
+
+  // Empty band
+  emptyBand: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+    paddingHorizontal: 4,
   },
+  emptyDash: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  emptyBandText: {
+    color: 'rgba(255,255,255,0.18)',
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+  },
+
+  // Timeline rail
   timelineRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
+  },
+  rail: {
+    width: 26,
+    alignItems: 'center',
   },
   timelineDot: {
     width: 14,
@@ -198,6 +221,8 @@ const styles = StyleSheet.create({
     marginBottom: -4,
     minHeight: 8,
   },
+
+  // Card
   card: {
     flex: 1,
     marginBottom: 12,

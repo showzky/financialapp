@@ -226,6 +226,46 @@ export function formatDayHeader(date: Date, now: Date): string {
   return weekdayFormatter.format(date)
 }
 
+export type WeekBand = {
+  key: string
+  label: string
+  isCurrentWeek: boolean
+  entries: TimelineEntry[]
+}
+
+export function buildWeekBands(year: number, month: number, entries: TimelineEntry[], now: Date): WeekBand[] {
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const todayInThisMonth = now.getFullYear() === year && now.getMonth() === month
+  const todayDay = now.getDate()
+
+  const bands: WeekBand[] = []
+  let start = 1
+
+  while (start <= daysInMonth) {
+    const end = Math.min(start + 6, daysInMonth)
+    const startDate = new Date(year, month, start)
+    const endDate = new Date(year, month, end)
+
+    const isCurrentWeek = todayInThisMonth && todayDay >= start && todayDay <= end
+
+    const label = isCurrentWeek
+      ? 'This week'
+      : start === end
+        ? rangeFormatter.format(startDate)
+        : `${rangeFormatter.format(startDate)} – ${rangeFormatter.format(endDate)}`
+
+    const bandEntries = entries.filter((e) => {
+      const d = e.dueDate.getDate()
+      return e.dueDate.getFullYear() === year && e.dueDate.getMonth() === month && d >= start && d <= end
+    })
+
+    bands.push({ key: `${year}-${month}-w${start}`, label, isCurrentWeek, entries: bandEntries })
+    start += 7
+  }
+
+  return bands
+}
+
 function getDaysUntil(date: Date, now: Date) {
   const due = new Date(date)
   const today = new Date(now)
@@ -388,13 +428,17 @@ export function buildTimelineSections(
     .filter((entry) => matchesFilter(entry, filter))
     .sort((left, right) => left.dueDate.getTime() - right.dueDate.getTime())
 
+  // Pre-populate all months in the window so empty months still render
   const sectionMap = new Map<string, TimelineEntry[]>()
+  for (let offset = 0; offset < monthCount; offset++) {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1)
+    sectionMap.set(`${d.getFullYear()}-${d.getMonth()}`, [])
+  }
 
   for (const entry of timelineEntries) {
     const key = `${entry.dueDate.getFullYear()}-${entry.dueDate.getMonth()}`
-    const group = sectionMap.get(key) ?? []
-    group.push(entry)
-    sectionMap.set(key, group)
+    const group = sectionMap.get(key)
+    if (group) group.push(entry)
   }
 
   return [...sectionMap.entries()].map(([key, entries]) => {
