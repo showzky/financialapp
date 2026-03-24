@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { FontAwesome5, Ionicons } from '@expo/vector-icons'
 import type { TimelineSection } from '../../features/timeline/types'
 import { formatDueLabel, formatTimelineCurrency, getTimelinePaymentMeta } from '../../features/timeline/utils'
+import { TimelineLandscapeBanner } from './TimelineLandscapeBanner'
 
 type Props = {
   section: TimelineSection
@@ -13,19 +14,7 @@ type Props = {
 export function TimelineMonthSection({ section, onEntryPress }: Props) {
   return (
     <View style={styles.section}>
-      <LinearGradient
-        colors={['rgba(108,210,214,0.9)', 'rgba(64,142,134,0.92)', 'rgba(23,41,63,0.98)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.banner}
-      >
-        <View style={styles.bannerOrbA} />
-        <View style={styles.bannerOrbB} />
-        <View style={styles.bannerHorizon} />
-        <View style={styles.bannerPill}>
-          <Text style={styles.bannerPillText}>{section.monthLabel}</Text>
-        </View>
-      </LinearGradient>
+      <TimelineLandscapeBanner section={section} />
 
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>{section.rangeLabel}</Text>
@@ -102,57 +91,8 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
   },
-  banner: {
-    height: 148,
-    marginHorizontal: 20,
-    borderRadius: 30,
-    overflow: 'hidden',
-    justifyContent: 'flex-start',
-    padding: 16,
-  },
-  bannerOrbA: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    left: -24,
-    top: 12,
-  },
-  bannerOrbB: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(116,240,173,0.18)',
-    right: -52,
-    bottom: -80,
-  },
-  bannerHorizon: {
-    position: 'absolute',
-    left: -10,
-    right: -10,
-    bottom: -24,
-    height: 86,
-    borderRadius: 80,
-    backgroundColor: 'rgba(11,42,56,0.46)',
-  },
-  bannerPill: {
-    alignSelf: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: 'rgba(22,20,34,0.88)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  bannerPillText: {
-    color: 'white',
-    fontSize: 18,
-    fontFamily: 'DMSans_700Bold',
-  },
   metaRow: {
-    marginTop: 14,
+    marginTop: 12,
     marginHorizontal: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -163,7 +103,7 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
   },
   stack: {
-    marginTop: 18,
+    marginTop: 16,
     paddingHorizontal: 20,
   },
   timelineRow: {

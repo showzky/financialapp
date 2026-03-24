@@ -25,7 +25,7 @@ type Props = {
   visible: boolean
   initialItem?: WishlistPlanItem | null
   onClose: () => void
-  onSave: (item: WishlistPlanItem) => void
+  onSave: (item: WishlistPlanItem) => void | Promise<void>
 }
 
 function formatDate(date: Date) {
@@ -177,7 +177,7 @@ export function WishlistCreateModal({ visible, initialItem, onClose, onSave }: P
     }
   }
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!canSubmit) return
 
     const nextItem: WishlistPlanItem = {
@@ -193,7 +193,7 @@ export function WishlistCreateModal({ visible, initialItem, onClose, onSave }: P
       activities: initialItem?.activities ?? [],
     }
 
-    onSave(nextItem)
+    await onSave(nextItem)
     onClose()
   }
 

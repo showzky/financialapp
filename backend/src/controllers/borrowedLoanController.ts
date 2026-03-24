@@ -103,10 +103,6 @@ export const deleteBorrowedLoan = asyncHandler(async (req: Request, res: Respons
     throw new AppError('Borrowed loan not found', 404)
   }
 
-  if (existing.status !== 'paid_off') {
-    throw new AppError('Only paid-off borrowed loans can be deleted', 400)
-  }
-
   const removed = await borrowedLoanModel.remove(id, req.auth.userId)
 
   if (!removed) {

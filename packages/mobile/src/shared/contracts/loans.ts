@@ -7,6 +7,7 @@ export type Loan = {
   dateGiven: string
   expectedRepaymentDate: string
   notes: string | null
+  iconUrl?: string | null
   repaidAt: string | null
   status: LoanStatus
   daysRemaining: number | null
@@ -20,6 +21,7 @@ export type CreateLoanPayload = {
   dateGiven: string
   expectedRepaymentDate: string
   notes?: string | null
+  iconUrl?: string | null
 }
 
 export type UpdateLoanPayload = {
@@ -28,6 +30,7 @@ export type UpdateLoanPayload = {
   dateGiven?: string
   expectedRepaymentDate?: string
   notes?: string | null
+  iconUrl?: string | null
 }
 
 export type LoanSummary = {
@@ -48,6 +51,7 @@ export type BorrowedLoan = {
   interestRate: number
   payoffDate: string
   notes: string | null
+  iconUrl?: string | null
   paidOffAt: string | null
   status: BorrowedLoanStatus
   daysRemaining: number | null
@@ -62,6 +66,7 @@ export type CreateBorrowedLoanPayload = {
   interestRate: number
   payoffDate: string
   notes?: string | null
+  iconUrl?: string | null
 }
 
 export type UpdateBorrowedLoanPayload = {
@@ -71,6 +76,7 @@ export type UpdateBorrowedLoanPayload = {
   interestRate?: number
   payoffDate?: string
   notes?: string | null
+  iconUrl?: string | null
 }
 
 export type BorrowedLoanSummary = {

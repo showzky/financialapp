@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { ConfirmModal } from '../ConfirmModal'
 import type { WishlistPlanItem } from './types'
 
 type Props = {
@@ -10,6 +11,7 @@ type Props = {
   onClose: () => void
   onEdit: (item: WishlistPlanItem) => void
   onMarkPurchased: (itemId: string) => void
+  onDelete: (itemId: string) => void | Promise<void>
 }
 
 function formatKr(value: number) {
@@ -32,8 +34,14 @@ function formatDomain(value: string) {
   }
 }
 
-export function WishlistDetailModal({ visible, item, onClose, onEdit, onMarkPurchased }: Props) {
+export function WishlistDetailModal({ visible, item, onClose, onEdit, onMarkPurchased, onDelete }: Props) {
   const [menuVisible, setMenuVisible] = useState(false)
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+
+  useEffect(() => {
+    setMenuVisible(false)
+    setDeleteModalVisible(false)
+  }, [item?.id, visible])
 
   const leftAmount = useMemo(() => {
     if (!item) return 0
@@ -41,6 +49,12 @@ export function WishlistDetailModal({ visible, item, onClose, onEdit, onMarkPurc
   }, [item])
 
   const purchased = item ? item.savedAmount >= item.price && item.price > 0 : false
+
+  const handleDeletePress = () => {
+    if (!item) return
+    setMenuVisible(false)
+    setDeleteModalVisible(true)
+  }
 
   if (!item) return null
 
@@ -63,9 +77,12 @@ export function WishlistDetailModal({ visible, item, onClose, onEdit, onMarkPurc
             <Ionicons name="arrow-back" size={18} color="rgba(245,248,253,0.82)" />
           </TouchableOpacity>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerPill} activeOpacity={0.85} onPress={() => onEdit(item)}>
+            <TouchableOpacity style={styles.headerPill} activeOpacity={0.85} onPress={() => setMenuVisible((current) => !current)}>
               <Ionicons name="pencil-outline" size={14} color="#F5F8FD" />
               <Text style={styles.headerPillText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteIconButton} activeOpacity={0.85} onPress={handleDeletePress}>
+              <Ionicons name="trash-outline" size={17} color="#FF8D8F" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerIcon} activeOpacity={0.85} onPress={() => setMenuVisible((current) => !current)}>
               <Ionicons name="ellipsis-vertical" size={18} color="rgba(245,248,253,0.82)" />
@@ -185,8 +202,28 @@ export function WishlistDetailModal({ visible, item, onClose, onEdit, onMarkPurc
               <Ionicons name="share-outline" size={16} color="#F5F8FD" />
               <Text style={styles.menuText}>Data export</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.85} onPress={() => { setMenuVisible(false); handleDeletePress() }}>
+              <Ionicons name="trash-outline" size={16} color="#FF8D8F" />
+              <Text style={styles.menuDangerText}>Delete</Text>
+            </TouchableOpacity>
           </View>
         ) : null}
+
+        <ConfirmModal
+          isOpen={deleteModalVisible}
+          title="Are you sure you want to delete?"
+          body={item ? `This will remove ${item.name} from Wishlist.` : ''}
+          confirmText="OK"
+          cancelText="Cancel"
+          confirmDestructive
+          onCancel={() => setDeleteModalVisible(false)}
+          onConfirm={async () => {
+            if (!item) return
+            setDeleteModalVisible(false)
+            await onDelete(item.id)
+          }}
+          theme={confirmTheme}
+        />
 
         <View style={styles.footer}>
           <TouchableOpacity activeOpacity={0.9} onPress={onClose}>
@@ -200,6 +237,23 @@ export function WishlistDetailModal({ visible, item, onClose, onEdit, onMarkPurc
   )
 }
 
+const confirmTheme = {
+  overlayColor: 'rgba(6,8,14,0.58)',
+  cardBackground: '#171C27',
+  borderColor: 'rgba(255,255,255,0.06)',
+  titleColor: '#F5F8FD',
+  bodyColor: 'rgba(245,248,253,0.62)',
+  cancelBackground: 'rgba(255,255,255,0.04)',
+  cancelBorder: 'rgba(255,255,255,0.08)',
+  cancelTextColor: '#E9EEF8',
+  destructiveBackground: '#C94B59',
+  confirmTextColor: '#FFF7F8',
+  iconDestructiveBackground: 'rgba(201,75,89,0.14)',
+  iconDestructiveColor: '#FF8D8F',
+  cardRadius: 28,
+  buttonRadius: 999,
+} as const
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0A0A0E' },
   heroGlow: { position: 'absolute', top: 0, left: 0, right: 0, height: 280 },
@@ -208,6 +262,16 @@ const styles = StyleSheet.create({
   headerIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   headerPill: { minHeight: 34, borderRadius: 15, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.08)' },
   headerPillText: { color: '#F5F8FD', fontSize: 13, fontFamily: 'DMSans_700Bold' },
+  deleteIconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,77,94,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,77,94,0.18)',
+  },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 140 },
   categoryChip: { alignSelf: 'flex-start', minHeight: 30, borderRadius: 15, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.08)' },
   categoryChipText: { color: '#F5F8FD', fontSize: 13, fontFamily: 'DMSans_600SemiBold' },
@@ -241,6 +305,7 @@ const styles = StyleSheet.create({
   menu: { position: 'absolute', top: 62, right: 16, width: 170, borderRadius: 18, backgroundColor: '#1B202B', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', paddingVertical: 8 },
   menuItem: { minHeight: 42, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   menuText: { color: '#F5F8FD', fontSize: 15, fontFamily: 'DMSans_600SemiBold' },
+  menuDangerText: { color: '#FF8D8F', fontSize: 15, fontFamily: 'DMSans_600SemiBold' },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingBottom: 18, paddingTop: 12, backgroundColor: 'rgba(10,10,14,0.92)' },
   primaryButton: { minHeight: 50, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   primaryButtonText: { color: '#F8FBFF', fontSize: 16, fontFamily: 'DMSans_700Bold' },

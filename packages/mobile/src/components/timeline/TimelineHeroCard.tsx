@@ -22,7 +22,7 @@ export function TimelineHeroCard({
 }: Props) {
   return (
     <LinearGradient
-      colors={['rgba(72,44,121,0.95)', 'rgba(19,54,87,0.94)', 'rgba(11,18,32,0.98)']}
+      colors={['rgba(33,42,88,0.98)', 'rgba(24,48,86,0.96)', 'rgba(11,18,32,0.98)']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}
@@ -32,28 +32,34 @@ export function TimelineHeroCard({
 
       <Text style={styles.eyebrow}>Cashflow Timeline</Text>
       <Text style={styles.title}>{monthLabel}</Text>
-      <Text style={styles.balance}>{formatTimelineCurrency(incomeTotal - expenseTotal)}</Text>
 
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Income</Text>
-          <Text style={[styles.summaryValue, styles.incomeValue]}>{formatTimelineCurrency(incomeTotal)}</Text>
+      <View style={styles.balanceRow}>
+        <View>
+          <Text style={styles.balanceLabel}>Net cashflow</Text>
+          <Text style={styles.balance}>{formatTimelineCurrency(incomeTotal - expenseTotal)}</Text>
         </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Expenses</Text>
-          <Text style={[styles.summaryValue, styles.expenseValue]}>{formatTimelineCurrency(expenseTotal)}</Text>
+        <View style={styles.nextDuePill}>
+          <View style={styles.nextDueDot} />
+          <Text style={styles.nextDueText}>Next due: {nearestDueLabel}</Text>
         </View>
       </View>
 
-      <View style={styles.footerRow}>
-        <View>
-          <Text style={styles.footerLabel}>Upcoming planned</Text>
-          <Text style={styles.footerValue}>{formatTimelineCurrency(upcomingTotal)}</Text>
+      <View style={styles.divider} />
+
+      <View style={styles.footerColumns}>
+        <View style={styles.footerMetric}>
+          <Text style={styles.footerLabel}>Income</Text>
+          <Text style={[styles.footerValue, styles.incomeValue]}>{formatTimelineCurrency(incomeTotal)}</Text>
         </View>
-        <View style={styles.heroPill}>
-          <Text style={styles.heroPillLabel}>Nearest due</Text>
-          <Text style={styles.heroPillValue}>{nearestDueLabel}</Text>
-          <Text style={styles.heroPillMeta}>{plannedCount} payments</Text>
+        <View style={styles.footerDivider} />
+        <View style={styles.footerMetric}>
+          <Text style={styles.footerLabel}>Expenses</Text>
+          <Text style={[styles.footerValue, styles.expenseValue]}>{formatTimelineCurrency(expenseTotal)}</Text>
+        </View>
+        <View style={styles.footerDivider} />
+        <View style={styles.footerMetric}>
+          <Text style={styles.footerLabel}>Upcoming</Text>
+          <Text style={styles.footerValue}>{formatTimelineCurrency(upcomingTotal)}</Text>
         </View>
       </View>
     </LinearGradient>
@@ -74,21 +80,21 @@ const styles = StyleSheet.create({
   },
   heroGlowA: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(201,168,76,0.16)',
-    top: -80,
-    right: -50,
-  },
-  heroGlowB: {
-    position: 'absolute',
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: 'rgba(94,189,151,0.14)',
-    bottom: -70,
-    left: -30,
+    backgroundColor: 'rgba(82,126,214,0.22)',
+    top: -60,
+    right: -32,
+  },
+  heroGlowB: {
+    position: 'absolute',
+    width: 144,
+    height: 144,
+    borderRadius: 72,
+    backgroundColor: 'rgba(82,143,214,0.16)',
+    bottom: -58,
+    left: -20,
   },
   eyebrow: {
     color: 'rgba(255,255,255,0.55)',
@@ -98,46 +104,79 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_600SemiBold',
   },
   title: {
-    marginTop: 10,
+    marginTop: 6,
     color: 'rgba(255,255,255,0.92)',
-    fontSize: 30,
-    fontFamily: 'DMSerifDisplay_400Regular',
+    fontSize: 22,
+    fontFamily: 'DMSans_700Bold',
+  },
+  balanceRow: {
+    marginTop: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  balanceLabel: {
+    color: 'rgba(255,255,255,0.46)',
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    fontFamily: 'DMSans_700Bold',
   },
   balance: {
-    marginTop: 8,
+    marginTop: 4,
     color: 'white',
-    fontSize: 36,
+    fontSize: 42,
     fontFamily: 'DMSans_800ExtraBold',
   },
-  summaryRow: {
+  nextDuePill: {
+    marginTop: 6,
+    minHeight: 34,
+    borderRadius: 17,
+    paddingHorizontal: 12,
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 18,
-  },
-  summaryCard: {
-    flex: 1,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(8,10,18,0.26)',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(8,12,24,0.28)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  summaryLabel: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 12,
-    fontFamily: 'DMSans_500Medium',
+  nextDueDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#f0c56d',
   },
-  summaryValue: {
-    marginTop: 8,
-    fontSize: 22,
+  nextDueText: {
+    color: 'rgba(237,242,252,0.84)',
+    fontSize: 13,
     fontFamily: 'DMSans_700Bold',
+  },
+  divider: {
+    marginTop: 16,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   incomeValue: {
     color: '#78d89c',
   },
   expenseValue: {
     color: '#ff9d91',
+  },
+  footerColumns: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    marginTop: 16,
+  },
+  footerMetric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  footerDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginHorizontal: 10,
   },
   footerRow: {
     flexDirection: 'row',
@@ -153,33 +192,7 @@ const styles = StyleSheet.create({
   footerValue: {
     marginTop: 6,
     color: 'rgba(255,255,255,0.86)',
-    fontSize: 18,
+    fontSize: 22,
     fontFamily: 'DMSans_700Bold',
-  },
-  heroPill: {
-    minWidth: 118,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(9,12,20,0.44)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  heroPillLabel: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 11,
-    fontFamily: 'DMSans_500Medium',
-  },
-  heroPillValue: {
-    marginTop: 4,
-    color: 'white',
-    fontSize: 16,
-    fontFamily: 'DMSans_700Bold',
-  },
-  heroPillMeta: {
-    marginTop: 4,
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 11,
-    fontFamily: 'DMSans_500Medium',
   },
 })

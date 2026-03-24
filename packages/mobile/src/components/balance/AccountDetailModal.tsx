@@ -18,7 +18,7 @@ type Props = {
 }
 
 const formatCurrency = (value: number) =>
-  `$${Math.abs(value).toLocaleString(undefined, {
+  `kr ${Math.abs(value).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`

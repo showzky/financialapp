@@ -50,8 +50,8 @@ function renderTabIcon(routeName: string, focused: boolean) {
       return <Ionicons name="sparkles-outline" size={17} color={focused ? activeColor : inactiveColor} />
     case 'Balance':
       return <Ionicons name="card-outline" size={18} color={focused ? activeColor : inactiveColor} />
-    case 'Settings':
-      return <FontAwesome5 name="cog" size={15} color={focused ? activeColor : inactiveColor} />
+    case 'Timeline':
+      return <Ionicons name="calendar-outline" size={17} color={focused ? activeColor : inactiveColor} />
     default:
       return <Ionicons name="ellipse-outline" size={16} color={focused ? activeColor : inactiveColor} />
   }
@@ -65,8 +65,8 @@ function getTabLabel(routeName: string) {
       return 'Plans'
     case 'Balance':
       return 'Balance'
-    case 'Settings':
-      return 'Settings'
+    case 'Timeline':
+      return 'Timeline'
     default:
       return routeName
   }
@@ -148,7 +148,7 @@ function HomeTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Plans" component={PlansScreen} />
       <Tab.Screen name="Balance" component={BalanceScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="Timeline" component={TimelineScreen} />
     </Tab.Navigator>
   )
 }
@@ -166,7 +166,6 @@ function RootNavigator() {
       {status === 'signedIn' ? (
         <>
           <Stack.Screen name="MainTabs" component={HomeTabs} />
-          <Stack.Screen name="Timeline" component={TimelineScreen} />
           <Stack.Screen name="BudgetCategoryAnalytics" component={BudgetCategoryAnalyticsScreen} />
           <Stack.Screen name="PlannedExpense" component={PlannedExpenseScreen} />
           <Stack.Screen name="IncomeEntry" component={IncomeEntryScreen} />

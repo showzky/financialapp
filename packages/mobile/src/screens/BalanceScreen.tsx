@@ -130,11 +130,11 @@ export function BalanceScreen() {
         </TouchableOpacity>
       </View>
 
-      {!loading && hasAccounts ? (
-        <BalanceDonutChart accounts={chartAccounts} />
-      ) : null}
-
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {!loading && hasAccounts ? (
+          <BalanceDonutChart accounts={chartAccounts} />
+        ) : null}
+
         {loading ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color="#6DB2FF" />

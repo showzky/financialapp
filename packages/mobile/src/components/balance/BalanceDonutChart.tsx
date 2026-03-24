@@ -42,7 +42,7 @@ function arcPath(outerR: number, innerR: number, startDeg: number, endDeg: numbe
 }
 
 const formatTotal = (v: number) =>
-  `${v < 0 ? '-' : ''}$${Math.abs(v).toLocaleString(undefined, {
+  `${v < 0 ? '-' : ''}kr ${Math.abs(v).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`

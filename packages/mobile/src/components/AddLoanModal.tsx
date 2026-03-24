@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import {
   Modal,
   View,
@@ -11,9 +11,9 @@ import {
   Platform,
   ScrollView,
 } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import type { CreateLoanPayload } from '../services/loanApi'
-import { useScreenPalette } from '../customthemes'
 import { LoanDateField } from './LoanDateField'
 
 type Props = {
@@ -25,134 +25,6 @@ type Props = {
 // Why hasTriedSubmit? We only show validation errors *after* the user
 // has pressed Submit at least once — avoids instant red fields on open.
 export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
-  const { activeTheme, colors } = useScreenPalette()
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        overlay: {
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.45)',
-          justifyContent: 'flex-end',
-        },
-        keyboardView: {
-          justifyContent: 'flex-end',
-        },
-        card: {
-          backgroundColor: activeTheme.colors.surface,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          paddingHorizontal: 20,
-          paddingTop: 20,
-          paddingBottom: 36,
-          maxHeight: '90%',
-          borderWidth: 1,
-          borderColor: activeTheme.colors.surfaceBorder,
-        },
-        cardHeader: {
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 20,
-        },
-        cardTitle: {
-          fontSize: 20,
-          fontWeight: '700',
-          color: activeTheme.colors.text,
-        },
-        field: {
-          marginBottom: 16,
-        },
-        label: {
-          fontSize: 13,
-          fontWeight: '600',
-          color: activeTheme.colors.text,
-          marginBottom: 6,
-        },
-        input: {
-          borderWidth: 1,
-          borderColor: activeTheme.colors.surfaceBorder,
-          borderRadius: 10,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-          fontSize: 15,
-          color: activeTheme.colors.text,
-          backgroundColor: colors.inputBackground,
-        },
-        notesInput: {
-          minHeight: 92,
-          paddingTop: 12,
-        },
-        inputError: {
-          borderColor: activeTheme.colors.danger,
-          backgroundColor: `${activeTheme.colors.danger}10`,
-        },
-        fieldFooter: {
-          marginTop: 4,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        },
-        errorText: {
-          fontSize: 12,
-          color: activeTheme.colors.danger,
-        },
-        counterText: {
-          fontSize: 12,
-          color: activeTheme.colors.mutedText,
-        },
-        submitErrorBanner: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: `${activeTheme.colors.danger}10`,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: `${activeTheme.colors.danger}40`,
-          padding: 10,
-          marginBottom: 16,
-          gap: 6,
-        },
-        submitErrorText: {
-          fontSize: 13,
-          color: activeTheme.colors.danger,
-          flex: 1,
-        },
-        actions: {
-          flexDirection: 'row',
-          gap: 12,
-          marginTop: 4,
-        },
-        cancelButton: {
-          flex: 1,
-          paddingVertical: 13,
-          borderRadius: 10,
-          borderWidth: 1,
-          borderColor: activeTheme.colors.surfaceBorder,
-          backgroundColor: activeTheme.colors.surfaceAlt,
-          alignItems: 'center',
-        },
-        cancelButtonText: {
-          fontSize: 15,
-          fontWeight: '600',
-          color: activeTheme.colors.text,
-        },
-        submitButton: {
-          flex: 2,
-          paddingVertical: 13,
-          borderRadius: 10,
-          backgroundColor: activeTheme.colors.accent,
-          alignItems: 'center',
-        },
-        submitButtonDisabled: {
-          backgroundColor: activeTheme.colors.accentSoft,
-        },
-        submitButtonText: {
-          fontSize: 15,
-          fontWeight: '600',
-          color: '#fff',
-        },
-      }),
-    [activeTheme.colors, colors.inputBackground],
-  )
   const [recipient, setRecipient] = useState('')
   const [amount, setAmount] = useState('')
   const [dateGiven, setDateGiven] = useState('')
@@ -221,43 +93,32 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
   }
 
   return (
-    <Modal
-      visible={isOpen}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
-      {/* Overlay — tap outside to dismiss */}
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={handleClose}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.keyboardView}
-        >
-          {/* Card — stop overlay tap from bubbling into the card */}
-          <TouchableOpacity activeOpacity={1} style={styles.card}>
-            {/* Header */}
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Add Loan</Text>
-              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color={activeTheme.colors.mutedText} />
-              </TouchableOpacity>
-            </View>
+    <Modal visible={isOpen} transparent animationType="slide" onRequestClose={handleClose}>
+      <View style={styles.root}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={handleClose} />
+        <View style={styles.sheet}>
+          <LinearGradient colors={['#141324', '#0d0d18']} style={StyleSheet.absoluteFill} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView
+              contentContainerStyle={styles.content}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.header}>
+                <TouchableOpacity onPress={handleClose} hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
+                  <Ionicons name="arrow-back" size={18} color="rgba(255,255,255,0.45)" />
+                </TouchableOpacity>
+                <Text style={styles.title}>Add Loan</Text>
+                <View style={styles.headerSpacer} />
+              </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Recipient */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Recipient</Text>
+              <View style={styles.section}>
+                <Text style={styles.label}>RECIPIENT</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    hasTriedSubmit && errors.recipient ? styles.inputError : null,
-                  ]}
+                  style={[styles.textInput, hasTriedSubmit && errors.recipient ? styles.inputError : null]}
                   placeholder="Ola Nordmann"
-                  placeholderTextColor={activeTheme.colors.subtleText}
+                  placeholderTextColor="rgba(255,255,255,0.16)"
                   value={recipient}
                   onChangeText={setRecipient}
                   autoCapitalize="words"
@@ -269,15 +130,12 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
               </View>
 
               {/* Amount */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Amount (NOK)</Text>
+              <View style={styles.section}>
+                <Text style={styles.label}>AMOUNT (NOK)</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    hasTriedSubmit && errors.amount ? styles.inputError : null,
-                  ]}
+                  style={[styles.textInput, hasTriedSubmit && errors.amount ? styles.inputError : null]}
                   placeholder="5000"
-                  placeholderTextColor={activeTheme.colors.subtleText}
+                  placeholderTextColor="rgba(255,255,255,0.16)"
                   value={amount}
                   onChangeText={setAmount}
                   keyboardType="numeric"
@@ -306,61 +164,118 @@ export function AddLoanModal({ isOpen, onClose, onSubmit }: Props) {
                 error={hasTriedSubmit ? errors.expectedRepaymentDate : ''}
               />
 
-              <View style={styles.field}>
-                <Text style={styles.label}>Notes</Text>
+              {/* Notes */}
+              <View style={styles.section}>
+                <Text style={styles.label}>NOTES</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    styles.notesInput,
-                    hasTriedSubmit && errors.notes ? styles.inputError : null,
-                  ]}
+                  style={[styles.textInput, styles.notesInput, hasTriedSubmit && errors.notes ? styles.inputError : null]}
                   placeholder="Til husleie"
-                  placeholderTextColor={activeTheme.colors.subtleText}
+                  placeholderTextColor="rgba(255,255,255,0.16)"
                   value={notes}
                   onChangeText={setNotes}
                   multiline
                   textAlignVertical="top"
                   maxLength={400}
                 />
-                <View style={styles.fieldFooter}>
-                  {hasTriedSubmit && errors.notes ? (
-                    <Text style={styles.errorText}>{errors.notes}</Text>
-                  ) : (
-                    <View />
-                  )}
-                  <Text style={styles.counterText}>{notes.length}/400</Text>
-                </View>
+                <Text style={styles.counter}>{notes.length}/400</Text>
               </View>
 
-              {/* API-level error */}
               {submitError ? (
-                <View style={styles.submitErrorBanner}>
-                  <Ionicons name="alert-circle" size={14} color={activeTheme.colors.danger} />
-                  <Text style={styles.submitErrorText}>{submitError}</Text>
+                <View style={styles.errorBanner}>
+                  <Ionicons name="alert-circle" size={14} color="#F5797E" />
+                  <Text style={styles.errorBannerText}>{submitError}</Text>
                 </View>
               ) : null}
 
-              {/* Actions */}
-              <View style={styles.actions}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleClose} disabled={submitting}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.submitButton, submitting ? styles.submitButtonDisabled : null]}
-                  onPress={handleSubmit}
-                  disabled={submitting}
-                >
+              <TouchableOpacity activeOpacity={0.9} onPress={handleSubmit} disabled={submitting}>
+                <LinearGradient colors={['#6DB2FF', '#4C89E8']} style={styles.primaryButton}>
                   {submitting ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.submitButtonText}>Add Loan</Text>
+                    <Text style={styles.primaryButtonText}>Add Loan</Text>
                   )}
-                </TouchableOpacity>
-              </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.cancelButton} activeOpacity={0.85} onPress={handleClose} disabled={submitting}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
             </ScrollView>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </View>
+      </View>
     </Modal>
   )
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: 'rgba(0,0,0,0.42)', justifyContent: 'flex-end' },
+  sheet: {
+    maxHeight: '94%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  content: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 28 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  title: { color: '#F5F8FD', fontSize: 22, fontFamily: 'DMSans_700Bold' },
+  headerSpacer: { width: 18 },
+  section: { marginBottom: 14 },
+  label: {
+    marginBottom: 8,
+    color: 'rgba(235,240,248,0.42)',
+    fontSize: 11,
+    letterSpacing: 1.1,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  textInput: {
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 14,
+    color: '#F5F8FD',
+    fontSize: 15,
+    fontFamily: 'DMSans_500Medium',
+  },
+  inputError: { borderColor: 'rgba(245,121,126,0.45)' },
+  notesInput: { minHeight: 84, paddingTop: 14, textAlignVertical: 'top' },
+  counter: {
+    marginTop: 6,
+    textAlign: 'right',
+    color: 'rgba(235,240,248,0.32)',
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+  },
+  errorText: { marginTop: 6, color: '#F5797E', fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245,121,126,0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(245,121,126,0.2)',
+    padding: 10,
+    marginBottom: 8,
+  },
+  errorBannerText: { flex: 1, color: '#F5797E', fontSize: 13, fontFamily: 'DMSans_500Medium' },
+  primaryButton: {
+    minHeight: 52,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 18,
+  },
+  primaryButtonText: { color: '#fff', fontSize: 16, fontFamily: 'DMSans_700Bold' },
+  cancelButton: { marginTop: 12, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  cancelButtonText: { color: 'rgba(235,240,248,0.38)', fontSize: 15, fontFamily: 'DMSans_600SemiBold' },
+})

@@ -35,6 +35,8 @@ type Props = {
     iconNeutralColor?: string
     iconDestructiveBackground?: string
     iconDestructiveColor?: string
+    cardRadius?: number
+    buttonRadius?: number
   }
 }
 
@@ -76,6 +78,7 @@ export function ConfirmModal({
           style={[
             styles.card,
             theme?.cardBackground ? { backgroundColor: theme.cardBackground } : null,
+            theme?.cardRadius ? { borderRadius: theme.cardRadius } : null,
             theme?.borderColor ? { borderColor: theme.borderColor, borderWidth: 1 } : null,
           ]}
         >
@@ -95,6 +98,7 @@ export function ConfirmModal({
             <TouchableOpacity
               style={[
                 styles.cancelButton,
+                theme?.buttonRadius ? { borderRadius: theme.buttonRadius } : null,
                 theme?.cancelBackground ? { backgroundColor: theme.cancelBackground } : null,
                 theme?.cancelBorder ? { borderColor: theme.cancelBorder } : null,
               ]}
@@ -114,6 +118,7 @@ export function ConfirmModal({
             <TouchableOpacity
               style={[
                 styles.confirmButton,
+                theme?.buttonRadius ? { borderRadius: theme.buttonRadius } : null,
                 confirmDestructive
                   ? [styles.confirmButtonRed, theme?.destructiveBackground ? { backgroundColor: theme.destructiveBackground } : null]
                   : [styles.confirmButtonBlue, theme?.confirmBackground ? { backgroundColor: theme.confirmBackground } : null],
@@ -152,11 +157,12 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
     width: '100%',
     alignItems: 'center',
     borderColor: 'transparent',
+    maxWidth: 360,
   },
   iconWrapper: {
     width: 56,
@@ -187,11 +193,13 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
+    minHeight: 48,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: '#d1d5db',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButtonText: {
     fontSize: 15,
@@ -200,9 +208,11 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
+    minHeight: 48,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 999,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   confirmButtonBlue: {
     backgroundColor: '#3b82f6',

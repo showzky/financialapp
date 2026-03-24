@@ -142,7 +142,7 @@ test('borrowedLoanModel.markPaidOff zeros current balance and stamps paid_off_at
   assert.deepEqual(capturedParams, ['loan-1', 'user-1'])
 })
 
-test('borrowedLoanModel.remove deletes only paid-off rows for the signed-in user', async () => {
+test('borrowedLoanModel.remove deletes the signed-in users borrowed loan', async () => {
   let capturedSql = ''
   let capturedParams: unknown[] = []
 
@@ -155,7 +155,6 @@ test('borrowedLoanModel.remove deletes only paid-off rows for the signed-in user
   const removed = await borrowedLoanModel.remove('loan-1', 'user-1')
 
   assert.match(capturedSql, /DELETE FROM borrowed_loans/i)
-  assert.match(capturedSql, /AND paid_off_at IS NOT NULL/i)
   assert.deepEqual(capturedParams, ['loan-1', 'user-1'])
   assert.equal(removed, true)
 })

@@ -219,7 +219,6 @@ export const borrowedLoanModel = {
       DELETE FROM borrowed_loans
       WHERE id = $1
         AND user_id = $2
-        AND paid_off_at IS NOT NULL
       `,
       [id, userId],
     )

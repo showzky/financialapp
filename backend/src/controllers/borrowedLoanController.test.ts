@@ -390,7 +390,7 @@ test('markBorrowedLoanPaidOff returns 404 when the row does not exist', async ()
   assert.equal(nextError.statusCode, 404)
 })
 
-test('deleteBorrowedLoan returns 204 when the row is deleted', async () => {
+test('deleteBorrowedLoan returns 204 when a paid-off row is deleted', async () => {
   borrowedLoanModel.getById = async () => ({
     ...sampleBorrowedLoan,
     currentBalance: 0,
@@ -426,25 +426,34 @@ test('deleteBorrowedLoan returns 204 when the row is deleted', async () => {
   assert.equal(getSentBody(), undefined)
 })
 
-test('deleteBorrowedLoan rejects active borrowed loans', async () => {
+test('deleteBorrowedLoan returns 204 when an active row is deleted', async () => {
   borrowedLoanModel.getById = async () => sampleBorrowedLoan
+
+  let capturedCall: { id: string; userId: string } | null = null
+  borrowedLoanModel.remove = async (id, userId) => {
+    capturedCall = { id, userId }
+    return true
+  }
 
   const req = {
     auth: { userId: sampleBorrowedLoan.userId },
     params: { id: sampleBorrowedLoan.id },
   } as unknown as Request
 
-  const { response } = createResponseMock()
-  let nextError: unknown = null
+  const { response, getStatusCode, getSentBody } = createResponseMock()
   const next: NextFunction = (error?: unknown) => {
-    nextError = error ?? null
+    if (error) throw error
   }
 
   deleteBorrowedLoan(req, response, next)
   await new Promise((resolve) => setImmediate(resolve))
 
-  assert.ok(nextError instanceof AppError)
-  assert.equal(nextError.statusCode, 400)
+  assert.deepEqual(capturedCall, {
+    id: sampleBorrowedLoan.id,
+    userId: sampleBorrowedLoan.userId,
+  })
+  assert.equal(getStatusCode(), 204)
+  assert.equal(getSentBody(), undefined)
 })
 
 test('deleteBorrowedLoan returns 404 when the row does not exist', async () => {

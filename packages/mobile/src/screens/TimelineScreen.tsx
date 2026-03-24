@@ -142,6 +142,14 @@ export function TimelineScreen() {
   const nearestDueLabel = timelineSections[0]?.nearestDueLabel ?? '--'
   const upcomingPlannedTotal = timelineSections.reduce((sum, section) => sum + section.totalAmount, 0)
   const plannedCount = timelineSections.reduce((sum, section) => sum + section.itemCount, 0)
+  const filteredIncomeEntries = useMemo(() => {
+    if (filter === 'All') return dashboard?.incomeEntries ?? []
+    const daysLimit = filter === '7 Days' ? 7 : 30
+    return (dashboard?.incomeEntries ?? []).filter((entry) => {
+      const daysUntil = Math.ceil((new Date(entry.receivedAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      return daysUntil <= daysLimit
+    })
+  }, [dashboard?.incomeEntries, filter])
 
   if (loading) {
     return (
@@ -177,9 +185,7 @@ export function TimelineScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()} activeOpacity={0.85}>
-            <Ionicons name="arrow-back" size={18} color="rgba(255,255,255,0.72)" />
-          </TouchableOpacity>
+          <View style={styles.headerButtonGhost} />
 
           <View style={styles.headerCenter}>
             <Text style={styles.headerEyebrow}>Calendar</Text>
@@ -213,7 +219,7 @@ export function TimelineScreen() {
           </View>
         </View>
 
-        <TimelineIncomeSection incomeEntries={dashboard.incomeEntries} onEntryPress={handleOpenIncomeEntry} />
+        <TimelineIncomeSection incomeEntries={filteredIncomeEntries} onEntryPress={handleOpenIncomeEntry} />
 
         <TimelineFilterBar value={filter} onChange={setFilter} />
 
@@ -322,14 +328,14 @@ const styles = StyleSheet.create({
   quickStatsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 18,
+    marginTop: 16,
     paddingHorizontal: 20,
   },
   quickStatCard: {
     flex: 1,
-    borderRadius: 22,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 14,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',

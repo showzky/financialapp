@@ -108,4 +108,8 @@ export const wishlistApi = {
     const row = await backendClient.patch<WishlistItemDto>(`/wishlist/${id}/restore`, {})
     return mapItem(row)
   },
+
+  async remove(id: string): Promise<void> {
+    await backendClient.delete(`/wishlist/${id}`)
+  },
 }

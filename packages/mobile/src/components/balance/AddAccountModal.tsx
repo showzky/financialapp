@@ -205,21 +205,12 @@ export function AddAccountModal({
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.row}>
-                <View style={[styles.fieldBlock, styles.flexField]}>
-                  <Text style={styles.label}>Amount</Text>
-                  <View style={styles.inputRow}>
-                    {mode === 'credit' ? <Text style={styles.prefixText}>-</Text> : null}
-                    <TextInput value={amount} onChangeText={setAmount} placeholder="0" placeholderTextColor="rgba(255,255,255,0.24)" keyboardType="decimal-pad" style={styles.inlineInput} />
-                    <View style={styles.inputAdornment}>
-                      <Ionicons name="calculator-outline" size={16} color="rgba(255,255,255,0.3)" />
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.currencyPill}>
-                  <Text style={styles.currencyText}>USD</Text>
-                  <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.48)" />
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>Amount</Text>
+                <View style={styles.inputRow}>
+                  {mode === 'credit' ? <Text style={styles.prefixText}>-</Text> : null}
+                  <TextInput value={amount} onChangeText={setAmount} placeholder="0" placeholderTextColor="rgba(255,255,255,0.24)" keyboardType="decimal-pad" style={styles.inlineInput} />
+                  <Text style={styles.currencyBadge}>NOK</Text>
                 </View>
               </View>
 
@@ -488,14 +479,11 @@ const styles = StyleSheet.create({
   modeChipActiveGreen: { backgroundColor: '#32B75C', borderColor: '#32B75C' },
   modeChipText: { color: 'rgba(244,246,251,0.75)', fontSize: 12, letterSpacing: 1.1, fontFamily: 'DMSans_700Bold' },
   modeChipTextActive: { color: '#FFFFFF' },
-  row: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
-  flexField: { flex: 1 },
   inputRow: { minHeight: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', paddingLeft: 14, paddingRight: 10, flexDirection: 'row', alignItems: 'center' },
   inlineInput: { flex: 1, color: '#F4F7FB', fontSize: 15, fontFamily: 'DMSans_500Medium' },
   prefixText: { color: '#F4F7FB', fontSize: 16, marginRight: 10, fontFamily: 'DMSans_700Bold' },
   inputAdornment: { width: 28, alignItems: 'center', justifyContent: 'center' },
-  currencyPill: { minWidth: 84, minHeight: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  currencyText: { color: '#EDF2FA', fontSize: 13, fontFamily: 'DMSans_700Bold' },
+  currencyBadge: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontFamily: 'DMSans_600SemiBold', marginRight: 2 },
   selectField: { minHeight: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   accountTypeValueWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
   accountTypeIconWrap: { width: 28, height: 28, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },

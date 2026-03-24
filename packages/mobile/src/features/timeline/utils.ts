@@ -32,6 +32,47 @@ export function formatMonthTitle(date: Date) {
   return monthFormatter.format(date)
 }
 
+export function getTimelineMonthTheme(sectionId: string) {
+  const monthIndex = Number(sectionId.split('-')[1] ?? 0)
+  const themes = [
+    {
+      sky: ['rgba(32,28,66,0.98)', 'rgba(23,19,48,0.96)', 'rgba(15,14,28,0.98)'],
+      hillBack: 'rgba(72,61,142,0.72)',
+      hillMid: 'rgba(55,43,113,0.92)',
+      hillFront: 'rgba(31,24,66,1)',
+      moon: 'rgba(233,222,182,0.95)',
+      glow: 'rgba(164,199,255,0.24)',
+      arc: 'rgba(101,188,168,0.36)',
+      tree: 'rgba(18,15,35,0.9)',
+      dot: '#bda4ff',
+    },
+    {
+      sky: ['rgba(22,54,43,0.98)', 'rgba(18,42,31,0.98)', 'rgba(14,24,20,0.98)'],
+      hillBack: 'rgba(69,121,82,0.72)',
+      hillMid: 'rgba(47,88,54,0.94)',
+      hillFront: 'rgba(23,48,31,1)',
+      moon: 'rgba(224,188,196,0.92)',
+      glow: 'rgba(173,225,178,0.18)',
+      arc: 'rgba(185,150,161,0.28)',
+      tree: 'rgba(15,28,19,0.92)',
+      dot: '#7fe0b1',
+    },
+    {
+      sky: ['rgba(19,36,66,0.98)', 'rgba(18,27,47,0.98)', 'rgba(13,19,31,0.98)'],
+      hillBack: 'rgba(55,89,139,0.7)',
+      hillMid: 'rgba(40,66,108,0.92)',
+      hillFront: 'rgba(20,36,66,1)',
+      moon: 'rgba(236,224,214,0.95)',
+      glow: 'rgba(137,182,255,0.2)',
+      arc: 'rgba(205,224,255,0.24)',
+      tree: 'rgba(11,18,35,0.92)',
+      dot: '#8cb9ff',
+    },
+  ]
+
+  return themes[monthIndex % themes.length]
+}
+
 export function formatDueLabel(date: Date) {
   return weekdayFormatter.format(date)
 }
@@ -110,9 +151,9 @@ function formatTimelineCategoryLabel(category?: {
 }
 
 function matchesFilter(entry: TimelineEntry, filter: TimelineFilter) {
-  if (filter === 'All') return entry.daysLeft >= 0
+  if (filter === 'All') return true
   const daysLimit = filter === '7 Days' ? 7 : 30
-  return entry.daysLeft >= 0 && entry.daysLeft <= daysLimit
+  return Math.abs(entry.daysLeft) <= daysLimit
 }
 
 function buildPaymentKey(categoryId: string, date: Date) {
