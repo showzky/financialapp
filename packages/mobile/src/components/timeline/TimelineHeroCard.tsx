@@ -34,10 +34,8 @@ export function TimelineHeroCard({
       <Text style={styles.title}>{monthLabel}</Text>
 
       <View style={styles.balanceRow}>
-        <View>
-          <Text style={styles.balanceLabel}>Net cashflow</Text>
-          <Text style={styles.balance}>{formatTimelineCurrency(incomeTotal - expenseTotal)}</Text>
-        </View>
+        <Text style={styles.balanceLabel}>Net cashflow</Text>
+        <Text style={styles.balance}>{formatTimelineCurrency(incomeTotal - expenseTotal)}</Text>
         <View style={styles.nextDuePill}>
           <View style={styles.nextDueDot} />
           <Text style={styles.nextDueText}>Next due: {nearestDueLabel}</Text>
@@ -49,17 +47,17 @@ export function TimelineHeroCard({
       <View style={styles.footerColumns}>
         <View style={styles.footerMetric}>
           <Text style={styles.footerLabel}>Income</Text>
-          <Text style={[styles.footerValue, styles.incomeValue]}>{formatTimelineCurrency(incomeTotal)}</Text>
+          <Text style={[styles.footerValue, styles.incomeValue]} numberOfLines={1}>{formatTimelineCurrency(incomeTotal)}</Text>
         </View>
         <View style={styles.footerDivider} />
         <View style={styles.footerMetric}>
           <Text style={styles.footerLabel}>Expenses</Text>
-          <Text style={[styles.footerValue, styles.expenseValue]}>{formatTimelineCurrency(expenseTotal)}</Text>
+          <Text style={[styles.footerValue, styles.expenseValue]} numberOfLines={1}>{formatTimelineCurrency(expenseTotal)}</Text>
         </View>
         <View style={styles.footerDivider} />
         <View style={styles.footerMetric}>
           <Text style={styles.footerLabel}>Upcoming</Text>
-          <Text style={styles.footerValue}>{formatTimelineCurrency(upcomingTotal)}</Text>
+          <Text style={styles.footerValue} numberOfLines={1}>{formatTimelineCurrency(upcomingTotal)}</Text>
         </View>
       </View>
     </LinearGradient>
@@ -111,10 +109,6 @@ const styles = StyleSheet.create({
   },
   balanceRow: {
     marginTop: 18,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
   },
   balanceLabel: {
     color: 'rgba(255,255,255,0.46)',
@@ -130,7 +124,8 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_800ExtraBold',
   },
   nextDuePill: {
-    marginTop: 6,
+    marginTop: 12,
+    alignSelf: 'flex-start',
     minHeight: 34,
     borderRadius: 17,
     paddingHorizontal: 12,
@@ -192,7 +187,7 @@ const styles = StyleSheet.create({
   footerValue: {
     marginTop: 6,
     color: 'rgba(255,255,255,0.86)',
-    fontSize: 22,
+    fontSize: 16,
     fontFamily: 'DMSans_700Bold',
   },
 })
