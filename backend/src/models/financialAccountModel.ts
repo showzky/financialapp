@@ -64,7 +64,11 @@ const selectColumns = `
   account_categories.name AS "categoryName",
   financial_accounts.name,
   financial_accounts.mode,
-  financial_accounts.amount::float8 AS amount,
+  (
+    COALESCE(latest_balance_adjustment.target_amount, financial_accounts.amount)::float8
+    + COALESCE(account_income_totals.total_income, 0)::float8
+    - COALESCE(account_expense_totals.total_expense, 0)::float8
+  ) AS amount,
   financial_accounts.credit_limit::float8 AS "creditLimit",
   financial_accounts.payment_day_of_month AS "paymentDayOfMonth",
   financial_accounts.reminder,
@@ -94,6 +98,33 @@ export const financialAccountModel = {
       FROM financial_accounts
       INNER JOIN account_categories
         ON account_categories.id = financial_accounts.category_id
+      LEFT JOIN LATERAL (
+        SELECT
+          account_balance_adjustments.target_amount,
+          account_balance_adjustments.created_at
+        FROM account_balance_adjustments
+        WHERE account_balance_adjustments.account_id = financial_accounts.id
+        ORDER BY account_balance_adjustments.created_at DESC
+        LIMIT 1
+      ) AS latest_balance_adjustment ON true
+      LEFT JOIN LATERAL (
+        SELECT
+          SUM(income_entries.amount)::float8 AS total_income
+        FROM income_entries
+        WHERE income_entries.account_id = financial_accounts.id
+          AND income_entries.user_id = financial_accounts.user_id
+          AND income_entries.is_paid = true
+          AND income_entries.created_at > COALESCE(latest_balance_adjustment.created_at, financial_accounts.created_at)
+      ) AS account_income_totals ON true
+      LEFT JOIN LATERAL (
+        SELECT
+          SUM(transactions.amount)::float8 AS total_expense
+        FROM transactions
+        WHERE transactions.account_id = financial_accounts.id
+          AND transactions.user_id = financial_accounts.user_id
+          AND transactions.is_paid = true
+          AND transactions.created_at > COALESCE(latest_balance_adjustment.created_at, financial_accounts.created_at)
+      ) AS account_expense_totals ON true
       WHERE financial_accounts.user_id = $1
       ORDER BY account_categories.sort_order ASC, financial_accounts.sort_order ASC, financial_accounts.created_at ASC
       `,
@@ -111,6 +142,33 @@ export const financialAccountModel = {
       FROM financial_accounts
       INNER JOIN account_categories
         ON account_categories.id = financial_accounts.category_id
+      LEFT JOIN LATERAL (
+        SELECT
+          account_balance_adjustments.target_amount,
+          account_balance_adjustments.created_at
+        FROM account_balance_adjustments
+        WHERE account_balance_adjustments.account_id = financial_accounts.id
+        ORDER BY account_balance_adjustments.created_at DESC
+        LIMIT 1
+      ) AS latest_balance_adjustment ON true
+      LEFT JOIN LATERAL (
+        SELECT
+          SUM(income_entries.amount)::float8 AS total_income
+        FROM income_entries
+        WHERE income_entries.account_id = financial_accounts.id
+          AND income_entries.user_id = financial_accounts.user_id
+          AND income_entries.is_paid = true
+          AND income_entries.created_at > COALESCE(latest_balance_adjustment.created_at, financial_accounts.created_at)
+      ) AS account_income_totals ON true
+      LEFT JOIN LATERAL (
+        SELECT
+          SUM(transactions.amount)::float8 AS total_expense
+        FROM transactions
+        WHERE transactions.account_id = financial_accounts.id
+          AND transactions.user_id = financial_accounts.user_id
+          AND transactions.is_paid = true
+          AND transactions.created_at > COALESCE(latest_balance_adjustment.created_at, financial_accounts.created_at)
+      ) AS account_expense_totals ON true
       WHERE financial_accounts.id = $1 AND financial_accounts.user_id = $2
       LIMIT 1
       `,

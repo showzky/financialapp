@@ -63,6 +63,8 @@ export type DashboardData = {
   budgetAssignments: CategoryWithSpent[]
   incomeEntries: IncomeEntry[]
   billEntries: BillEntry[]
+  incomeCategories: IncomeCategoryWithDueDay[]
+  allIncomeEntries: IncomeEntry[]
 }
 
 type CurrentUserDto = {
@@ -123,6 +125,29 @@ type LoanSummaryDto = {
   overdueCount: number
   dueSoonCount: number
   repaidCount: number
+}
+
+type IncomeCategoryDto = {
+  id: string
+  name: string
+  parentName: string
+  icon: string
+  color: string
+  iconColor: string
+  dueDayOfMonth: number | null
+  sortOrder: number
+  isDefault: boolean
+  isArchived: boolean
+}
+
+export type IncomeCategoryWithDueDay = {
+  id: string
+  name: string
+  parentName: string
+  icon: string
+  color: string
+  iconColor: string
+  dueDayOfMonth: number | null
 }
 
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value, 0)
@@ -283,10 +308,11 @@ export const dashboardApi = {
   async get(selectedMonth: Date): Promise<DashboardData> {
     const now = new Date()
     const validMonth = ensureValidMonth(selectedMonth)
-    const [user, categories, transactions, loanSummary, incomeEntries, monthlyBudgetTarget, budgetAssignments] =
+    const [user, categories, incomeCategories, transactions, loanSummary, incomeEntries, monthlyBudgetTarget, budgetAssignments] =
       await Promise.all([
         backendClient.get<CurrentUserDto>('/users/me'),
         backendClient.get<CategoryDto[]>('/categories?kind=expense'),
+        backendClient.get<IncomeCategoryDto[]>('/categories?kind=income'),
         backendClient.get<TransactionDto[]>('/transactions'),
         backendClient.get<LoanSummaryDto>('/loans/summary'),
         backendClient.get<IncomeEntryDto[]>('/income-entries'),
@@ -389,6 +415,31 @@ export const dashboardApi = {
       categories: enrichedCategories,
       budgetAssignments: assignedBudgetCategories,
       billEntries,
+      incomeCategories: incomeCategories
+        .filter((c) => !c.isArchived)
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          parentName: c.parentName,
+          icon: c.icon,
+          color: c.color,
+          iconColor: c.iconColor,
+          dueDayOfMonth: Number.isFinite(c.dueDayOfMonth) ? Number(c.dueDayOfMonth) : null,
+        })),
+      allIncomeEntries: incomeEntries.map((entry) => ({
+        id: entry.id,
+        incomeCategoryId: entry.incomeCategoryId,
+        category: entry.category,
+        parentName: entry.parentName,
+        icon: entry.icon,
+        color: entry.color,
+        iconColor: entry.iconColor,
+        name: entry.name,
+        amount: Number.isFinite(entry.amount) ? entry.amount : 0,
+        receivedAt: entry.receivedAt,
+        accountName: entry.accountName,
+        isPaid: entry.isPaid,
+      })),
       incomeEntries: monthIncomeEntries.map((entry) => ({
         id: entry.id,
         incomeCategoryId: entry.incomeCategoryId,

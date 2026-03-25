@@ -20,7 +20,7 @@ const wishlistItemSchema = z.object({
   price: z.number().finite().nonnegative().nullable(),
   imageUrl: z.string().trim().url().or(z.literal('')).optional(),
   category: z.string().trim().max(100).optional(),
-  notes: z.string().max(WISHLIST_NOTES_MAX_LENGTH).optional(),
+  notes: z.string().trim().max(WISHLIST_NOTES_MAX_LENGTH).nullable().optional(),
   priority: wishlistPrioritySchema.optional(),
   savedAmount: z.number().finite().nonnegative().optional(),
 })
@@ -32,7 +32,7 @@ const wishlistItemUpdateSchema = z
     price: z.number().finite().nonnegative().nullable().optional(),
     imageUrl: z.string().trim().url().or(z.literal('')).optional(),
     category: z.string().trim().max(100).optional(),
-    notes: z.string().max(WISHLIST_NOTES_MAX_LENGTH).optional(),
+    notes: z.string().trim().max(WISHLIST_NOTES_MAX_LENGTH).nullable().optional(),
     priority: wishlistPrioritySchema.optional(),
     savedAmount: z.number().finite().nonnegative().optional(),
   })

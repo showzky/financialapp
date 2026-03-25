@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { load } from 'cheerio'
+import { env } from '../config/env.js'
 import { AppError } from '../utils/appError.js'
 
 export type ProductMetadata = {
@@ -21,6 +22,7 @@ type CachedProductMetadata = {
 
 const previewCache = new Map<string, CachedProductMetadata>()
 const PREVIEW_CACHE_TTL_MS = 5 * 60 * 1000
+const PREVIEW_CACHE_INCOMPLETE_TTL_MS = 30 * 1000
 
 const toAbsoluteUrl = (value: string, baseUrl: string) => {
   try {
@@ -87,6 +89,149 @@ const normalizePrice = (value: string) => {
   }
 
   return parts.join('')
+}
+
+const extractCurrencyPriceMatches = (value: string): string[] => {
+  const results = new Set<string>()
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (!normalized) return []
+
+  const patterns = [
+    /(?:nok|kr|usd|eur|gbp|sek|dkk|\$|€|£)\s*([0-9][0-9\s.,]*)/gi,
+    /([0-9][0-9\s.,]*)\s*(?:nok|kr|usd|eur|gbp|sek|dkk|\$|€|£)/gi,
+  ]
+
+  patterns.forEach((pattern) => {
+    for (const match of normalized.matchAll(pattern)) {
+      const candidate = (match[1] ?? '').trim()
+      if (candidate) {
+        results.add(candidate)
+      }
+    }
+  })
+
+  return Array.from(results)
+}
+
+const PRICE_LIKE_KEYWORDS = [
+  'price',
+  'saleprice',
+  'salesprice',
+  'sale_price',
+  'sales_price',
+  'sale-price',
+  'currentprice',
+  'current_price',
+  'current-price',
+  'displayprice',
+  'display_price',
+  'productprice',
+  'product_price',
+  'offerprice',
+  'offer_price',
+  'finalprice',
+  'final_price',
+  'unitprice',
+  'unit_price',
+  'regularprice',
+  'regular_price',
+  'nowprice',
+  'now_price',
+  'wasprice',
+  'was_price',
+  'discountedprice',
+  'discounted_price',
+  'pricevalue',
+  'price_value',
+  'amount',
+  'amountvalue',
+  'priceamount',
+  'pricewithtax',
+  'priceincvat',
+  'priceinclvat',
+  'listprice',
+  'lowestprice',
+  'lowest_price',
+  'highestprice',
+  'specialprice',
+  'pris',
+  'kampanjepris',
+  'normalpris',
+]
+
+const hasPriceLikeKey = (key: string) =>
+  PRICE_LIKE_KEYWORDS.some((keyword) => key.includes(keyword))
+
+const collectPriceCandidates = ($: ReturnType<typeof load>) => {
+  const candidates = new Set<string>()
+
+  const addCandidate = (value?: string | null) => {
+    if (!value) return
+    const trimmed = value.trim()
+    if (!trimmed) return
+
+    candidates.add(trimmed)
+    extractCurrencyPriceMatches(trimmed).forEach((match) => candidates.add(match))
+  }
+
+  $(
+    [
+      'meta[property="product:price:amount"]',
+      'meta[property="og:price:amount"]',
+      'meta[name="price"]',
+      'meta[itemprop="price:amount"]',
+      'meta[itemprop="price"]',
+      '[itemprop="price"]',
+      '[data-price]',
+      '[data-price-amount]',
+      '[data-sale-price]',
+      '[data-product-price]',
+      '[data-testid*="price" i]',
+      '[class*="price" i]',
+      '[id*="price" i]',
+      '[aria-label*="price" i]',
+      '[class*="amount" i]',
+      '[id*="amount" i]',
+    ].join(', '),
+  )
+    .toArray()
+    .forEach((tag) => {
+      const element = $(tag)
+      addCandidate(element.attr('content'))
+      addCandidate(element.attr('value'))
+      addCandidate(element.attr('data-price'))
+      addCandidate(element.attr('data-price-amount'))
+      addCandidate(element.attr('data-sale-price'))
+      addCandidate(element.attr('data-product-price'))
+      addCandidate(element.attr('aria-label'))
+      addCandidate(element.text())
+    })
+
+  $('script')
+    .toArray()
+    .forEach((tag) => {
+      const scriptText = $(tag).text()
+      if (!scriptText) return
+
+      const normalized = scriptText.toLowerCase()
+      if (
+        !normalized.includes('price') &&
+        !normalized.includes('amount') &&
+        !normalized.includes('currency') &&
+        !normalized.includes('sale') &&
+        !normalized.includes('offer') &&
+        !/[$€£]|nok|kr|usd|eur|gbp|sek|dkk/i.test(scriptText)
+      ) {
+        return
+      }
+
+      addCandidate(scriptText)
+    })
+
+  const bodyText = $('body').text().replace(/\s+/g, ' ')
+  extractCurrencyPriceMatches(bodyText).slice(0, 25).forEach((match) => candidates.add(match))
+
+  return Array.from(candidates)
 }
 
 const fallbackTitleFromUrl = (value: string) => {
@@ -258,7 +403,7 @@ const extractFromAppJson = (raw: string): JsonLdExtraction => {
 
   const titleKeys = new Set(['name', 'title', 'productname', 'producttitle'])
   const imageKeys = new Set(['image', 'imageurl', 'mainimage', 'thumbnail', 'primaryimage'])
-  const priceKeys = new Set(['price', 'currentprice', 'saleprice', 'regularprice', 'amount'])
+  const priceKeys = new Set(PRICE_LIKE_KEYWORDS)
 
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -293,14 +438,14 @@ const extractFromAppJson = (raw: string): JsonLdExtraction => {
             images.add(text)
           }
 
-          if (priceKeys.has(key)) {
+          if (hasPriceLikeKey(key)) {
             prices.add(text)
           }
 
           continue
         }
 
-        if (typeof value === 'number' && Number.isFinite(value) && priceKeys.has(key)) {
+        if (typeof value === 'number' && Number.isFinite(value) && hasPriceLikeKey(key)) {
           prices.add(String(value))
           continue
         }
@@ -322,6 +467,135 @@ const extractFromAppJson = (raw: string): JsonLdExtraction => {
     titles: Array.from(titles),
     images: Array.from(images),
     prices: Array.from(prices),
+  }
+}
+
+const fetchHtmlViaBrowserless = async (
+  url: string,
+  mode: 'content' | 'unblock',
+): Promise<string> => {
+  const token = env.BROWSERLESS_TOKEN
+  if (!token) throw new Error('No browserless token')
+
+  const baseUrl = env.BROWSERLESS_BASE_URL
+  const timeout = env.BROWSERLESS_TIMEOUT_MS
+  const endpoint = `${baseUrl}/${mode}?token=${encodeURIComponent(token)}`
+
+  if (mode === 'unblock') {
+    const response = await axios.post(
+      endpoint,
+      {
+        url,
+        browserWSEndpoint: false,
+        content: true,
+        cookies: false,
+        screenshot: false,
+      },
+      {
+        timeout,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+
+    const body = response.data as { content?: string }
+    if (typeof body?.content === 'string' && body.content.length > 0) {
+      return body.content
+    }
+
+    throw new Error('Browserless unblock returned no content')
+  }
+
+  // content mode
+  const response = await axios.post(
+    endpoint,
+    {
+      url,
+      gotoOptions: { waitUntil: 'networkidle2', timeout },
+      waitForSelector: {
+        selector: '[class*="price" i], [itemprop="price"], [data-price], [data-price-amount]',
+        timeout: 6000,
+      },
+      evaluate: `
+        (() => {
+          try {
+            const nd = window.__NEXT_DATA__
+            if (nd) {
+              const el = document.getElementById('__NEXT_DATA__')
+              if (el) el.setAttribute('data-extracted', 'true')
+            }
+          } catch {}
+          return document.documentElement.outerHTML
+        })()
+      `,
+    },
+    {
+      timeout: timeout + 10000,
+      headers: { 'Content-Type': 'application/json' },
+      responseType: 'text',
+    },
+  )
+
+  const body = typeof response.data === 'string' ? response.data : ''
+  if (body.length > 0) return body
+
+  throw new Error('Browserless content returned empty')
+}
+
+const fetchHtmlPlain = async (url: string): Promise<{ html: string; finalUrl: string }> => {
+  const response = await axios.get<string>(url, {
+    timeout: 6500,
+    maxRedirects: 5,
+    responseType: 'text',
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'nb-NO,nb;q=0.9,en-US;q=0.8,en;q=0.7',
+    },
+    validateStatus: (status) => status >= 200 && status < 400,
+  })
+
+  const requestWithResponseUrl = response.request as
+    | { res?: { responseUrl?: string } }
+    | undefined
+
+  return {
+    html: response.data,
+    finalUrl: requestWithResponseUrl?.res?.responseUrl || url,
+  }
+}
+
+const fetchRenderedHtml = async (
+  url: string,
+): Promise<{ html: string; finalUrl: string }> => {
+  const mode = env.BROWSERLESS_MODE
+  const hasToken = Boolean(env.BROWSERLESS_TOKEN)
+
+  if (!hasToken) {
+    return fetchHtmlPlain(url)
+  }
+
+  // auto: try unblock → content → plain
+  if (mode === 'auto') {
+    try {
+      const html = await fetchHtmlViaBrowserless(url, 'unblock')
+      return { html, finalUrl: url }
+    } catch { /* fall through */ }
+
+    try {
+      const html = await fetchHtmlViaBrowserless(url, 'content')
+      return { html, finalUrl: url }
+    } catch { /* fall through */ }
+
+    return fetchHtmlPlain(url)
+  }
+
+  // explicit mode (content or unblock) with plain fallback
+  try {
+    const html = await fetchHtmlViaBrowserless(url, mode)
+    return { html, finalUrl: url }
+  } catch {
+    return fetchHtmlPlain(url)
   }
 }
 
@@ -347,24 +621,9 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
   let finalUrl = url
 
   try {
-    const response = await axios.get<string>(url, {
-      timeout: 6500,
-      maxRedirects: 5,
-      responseType: 'text',
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'nb-NO,nb;q=0.9,en-US;q=0.8,en;q=0.7',
-      },
-      validateStatus: (status) => status >= 200 && status < 400,
-    })
-
-    html = response.data
-    const requestWithResponseUrl = response.request as
-      | { res?: { responseUrl?: string } }
-      | undefined
-    finalUrl = requestWithResponseUrl?.res?.responseUrl || url
+    const result = await fetchRenderedHtml(url)
+    html = result.html
+    finalUrl = result.finalUrl
   } catch {
     throw new AppError('Could not fetch product data', 502)
   }
@@ -440,22 +699,11 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
       .map((entry) => normalizePrice(entry))
       .find((entry): entry is string => Boolean(entry)) || null
 
-  const metaPrice =
-    $('meta[property="product:price:amount"]').attr('content')?.trim() ||
-    $('meta[property="og:price:amount"]').attr('content')?.trim() ||
-    $('meta[name="price"]').attr('content')?.trim() ||
-    $('meta[itemprop="price:amount"]').attr('content')?.trim() ||
-    $('meta[itemprop="price"]').attr('content')?.trim() ||
-    ''
+  const selectorPrice = collectPriceCandidates($)
+    .map((entry) => normalizePrice(entry))
+    .find((entry): entry is string => Boolean(entry)) || null
 
-  const selectorPrice =
-    $('.price').first().text().trim() ||
-    $('#price').first().text().trim() ||
-    $('[itemprop="price"]').first().text().trim() ||
-    $('[class*="price"]').first().text().trim() ||
-    ''
-
-  const normalizedPrice = jsonLdPrice || normalizePrice(metaPrice || selectorPrice)
+  const normalizedPrice = jsonLdPrice || selectorPrice
 
   const result = {
     title,
@@ -464,7 +712,7 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
   }
 
   previewCache.set(url, {
-    expiresAt: Date.now() + PREVIEW_CACHE_TTL_MS,
+    expiresAt: Date.now() + (result.price ? PREVIEW_CACHE_TTL_MS : PREVIEW_CACHE_INCOMPLETE_TTL_MS),
     data: result,
   })
 

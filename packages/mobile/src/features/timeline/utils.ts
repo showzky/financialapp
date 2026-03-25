@@ -1,4 +1,4 @@
-import type { CategoryWithSpent } from '../../services/dashboardApi'
+import type { CategoryWithSpent, IncomeEntry, IncomeCategoryWithDueDay } from '../../services/dashboardApi'
 import type { TransactionResponse } from '../../services/transactionApi'
 import type { TimelineEntry, TimelineFilter, TimelineInsight, TimelineSection, TimelineUrgency } from './types'
 
@@ -32,49 +32,238 @@ export function formatMonthTitle(date: Date) {
   return monthFormatter.format(date)
 }
 
-export function getTimelineMonthTheme(sectionId: string) {
+export type TimelineMonthTheme = {
+  sky: [string, string, string]
+  hillBack: string
+  hillMid: string
+  hillFront: string
+  moon: string
+  glow: string
+  arc: string
+  tree: string
+  dot: string
+  season: 'winter' | 'spring' | 'summer' | 'autumn'
+}
+
+export function getTimelineMonthTheme(sectionId: string): TimelineMonthTheme {
+  // sectionId format: "year-monthIndex" where monthIndex is 0-based (0=Jan, 11=Dec)
   const monthIndex = Number(sectionId.split('-')[1] ?? 0)
-  const themes = [
+  const themes: TimelineMonthTheme[] = [
+    // January (0) — cold steel-blue winter night
     {
-      sky: ['rgba(32,28,66,0.98)', 'rgba(23,19,48,0.96)', 'rgba(15,14,28,0.98)'],
-      hillBack: 'rgba(72,61,142,0.72)',
-      hillMid: 'rgba(55,43,113,0.92)',
-      hillFront: 'rgba(31,24,66,1)',
-      moon: 'rgba(233,222,182,0.95)',
-      glow: 'rgba(164,199,255,0.24)',
-      arc: 'rgba(101,188,168,0.36)',
-      tree: 'rgba(18,15,35,0.9)',
-      dot: '#bda4ff',
+      sky: ['rgba(14,20,40,0.98)', 'rgba(18,24,50,0.98)', 'rgba(10,14,28,0.98)'],
+      hillBack: 'rgba(38,52,90,0.72)',
+      hillMid: 'rgba(28,40,72,0.92)',
+      hillFront: 'rgba(14,22,44,1)',
+      moon: 'rgba(220,232,255,0.95)',
+      glow: 'rgba(180,200,255,0.22)',
+      arc: 'rgba(160,190,255,0.28)',
+      tree: 'rgba(10,14,30,0.9)',
+      dot: '#a0c4ff',
+      season: 'winter',
     },
+    // February (1) — twilight violet, aurora hints
     {
-      sky: ['rgba(22,54,43,0.98)', 'rgba(18,42,31,0.98)', 'rgba(14,24,20,0.98)'],
-      hillBack: 'rgba(69,121,82,0.72)',
-      hillMid: 'rgba(47,88,54,0.94)',
-      hillFront: 'rgba(23,48,31,1)',
-      moon: 'rgba(224,188,196,0.92)',
-      glow: 'rgba(173,225,178,0.18)',
-      arc: 'rgba(185,150,161,0.28)',
-      tree: 'rgba(15,28,19,0.92)',
-      dot: '#7fe0b1',
+      sky: ['rgba(32,22,58,0.98)', 'rgba(28,18,50,0.98)', 'rgba(18,12,34,0.98)'],
+      hillBack: 'rgba(80,55,130,0.72)',
+      hillMid: 'rgba(60,38,108,0.92)',
+      hillFront: 'rgba(28,16,56,1)',
+      moon: 'rgba(230,210,255,0.92)',
+      glow: 'rgba(190,160,255,0.24)',
+      arc: 'rgba(200,180,255,0.30)',
+      tree: 'rgba(16,10,32,0.9)',
+      dot: '#c4a8ff',
+      season: 'winter',
     },
+    // March (2) — dawn blush, cherry blossom
     {
-      sky: ['rgba(19,36,66,0.98)', 'rgba(18,27,47,0.98)', 'rgba(13,19,31,0.98)'],
-      hillBack: 'rgba(55,89,139,0.7)',
-      hillMid: 'rgba(40,66,108,0.92)',
-      hillFront: 'rgba(20,36,66,1)',
-      moon: 'rgba(236,224,214,0.95)',
-      glow: 'rgba(137,182,255,0.2)',
-      arc: 'rgba(205,224,255,0.24)',
-      tree: 'rgba(11,18,35,0.92)',
-      dot: '#8cb9ff',
+      sky: ['rgba(48,28,48,0.98)', 'rgba(72,36,52,0.96)', 'rgba(40,22,36,0.98)'],
+      hillBack: 'rgba(140,80,100,0.62)',
+      hillMid: 'rgba(110,56,76,0.88)',
+      hillFront: 'rgba(52,26,36,1)',
+      moon: 'rgba(255,218,200,0.90)',
+      glow: 'rgba(255,180,160,0.20)',
+      arc: 'rgba(255,160,180,0.32)',
+      tree: 'rgba(28,14,18,0.9)',
+      dot: '#ffb8d0',
+      season: 'spring',
+    },
+    // April (3) — bright green hills, rainbow arc
+    {
+      sky: ['rgba(22,38,62,0.96)', 'rgba(28,48,74,0.96)', 'rgba(18,30,50,0.98)'],
+      hillBack: 'rgba(60,120,70,0.72)',
+      hillMid: 'rgba(44,96,56,0.92)',
+      hillFront: 'rgba(22,52,30,1)',
+      moon: 'rgba(220,240,200,0.88)',
+      glow: 'rgba(180,230,180,0.18)',
+      arc: 'rgba(160,220,200,0.28)',
+      tree: 'rgba(14,32,18,0.9)',
+      dot: '#90e890',
+      season: 'spring',
+    },
+    // May (4) — warm golden morning, flowers
+    {
+      sky: ['rgba(38,32,18,0.96)', 'rgba(64,50,20,0.96)', 'rgba(30,24,12,0.98)'],
+      hillBack: 'rgba(100,130,60,0.68)',
+      hillMid: 'rgba(76,108,40,0.90)',
+      hillFront: 'rgba(36,56,18,1)',
+      moon: 'rgba(255,240,180,0.92)',
+      glow: 'rgba(255,220,100,0.20)',
+      arc: 'rgba(255,200,80,0.30)',
+      tree: 'rgba(20,32,10,0.9)',
+      dot: '#f0d060',
+      season: 'spring',
+    },
+    // June (5) — sunset coral, sun setting
+    {
+      sky: ['rgba(60,28,18,0.98)', 'rgba(84,38,20,0.96)', 'rgba(40,18,10,0.98)'],
+      hillBack: 'rgba(120,70,40,0.70)',
+      hillMid: 'rgba(90,48,24,0.92)',
+      hillFront: 'rgba(40,20,10,1)',
+      moon: 'rgba(255,200,140,0.95)',
+      glow: 'rgba(255,160,80,0.28)',
+      arc: 'rgba(255,140,100,0.36)',
+      tree: 'rgba(22,12,6,0.9)',
+      dot: '#ffb060',
+      season: 'summer',
+    },
+    // July (6) — intense amber-gold, peak summer
+    {
+      sky: ['rgba(58,34,8,0.98)', 'rgba(80,46,10,0.96)', 'rgba(38,22,4,0.98)'],
+      hillBack: 'rgba(130,84,28,0.68)',
+      hillMid: 'rgba(100,64,16,0.92)',
+      hillFront: 'rgba(46,28,6,1)',
+      moon: 'rgba(255,210,100,0.95)',
+      glow: 'rgba(255,180,40,0.30)',
+      arc: 'rgba(255,200,60,0.40)',
+      tree: 'rgba(24,14,4,0.9)',
+      dot: '#ffc840',
+      season: 'summer',
+    },
+    // August (7) — late golden hour, harvest warmth
+    {
+      sky: ['rgba(50,30,14,0.98)', 'rgba(72,42,18,0.96)', 'rgba(34,20,8,0.98)'],
+      hillBack: 'rgba(110,76,36,0.70)',
+      hillMid: 'rgba(84,56,22,0.92)',
+      hillFront: 'rgba(38,24,10,1)',
+      moon: 'rgba(255,205,130,0.92)',
+      glow: 'rgba(240,170,80,0.24)',
+      arc: 'rgba(230,180,100,0.32)',
+      tree: 'rgba(22,12,5,0.9)',
+      dot: '#e8a850',
+      season: 'summer',
+    },
+    // September (8) — amber autumn sky, early leaves
+    {
+      sky: ['rgba(44,24,12,0.98)', 'rgba(62,32,14,0.96)', 'rgba(30,16,8,0.98)'],
+      hillBack: 'rgba(130,80,30,0.72)',
+      hillMid: 'rgba(100,56,18,0.92)',
+      hillFront: 'rgba(44,22,8,1)',
+      moon: 'rgba(255,200,140,0.90)',
+      glow: 'rgba(220,140,60,0.22)',
+      arc: 'rgba(200,130,60,0.34)',
+      tree: 'rgba(26,14,6,0.9)',
+      dot: '#e09040',
+      season: 'autumn',
+    },
+    // October (9) — deep rust/burgundy, falling leaves
+    {
+      sky: ['rgba(36,14,10,0.98)', 'rgba(52,18,12,0.98)', 'rgba(24,10,6,0.98)'],
+      hillBack: 'rgba(110,44,22,0.72)',
+      hillMid: 'rgba(80,28,14,0.94)',
+      hillFront: 'rgba(34,12,6,1)',
+      moon: 'rgba(240,180,140,0.88)',
+      glow: 'rgba(200,100,60,0.20)',
+      arc: 'rgba(180,90,50,0.32)',
+      tree: 'rgba(22,8,4,0.9)',
+      dot: '#d06840',
+      season: 'autumn',
+    },
+    // November (10) — foggy grey-purple, misty and bare
+    {
+      sky: ['rgba(24,20,28,0.98)', 'rgba(32,26,36,0.98)', 'rgba(16,14,20,0.98)'],
+      hillBack: 'rgba(70,60,80,0.68)',
+      hillMid: 'rgba(52,44,62,0.90)',
+      hillFront: 'rgba(24,20,30,1)',
+      moon: 'rgba(200,190,210,0.80)',
+      glow: 'rgba(160,150,180,0.16)',
+      arc: 'rgba(150,140,170,0.24)',
+      tree: 'rgba(14,12,18,0.9)',
+      dot: '#b0a8c0',
+      season: 'autumn',
+    },
+    // December (11) — midnight navy, bright stars, snow
+    {
+      sky: ['rgba(8,14,32,0.98)', 'rgba(12,18,42,0.98)', 'rgba(6,10,22,0.98)'],
+      hillBack: 'rgba(30,44,80,0.72)',
+      hillMid: 'rgba(22,34,64,0.92)',
+      hillFront: 'rgba(10,16,36,1)',
+      moon: 'rgba(210,228,255,0.96)',
+      glow: 'rgba(160,188,255,0.26)',
+      arc: 'rgba(180,210,255,0.32)',
+      tree: 'rgba(6,10,22,0.9)',
+      dot: '#80b0ff',
+      season: 'winter',
     },
   ]
 
-  return themes[monthIndex % themes.length]
+  return themes[monthIndex % 12]
 }
 
 export function formatDueLabel(date: Date) {
   return weekdayFormatter.format(date)
+}
+
+export function formatDayHeader(date: Date, now: Date): string {
+  const d = new Date(date)
+  const today = new Date(now)
+  d.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+  const diff = Math.round((d.getTime() - today.getTime()) / DAY_MS)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Tomorrow'
+  if (diff === -1) return 'Yesterday'
+  return weekdayFormatter.format(date)
+}
+
+export type WeekBand = {
+  key: string
+  label: string
+  isCurrentWeek: boolean
+  entries: TimelineEntry[]
+}
+
+export function buildWeekBands(year: number, month: number, entries: TimelineEntry[], now: Date): WeekBand[] {
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const todayInThisMonth = now.getFullYear() === year && now.getMonth() === month
+  const todayDay = now.getDate()
+
+  const bands: WeekBand[] = []
+  let start = 1
+
+  while (start <= daysInMonth) {
+    const end = Math.min(start + 6, daysInMonth)
+    const startDate = new Date(year, month, start)
+    const endDate = new Date(year, month, end)
+
+    const isCurrentWeek = todayInThisMonth && todayDay >= start && todayDay <= end
+
+    const label = isCurrentWeek
+      ? 'This week'
+      : start === end
+        ? rangeFormatter.format(startDate)
+        : `${rangeFormatter.format(startDate)} – ${rangeFormatter.format(endDate)}`
+
+    const bandEntries = entries.filter((e) => {
+      const d = e.dueDate.getDate()
+      return e.dueDate.getFullYear() === year && e.dueDate.getMonth() === month && d >= start && d <= end
+    })
+
+    bands.push({ key: `${year}-${month}-w${start}`, label, isCurrentWeek, entries: bandEntries })
+    start += 7
+  }
+
+  return bands
 }
 
 function getDaysUntil(date: Date, now: Date) {
@@ -98,8 +287,11 @@ function getRangeLabel(entries: TimelineEntry[]) {
 }
 
 function getNearestDueLabel(entries: TimelineEntry[]) {
-  if (entries.length === 0) return '--'
-  return rangeFormatter.format(entries[0].dueDate)
+  const upcoming = entries.find(
+    (e) => e.paymentStatus !== 'paid' && e.paymentStatus !== 'received' && e.daysLeft >= 0,
+  )
+  if (!upcoming) return '--'
+  return rangeFormatter.format(upcoming.dueDate)
 }
 
 function getEntryAccent(color?: string | null, iconColor?: string | null) {
@@ -168,10 +360,14 @@ export function buildTimelineSections(
   now: Date,
   paidEntryKeys: Set<string> = new Set(),
   monthCount = 3,
+  incomeCategories: IncomeCategoryWithDueDay[] = [],
+  allIncomeEntries: IncomeEntry[] = [],
 ): TimelineSection[] {
+  const windowStart = new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1)
   const lastMonth = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + monthCount, 0, 23, 59, 59, 999)
   const categoryMap = new Map(categories.map((category) => [category.id, category]))
 
+  // Recurring expense entries (fixed categories with dueDayOfMonth)
   const recurringEntries = categories
     .filter((category) => category.type === 'fixed' && category.dueDayOfMonth && category.dueDayOfMonth > 0)
     .flatMap((category) =>
@@ -183,15 +379,17 @@ export function buildTimelineSections(
           sectionDate.getMonth(),
           Math.min(category.dueDayOfMonth ?? 1, daysInMonth),
         )
-        const { group: categoryGroup, accent } = getTimelineCategoryMeta(category)
+        const { accent } = getTimelineCategoryMeta(category)
         const daysLeft = getDaysUntil(dueDate, now)
 
         return {
           id: `${category.id}-${sectionDate.getFullYear()}-${sectionDate.getMonth()}`,
           categoryId: category.id,
           source: 'planned',
+          entryKind: 'expense',
           title: formatTimelineEntryTitle(category),
           category: formatTimelineCategoryLabel(category),
+          categoryName: category.name,
           icon: category.icon,
           color: category.color,
           iconColor: category.iconColor,
@@ -206,12 +404,13 @@ export function buildTimelineSections(
       }),
     )
 
+  // One-time scheduled expense entries
   const scheduledExpenseEntries = scheduledExpenses
     .map((transaction) => {
       const dueDate = new Date(transaction.transactionDate)
       const category = categoryMap.get(transaction.categoryId)
       const title = transaction.note?.trim() || formatTimelineEntryTitle(category)
-      const { group: categoryGroup, accent } = getTimelineCategoryMeta(category ?? {})
+      const { accent } = getTimelineCategoryMeta(category ?? {})
       const daysLeft = getDaysUntil(dueDate, now)
 
       return {
@@ -219,8 +418,10 @@ export function buildTimelineSections(
         transactionId: transaction.id,
         categoryId: transaction.categoryId,
         source: 'scheduled_expense',
+        entryKind: 'expense',
         title,
         category: formatTimelineCategoryLabel(category),
+        categoryName: category?.name || formatTimelineCategoryLabel(category),
         icon: category?.icon,
         color: category?.color,
         iconColor: category?.iconColor,
@@ -233,19 +434,90 @@ export function buildTimelineSections(
         paymentStatus: transaction.isPaid && dueDate <= now ? 'paid' : 'unpaid',
       } satisfies TimelineEntry
     })
-    .filter((entry) => entry.dueDate >= new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1) && entry.dueDate <= lastMonth)
+    .filter((entry) => entry.dueDate >= windowStart && entry.dueDate <= lastMonth)
 
-  const timelineEntries = [...recurringEntries, ...scheduledExpenseEntries]
+  // Recurring income entries (income categories with dueDayOfMonth)
+  const recurringIncomeEntries = incomeCategories
+    .filter((cat) => cat.dueDayOfMonth && cat.dueDayOfMonth > 0)
+    .flatMap((cat) =>
+      Array.from({ length: monthCount }, (_, offset) => {
+        const sectionDate = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1)
+        const daysInMonth = new Date(sectionDate.getFullYear(), sectionDate.getMonth() + 1, 0).getDate()
+        const dueDate = new Date(
+          sectionDate.getFullYear(),
+          sectionDate.getMonth(),
+          Math.min(cat.dueDayOfMonth ?? 1, daysInMonth),
+        )
+        const accent = getEntryAccent(cat.color, cat.iconColor)
+        const daysLeft = getDaysUntil(dueDate, now)
+
+        return {
+          id: `income-planned-${cat.id}-${sectionDate.getFullYear()}-${sectionDate.getMonth()}`,
+          categoryId: cat.id,
+          source: 'planned_income',
+          entryKind: 'income',
+          title: cat.name,
+          category: cat.parentName || cat.name,
+          categoryName: cat.name,
+          icon: cat.icon,
+          color: cat.color,
+          iconColor: cat.iconColor,
+          amount: 0, // amount unknown until received
+          dueDate,
+          recurring: true,
+          accent,
+          urgency: getUrgency(daysLeft),
+          daysLeft,
+          paymentStatus: 'unpaid',
+        } satisfies TimelineEntry
+      }),
+    )
+
+  // One-time income entries (with specific receivedAt dates in window)
+  const oneTimeIncomeEntries = allIncomeEntries
+    .map((entry) => {
+      const dueDate = new Date(entry.receivedAt)
+      const accent = getEntryAccent(entry.color, entry.iconColor)
+      const daysLeft = getDaysUntil(dueDate, now)
+
+      return {
+        id: `income-entry-${entry.id}`,
+        incomeEntryId: entry.id,
+        categoryId: entry.incomeCategoryId ?? '',
+        source: 'income_entry',
+        entryKind: 'income',
+        title: entry.name?.trim() || entry.category || 'Income',
+        category: entry.parentName || entry.category || 'Income',
+        categoryName: entry.category || 'Income',
+        icon: entry.icon,
+        color: entry.color,
+        iconColor: entry.iconColor,
+        amount: Number.isFinite(entry.amount) ? entry.amount : 0,
+        dueDate,
+        recurring: false,
+        accent,
+        urgency: getUrgency(daysLeft),
+        daysLeft,
+        paymentStatus: entry.isPaid ? 'received' : 'unpaid',
+      } satisfies TimelineEntry
+    })
+    .filter((entry) => entry.dueDate >= windowStart && entry.dueDate <= lastMonth)
+
+  const timelineEntries = [...recurringEntries, ...scheduledExpenseEntries, ...recurringIncomeEntries, ...oneTimeIncomeEntries]
     .filter((entry) => matchesFilter(entry, filter))
     .sort((left, right) => left.dueDate.getTime() - right.dueDate.getTime())
 
+  // Pre-populate all months in the window so empty months still render
   const sectionMap = new Map<string, TimelineEntry[]>()
+  for (let offset = 0; offset < monthCount; offset++) {
+    const d = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1)
+    sectionMap.set(`${d.getFullYear()}-${d.getMonth()}`, [])
+  }
 
   for (const entry of timelineEntries) {
     const key = `${entry.dueDate.getFullYear()}-${entry.dueDate.getMonth()}`
-    const group = sectionMap.get(key) ?? []
-    group.push(entry)
-    sectionMap.set(key, group)
+    const group = sectionMap.get(key)
+    if (group) group.push(entry)
   }
 
   return [...sectionMap.entries()].map(([key, entries]) => {
@@ -298,10 +570,33 @@ export function getTimelinePaymentMeta(status: TimelineEntry['paymentStatus']) {
     }
   }
 
+  if (status === 'received') {
+    return {
+      label: 'Received',
+      dotColor: 'rgba(94,189,151,0.2)',
+      textColor: '#78d89c',
+    }
+  }
+
   return {
     label: 'Unpaid',
     dotColor: 'rgba(201,107,107,0.18)',
     textColor: '#ff9892',
+  }
+}
+
+export function getIncomePaymentMeta(status: TimelineEntry['paymentStatus']) {
+  if (status === 'received') {
+    return {
+      label: 'Received',
+      dotColor: 'rgba(94,210,140,0.22)',
+      textColor: '#78d89c',
+    }
+  }
+  return {
+    label: 'Expected',
+    dotColor: 'rgba(94,210,140,0.12)',
+    textColor: 'rgba(120,216,156,0.65)',
   }
 }
 

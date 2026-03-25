@@ -11,9 +11,13 @@ const stripControlCharacters = (value: string): string =>
     })
     .join('')
 
-export const normalizeWishlistNotes = (value: string | undefined) => {
+export const normalizeWishlistNotes = (value: string | null | undefined) => {
   if (value === undefined) {
     return undefined
+  }
+
+  if (value === null) {
+    return null
   }
 
   const withoutControlCharacters = stripControlCharacters(value)

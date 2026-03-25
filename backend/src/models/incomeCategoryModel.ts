@@ -13,6 +13,7 @@ export type IncomeCategory = {
   isDefault: boolean
   isArchived: boolean
   createdAt: string
+  dueDayOfMonth: number | null
 }
 
 export type CreateIncomeCategoryInput = {
@@ -25,6 +26,7 @@ export type CreateIncomeCategoryInput = {
   sortOrder?: number | undefined
   isDefault?: boolean | undefined
   isArchived?: boolean | undefined
+  dueDayOfMonth?: number | null | undefined
 }
 
 export type UpdateIncomeCategoryInput = {
@@ -36,6 +38,7 @@ export type UpdateIncomeCategoryInput = {
   sortOrder?: number | undefined
   isDefault?: boolean | undefined
   isArchived?: boolean | undefined
+  dueDayOfMonth?: number | null | undefined
 }
 
 const DUPLICATE_INCOME_CATEGORY_NAME_ERROR = 'INCOME_CATEGORY_NAME_EXISTS'
@@ -88,9 +91,10 @@ export const incomeCategoryModel = {
           icon_color,
           sort_order,
           is_default,
-          is_archived
+          is_archived,
+          due_day_of_month
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING
           id,
           user_id AS "userId",
@@ -102,7 +106,8 @@ export const incomeCategoryModel = {
           sort_order AS "sortOrder",
           is_default AS "isDefault",
           is_archived AS "isArchived",
-          created_at AS "createdAt"
+          created_at AS "createdAt",
+          due_day_of_month AS "dueDayOfMonth"
         `,
         [
           input.userId,
@@ -114,6 +119,7 @@ export const incomeCategoryModel = {
           nextSortOrder,
           input.isDefault ?? false,
           input.isArchived ?? false,
+          input.dueDayOfMonth ?? null,
         ],
       )
 
@@ -146,7 +152,8 @@ export const incomeCategoryModel = {
         sort_order AS "sortOrder",
         is_default AS "isDefault",
         is_archived AS "isArchived",
-        created_at AS "createdAt"
+        created_at AS "createdAt",
+        due_day_of_month AS "dueDayOfMonth"
       FROM income_categories
       WHERE user_id = $1 AND is_archived = FALSE
       ORDER BY sort_order ASC, created_at ASC
@@ -171,7 +178,8 @@ export const incomeCategoryModel = {
         sort_order AS "sortOrder",
         is_default AS "isDefault",
         is_archived AS "isArchived",
-        created_at AS "createdAt"
+        created_at AS "createdAt",
+        due_day_of_month AS "dueDayOfMonth"
       FROM income_categories
       WHERE id = $1 AND user_id = $2
       LIMIT 1
@@ -194,7 +202,8 @@ export const incomeCategoryModel = {
         icon_color = COALESCE($7, icon_color),
         sort_order = COALESCE($8, sort_order),
         is_default = COALESCE($9, is_default),
-        is_archived = COALESCE($10, is_archived)
+        is_archived = COALESCE($10, is_archived),
+        due_day_of_month = CASE WHEN $11::integer IS NOT NULL THEN $11::integer ELSE due_day_of_month END
       WHERE id = $1 AND user_id = $2
       RETURNING
         id,
@@ -207,7 +216,8 @@ export const incomeCategoryModel = {
         sort_order AS "sortOrder",
         is_default AS "isDefault",
         is_archived AS "isArchived",
-        created_at AS "createdAt"
+        created_at AS "createdAt",
+        due_day_of_month AS "dueDayOfMonth"
       `,
       [
         id,
@@ -220,6 +230,7 @@ export const incomeCategoryModel = {
         input.sortOrder ?? null,
         input.isDefault ?? null,
         input.isArchived ?? null,
+        input.dueDayOfMonth ?? null,
       ],
     )
 

@@ -8,8 +8,38 @@ type Props = {
   section: TimelineSection
 }
 
+// Fixed positions for seasonal particles so they don't shift on re-render
+const SNOW_POSITIONS = [
+  { top: 14, left: 58 },
+  { top: 26, left: 108 },
+  { top: 10, left: 172 },
+  { top: 32, left: 228 },
+  { top: 18, left: 284 },
+  { top: 28, left: 330 },
+  { top: 8, left: 140 },
+]
+
+const FLOWER_POSITIONS = [
+  { top: 44, left: 38 },
+  { top: 56, left: 76 },
+  { top: 38, left: 120 },
+  { top: 50, left: 200 },
+  { top: 42, left: 260 },
+  { top: 60, left: 310 },
+]
+
+const LEAF_POSITIONS = [
+  { top: 16, left: 62 },
+  { top: 30, left: 118 },
+  { top: 12, left: 192 },
+  { top: 24, left: 248 },
+  { top: 34, left: 304 },
+  { top: 18, left: 156 },
+]
+
 export function TimelineLandscapeBanner({ section }: Props) {
   const theme = getTimelineMonthTheme(section.id)
+  const isSummer = theme.season === 'summer'
 
   return (
     <LinearGradient
@@ -18,24 +48,79 @@ export function TimelineLandscapeBanner({ section }: Props) {
       end={{ x: 1, y: 1 }}
       style={styles.banner}
     >
-      <View style={[styles.moon, { backgroundColor: theme.moon }]} />
+      {/* Moon / Sun */}
+      <View
+        style={[
+          styles.moonBase,
+          isSummer ? styles.sun : styles.moon,
+          { backgroundColor: theme.moon },
+        ]}
+      />
       <View style={[styles.glowOrb, { backgroundColor: theme.glow }]} />
 
-      <View style={[styles.star, styles.starOne]} />
-      <View style={[styles.star, styles.starTwo]} />
-      <View style={[styles.star, styles.starThree]} />
+      {/* Stars — shown for winter and autumn only */}
+      {(theme.season === 'winter' || theme.season === 'autumn') && (
+        <>
+          <View style={[styles.star, styles.starOne]} />
+          <View style={[styles.star, styles.starTwo]} />
+          <View style={[styles.star, styles.starThree]} />
+        </>
+      )}
 
+      {/* Arc (horizon glow / rainbow) */}
       <View style={[styles.arc, { backgroundColor: theme.arc }]} />
+
+      {/* Season-specific particles */}
+      {theme.season === 'winter' &&
+        SNOW_POSITIONS.map((pos, i) => (
+          <View
+            key={i}
+            style={[styles.snowDot, { top: pos.top, left: pos.left }]}
+          />
+        ))}
+
+      {theme.season === 'spring' &&
+        FLOWER_POSITIONS.map((pos, i) => (
+          <View
+            key={i}
+            style={[
+              styles.flowerDot,
+              { top: pos.top, left: pos.left, backgroundColor: theme.arc },
+            ]}
+          />
+        ))}
+
+      {theme.season === 'summer' && (
+        <>
+          {/* Sun rays as a larger glow ring */}
+          <View style={[styles.sunRing, { borderColor: theme.glow }]} />
+        </>
+      )}
+
+      {theme.season === 'autumn' &&
+        LEAF_POSITIONS.map((pos, i) => (
+          <View
+            key={i}
+            style={[
+              styles.leafDot,
+              { top: pos.top, left: pos.left, backgroundColor: theme.arc },
+            ]}
+          />
+        ))}
+
+      {/* Hills */}
       <View style={[styles.hill, styles.hillBack, { backgroundColor: theme.hillBack }]} />
       <View style={[styles.hill, styles.hillMid, { backgroundColor: theme.hillMid }]} />
       <View style={[styles.hill, styles.hillFront, { backgroundColor: theme.hillFront }]} />
 
+      {/* Tree cluster */}
       <View style={styles.treeCluster}>
         <View style={[styles.tree, { backgroundColor: theme.tree }]} />
         <View style={[styles.tree, styles.treeTall, { backgroundColor: theme.tree }]} />
         <View style={[styles.tree, styles.treeShort, { backgroundColor: theme.tree }]} />
       </View>
 
+      {/* Month pill */}
       <View style={styles.bannerPill}>
         <View style={[styles.pillDot, { backgroundColor: theme.dot }]} />
         <Text style={styles.bannerPillText}>{section.monthLabel}</Text>
@@ -46,21 +131,39 @@ export function TimelineLandscapeBanner({ section }: Props) {
 
 const styles = StyleSheet.create({
   banner: {
-    height: 112,
+    height: 120,
     marginHorizontal: 20,
     borderRadius: 28,
     overflow: 'hidden',
     padding: 14,
     justifyContent: 'flex-end',
   },
-  moon: {
+  moonBase: {
     position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.9,
+  },
+  moon: {
     top: 12,
     right: 18,
     width: 18,
     height: 18,
-    borderRadius: 9,
-    opacity: 0.9,
+  },
+  sun: {
+    top: 8,
+    right: 16,
+    width: 26,
+    height: 26,
+  },
+  sunRing: {
+    position: 'absolute',
+    top: 2,
+    right: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    opacity: 0.4,
   },
   glowOrb: {
     position: 'absolute',
@@ -138,6 +241,28 @@ const styles = StyleSheet.create({
   treeShort: {
     height: 14,
   },
+  snowDot: {
+    position: 'absolute',
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  flowerDot: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.7,
+  },
+  leafDot: {
+    position: 'absolute',
+    width: 4,
+    height: 3,
+    borderRadius: 2,
+    opacity: 0.65,
+    transform: [{ rotate: '20deg' }],
+  },
   bannerPill: {
     alignSelf: 'flex-start',
     minHeight: 34,
@@ -161,4 +286,3 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_700Bold',
   },
 })
-

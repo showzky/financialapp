@@ -183,9 +183,72 @@ export const updateFinancialAccount = asyncHandler(async (req: Request, res: Res
     throw new AppError('Unauthorized', 401)
   }
 
+  const userId = req.auth.userId
   const { id } = accountIdSchema.parse(req.params)
   const payload = updateAccountSchema.parse(req.body)
-  const account = await financialAccountModel.update(id, req.auth.userId, payload as UpdateFinancialAccountInput)
+  const existing = await financialAccountModel.getById(id, userId)
+
+  if (!existing) {
+    throw new AppError('Account not found', 404)
+  }
+
+  const nextAmount = payload.amount
+  const amountDelta = nextAmount === undefined ? 0 : nextAmount - existing.amount
+
+  const account = await db.transaction(async (query) => {
+    await query(
+      `
+      UPDATE financial_accounts
+      SET
+        category_id = COALESCE($3, category_id),
+        name = COALESCE($4, name),
+        mode = COALESCE($5, mode),
+        amount = COALESCE($6, amount),
+        credit_limit = $7,
+        payment_day_of_month = $8,
+        reminder = COALESCE($9::jsonb, reminder),
+        icon_kind = $10,
+        icon_label = $11,
+        icon_image_url = $12,
+        icon_company_query = $13,
+        account_type = COALESCE($14, account_type),
+        color = COALESCE($15, color),
+        notes = COALESCE($16, notes),
+        updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      `,
+      [
+        id,
+        userId,
+        payload.categoryId ?? null,
+        payload.name ?? null,
+        payload.mode ?? null,
+        payload.amount ?? null,
+        payload.creditLimit ?? existing.creditLimit,
+        payload.paymentDayOfMonth ?? existing.paymentDayOfMonth,
+        payload.reminder ? JSON.stringify(payload.reminder) : null,
+        payload.icon === undefined ? existing.icon?.kind ?? null : payload.icon?.kind ?? null,
+        payload.icon === undefined ? existing.icon?.label ?? null : payload.icon?.label ?? null,
+        payload.icon === undefined ? existing.icon?.imageUrl ?? null : payload.icon?.imageUrl ?? null,
+        payload.icon === undefined ? existing.icon?.companyQuery ?? null : payload.icon?.companyQuery ?? null,
+        payload.accountType ?? null,
+        payload.color ?? null,
+        payload.notes ?? null,
+      ],
+    )
+
+    if (nextAmount !== undefined && amountDelta !== 0) {
+      await query(
+        `
+        INSERT INTO account_balance_adjustments (user_id, account_id, amount_delta, target_amount)
+        VALUES ($1, $2, $3, $4)
+        `,
+        [userId, id, amountDelta, nextAmount],
+      )
+    }
+
+    return financialAccountModel.getById(id, userId)
+  })
 
   if (!account) {
     throw new AppError('Account not found', 404)

@@ -16,10 +16,8 @@ import { TimelineFilterBar } from '../components/timeline/TimelineFilterBar'
 import { TimelineHeroCard } from '../components/timeline/TimelineHeroCard'
 import { TimelineIncomeSection } from '../components/timeline/TimelineIncomeSection'
 import { TimelineMonthSection } from '../components/timeline/TimelineMonthSection'
-import { TimelineOrionInsights } from '../components/timeline/TimelineOrionInsights'
 import type { TimelineEntry, TimelineFilter } from '../features/timeline/types'
 import {
-  buildTimelineInsights,
   buildTimelineSections,
   formatMonthTitle,
   formatTimelineCurrency,
@@ -99,17 +97,68 @@ export function TimelineScreen() {
   )
 
   const timelineSections = useMemo(
-    () => buildTimelineSections(dashboard?.categories ?? [], transactions, selectedMonth, filter, new Date(), paidEntryKeys),
+    () =>
+      buildTimelineSections(
+        dashboard?.categories ?? [],
+        transactions,
+        selectedMonth,
+        filter,
+        new Date(),
+        paidEntryKeys,
+        3,
+        dashboard?.incomeCategories ?? [],
+        dashboard?.allIncomeEntries ?? [],
+      ),
     [dashboard, filter, paidEntryKeys, selectedMonth, transactions],
   )
 
-  const timelineInsights = useMemo(
-    () => buildTimelineInsights(timelineSections, transactions, dashboard?.incomeEntries ?? []),
-    [dashboard?.incomeEntries, timelineSections, transactions],
+  const navigateToIncomeEditor = useCallback(
+    (entry: {
+      id: string
+      incomeCategoryId: string | null
+      category: string
+      name: string | null
+      amount: number
+      receivedAt: string
+      iconColor?: string | null
+      color?: string | null
+    }) => {
+      navigation.navigate('EditPlannedExpense', {
+        entryType: 'income',
+        entryId: entry.id,
+        incomeCategoryId: entry.incomeCategoryId,
+        categoryLabel: entry.category,
+        titleValue: entry.name ?? entry.category,
+        amount: entry.amount,
+        dueDate: entry.receivedAt,
+        accent: entry.iconColor || entry.color || '#78d89c',
+        recurring: false,
+        dueDayOfMonth: null,
+      })
+    },
+    [navigation],
   )
 
-  const handleOpenPlannedExpense = useCallback(
+  const handleOpenTimelineEntry = useCallback(
     (entry: TimelineEntry) => {
+      if (entry.entryKind === 'income') {
+        if (entry.source !== 'income_entry' || !entry.incomeEntryId) return
+
+        navigation.navigate('EditPlannedExpense', {
+          entryType: 'income',
+          entryId: entry.incomeEntryId,
+          incomeCategoryId: entry.categoryId || null,
+          categoryLabel: entry.categoryName,
+          titleValue: entry.title,
+          amount: entry.amount,
+          dueDate: entry.dueDate.toISOString(),
+          accent: entry.accent,
+          recurring: false,
+          dueDayOfMonth: null,
+        })
+        return
+      }
+
       const matchingCategory = dashboard?.categories.find((category) => category.id === entry.categoryId)
       if (!matchingCategory) return
 
@@ -130,16 +179,12 @@ export function TimelineScreen() {
 
   const handleOpenIncomeEntry = useCallback(
     (entry: DashboardData['incomeEntries'][number]) => {
-      navigation.navigate('IncomeEntry', {
-        incomeEntryId: entry.id,
-        category: entry.category,
-        accent: entry.iconColor || entry.color || '#78d89c',
-      })
+      navigateToIncomeEditor(entry)
     },
-    [navigation],
+    [navigateToIncomeEditor],
   )
 
-  const nearestDueLabel = timelineSections[0]?.nearestDueLabel ?? '--'
+  const nearestDueLabel = timelineSections.find((s) => s.nearestDueLabel !== '--')?.nearestDueLabel ?? '--'
   const upcomingPlannedTotal = timelineSections.reduce((sum, section) => sum + section.totalAmount, 0)
   const plannedCount = timelineSections.reduce((sum, section) => sum + section.itemCount, 0)
   const filteredIncomeEntries = useMemo(() => {
@@ -206,8 +251,6 @@ export function TimelineScreen() {
           plannedCount={plannedCount}
         />
 
-        <TimelineOrionInsights insights={timelineInsights} />
-
         <View style={styles.quickStatsRow}>
           <View style={styles.quickStatCard}>
             <Text style={styles.quickStatLabel}>Allocated</Text>
@@ -245,7 +288,7 @@ export function TimelineScreen() {
             <TimelineMonthSection
               key={section.id}
               section={section}
-              onEntryPress={handleOpenPlannedExpense}
+              onEntryPress={handleOpenTimelineEntry}
             />
           ))
         )}

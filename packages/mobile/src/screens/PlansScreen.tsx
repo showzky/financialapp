@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import PagerView from 'react-native-pager-view'
 import { useFocusEffect } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -97,6 +98,8 @@ export function PlansScreen() {
   const { user } = useAuth()
   const insets = useSafeAreaInsets()
   const [tab, setTab] = useState<PlansTabKey>('wishlist')
+  const pagerRef = useRef<PagerView>(null)
+  const TAB_ORDER: PlansTabKey[] = ['wishlist', 'borrowed', 'lent']
   const [createVisible, setCreateVisible] = useState(false)
   const [wishlistItems, setWishlistItems] = useState<WishlistPlanItem[]>([])
   const wishlistFirstSeenAtRef = useRef<Record<string, string>>({})
@@ -224,23 +227,50 @@ export function PlansScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInUp.delay(50).duration(360)}>
-          <PlansTabBar value={tab} counts={counts} onChange={setTab} />
-          {tab === 'wishlist' && hasWishlistItems ? (
+      <Animated.View entering={FadeInUp.delay(50).duration(360)} style={styles.tabBarWrap}>
+        <PlansTabBar
+          value={tab}
+          counts={counts}
+          onChange={(next) => {
+            setTab(next)
+            pagerRef.current?.setPage(TAB_ORDER.indexOf(next))
+          }}
+        />
+      </Animated.View>
+
+      <PagerView
+        ref={pagerRef}
+        style={styles.pager}
+        initialPage={0}
+        onPageSelected={(e) => setTab(TAB_ORDER[e.nativeEvent.position] ?? 'wishlist')}
+      >
+        {/* Wishlist */}
+        <ScrollView key="wishlist" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {hasWishlistItems ? (
             <WishlistOverview items={wishlistItems} onPressItem={setSelectedWishlistItem} />
-          ) : tab === 'borrowed' && hasBorrowedItems ? (
-            <BorrowedLoansOverview
-              items={borrowedLoanItems}
-              onPressItem={setSelectedBorrowedLoanItem}
-            />
-          ) : tab === 'lent' && hasLentItems ? (
+          ) : (
+            <PlansEmptyState message={emptyLabels.wishlist} onCreate={() => setCreateVisible(true)} />
+          )}
+        </ScrollView>
+
+        {/* Borrowed */}
+        <ScrollView key="borrowed" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {hasBorrowedItems ? (
+            <BorrowedLoansOverview items={borrowedLoanItems} onPressItem={setSelectedBorrowedLoanItem} />
+          ) : (
+            <PlansEmptyState message={emptyLabels.borrowed} onCreate={() => setCreateVisible(true)} />
+          )}
+        </ScrollView>
+
+        {/* Lent */}
+        <ScrollView key="lent" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {hasLentItems ? (
             <LentLoansOverview items={lentLoanItems} onPressItem={setSelectedLentLoanItem} />
           ) : (
-            <PlansEmptyState message={emptyLabels[tab]} onCreate={() => setCreateVisible(true)} />
+            <PlansEmptyState message={emptyLabels.lent} onCreate={() => setCreateVisible(true)} />
           )}
-        </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </PagerView>
 
       <PlansFab bottomOffset={Math.max(insets.bottom + 24, 112)} onPress={() => setCreateVisible(true)} />
 
@@ -475,9 +505,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  scroll: {
+  tabBarWrap: {
     paddingHorizontal: 16,
     paddingTop: 20,
+  },
+  pager: {
+    flex: 1,
+  },
+  scroll: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 180,
   },
 })

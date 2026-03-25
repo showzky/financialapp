@@ -5,10 +5,13 @@ export type TimelineUrgency = 'urgent' | 'soon' | 'planned'
 export type TimelineEntry = {
   id: string
   categoryId: string
-  source: 'planned' | 'scheduled_expense'
+  source: 'planned' | 'scheduled_expense' | 'planned_income' | 'income_entry'
+  entryKind: 'expense' | 'income'
   transactionId?: string
+  incomeEntryId?: string
   title: string
   category: string
+  categoryName: string
   icon?: string | null
   color?: string | null
   iconColor?: string | null
@@ -18,7 +21,7 @@ export type TimelineEntry = {
   accent: string
   urgency: TimelineUrgency
   daysLeft: number
-  paymentStatus: 'paid' | 'unpaid'
+  paymentStatus: 'paid' | 'unpaid' | 'received'
 }
 
 export type TimelineSection = {
