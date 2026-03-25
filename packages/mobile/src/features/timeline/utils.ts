@@ -1,4 +1,4 @@
-import type { CategoryWithSpent } from '../../services/dashboardApi'
+import type { CategoryWithSpent, IncomeEntry, IncomeCategoryWithDueDay } from '../../services/dashboardApi'
 import type { TransactionResponse } from '../../services/transactionApi'
 import type { TimelineEntry, TimelineFilter, TimelineInsight, TimelineSection, TimelineUrgency } from './types'
 
@@ -357,10 +357,14 @@ export function buildTimelineSections(
   now: Date,
   paidEntryKeys: Set<string> = new Set(),
   monthCount = 3,
+  incomeCategories: IncomeCategoryWithDueDay[] = [],
+  allIncomeEntries: IncomeEntry[] = [],
 ): TimelineSection[] {
+  const windowStart = new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1)
   const lastMonth = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + monthCount, 0, 23, 59, 59, 999)
   const categoryMap = new Map(categories.map((category) => [category.id, category]))
 
+  // Recurring expense entries (fixed categories with dueDayOfMonth)
   const recurringEntries = categories
     .filter((category) => category.type === 'fixed' && category.dueDayOfMonth && category.dueDayOfMonth > 0)
     .flatMap((category) =>
@@ -372,13 +376,14 @@ export function buildTimelineSections(
           sectionDate.getMonth(),
           Math.min(category.dueDayOfMonth ?? 1, daysInMonth),
         )
-        const { group: categoryGroup, accent } = getTimelineCategoryMeta(category)
+        const { accent } = getTimelineCategoryMeta(category)
         const daysLeft = getDaysUntil(dueDate, now)
 
         return {
           id: `${category.id}-${sectionDate.getFullYear()}-${sectionDate.getMonth()}`,
           categoryId: category.id,
           source: 'planned',
+          entryKind: 'expense',
           title: formatTimelineEntryTitle(category),
           category: formatTimelineCategoryLabel(category),
           icon: category.icon,
@@ -395,12 +400,13 @@ export function buildTimelineSections(
       }),
     )
 
+  // One-time scheduled expense entries
   const scheduledExpenseEntries = scheduledExpenses
     .map((transaction) => {
       const dueDate = new Date(transaction.transactionDate)
       const category = categoryMap.get(transaction.categoryId)
       const title = transaction.note?.trim() || formatTimelineEntryTitle(category)
-      const { group: categoryGroup, accent } = getTimelineCategoryMeta(category ?? {})
+      const { accent } = getTimelineCategoryMeta(category ?? {})
       const daysLeft = getDaysUntil(dueDate, now)
 
       return {
@@ -408,6 +414,7 @@ export function buildTimelineSections(
         transactionId: transaction.id,
         categoryId: transaction.categoryId,
         source: 'scheduled_expense',
+        entryKind: 'expense',
         title,
         category: formatTimelineCategoryLabel(category),
         icon: category?.icon,
@@ -422,9 +429,73 @@ export function buildTimelineSections(
         paymentStatus: transaction.isPaid && dueDate <= now ? 'paid' : 'unpaid',
       } satisfies TimelineEntry
     })
-    .filter((entry) => entry.dueDate >= new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1) && entry.dueDate <= lastMonth)
+    .filter((entry) => entry.dueDate >= windowStart && entry.dueDate <= lastMonth)
 
-  const timelineEntries = [...recurringEntries, ...scheduledExpenseEntries]
+  // Recurring income entries (income categories with dueDayOfMonth)
+  const recurringIncomeEntries = incomeCategories
+    .filter((cat) => cat.dueDayOfMonth && cat.dueDayOfMonth > 0)
+    .flatMap((cat) =>
+      Array.from({ length: monthCount }, (_, offset) => {
+        const sectionDate = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + offset, 1)
+        const daysInMonth = new Date(sectionDate.getFullYear(), sectionDate.getMonth() + 1, 0).getDate()
+        const dueDate = new Date(
+          sectionDate.getFullYear(),
+          sectionDate.getMonth(),
+          Math.min(cat.dueDayOfMonth ?? 1, daysInMonth),
+        )
+        const accent = getEntryAccent(cat.color, cat.iconColor)
+        const daysLeft = getDaysUntil(dueDate, now)
+
+        return {
+          id: `income-planned-${cat.id}-${sectionDate.getFullYear()}-${sectionDate.getMonth()}`,
+          categoryId: cat.id,
+          source: 'planned_income',
+          entryKind: 'income',
+          title: cat.name,
+          category: cat.parentName || cat.name,
+          icon: cat.icon,
+          color: cat.color,
+          iconColor: cat.iconColor,
+          amount: 0, // amount unknown until received
+          dueDate,
+          recurring: true,
+          accent,
+          urgency: getUrgency(daysLeft),
+          daysLeft,
+          paymentStatus: 'unpaid',
+        } satisfies TimelineEntry
+      }),
+    )
+
+  // One-time income entries (with specific receivedAt dates in window)
+  const oneTimeIncomeEntries = allIncomeEntries
+    .map((entry) => {
+      const dueDate = new Date(entry.receivedAt)
+      const accent = getEntryAccent(entry.color, entry.iconColor)
+      const daysLeft = getDaysUntil(dueDate, now)
+
+      return {
+        id: `income-entry-${entry.id}`,
+        categoryId: entry.incomeCategoryId ?? '',
+        source: 'income_entry',
+        entryKind: 'income',
+        title: entry.name?.trim() || entry.category || 'Income',
+        category: entry.parentName || entry.category || 'Income',
+        icon: entry.icon,
+        color: entry.color,
+        iconColor: entry.iconColor,
+        amount: Number.isFinite(entry.amount) ? entry.amount : 0,
+        dueDate,
+        recurring: false,
+        accent,
+        urgency: getUrgency(daysLeft),
+        daysLeft,
+        paymentStatus: entry.isPaid ? 'received' : 'unpaid',
+      } satisfies TimelineEntry
+    })
+    .filter((entry) => entry.dueDate >= windowStart && entry.dueDate <= lastMonth)
+
+  const timelineEntries = [...recurringEntries, ...scheduledExpenseEntries, ...recurringIncomeEntries, ...oneTimeIncomeEntries]
     .filter((entry) => matchesFilter(entry, filter))
     .sort((left, right) => left.dueDate.getTime() - right.dueDate.getTime())
 
@@ -491,10 +562,33 @@ export function getTimelinePaymentMeta(status: TimelineEntry['paymentStatus']) {
     }
   }
 
+  if (status === 'received') {
+    return {
+      label: 'Received',
+      dotColor: 'rgba(94,189,151,0.2)',
+      textColor: '#78d89c',
+    }
+  }
+
   return {
     label: 'Unpaid',
     dotColor: 'rgba(201,107,107,0.18)',
     textColor: '#ff9892',
+  }
+}
+
+export function getIncomePaymentMeta(status: TimelineEntry['paymentStatus']) {
+  if (status === 'received') {
+    return {
+      label: 'Received',
+      dotColor: 'rgba(94,210,140,0.22)',
+      textColor: '#78d89c',
+    }
+  }
+  return {
+    label: 'Expected',
+    dotColor: 'rgba(94,210,140,0.12)',
+    textColor: 'rgba(120,216,156,0.65)',
   }
 }
 

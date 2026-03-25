@@ -97,7 +97,17 @@ export function TimelineScreen() {
   )
 
   const timelineSections = useMemo(
-    () => buildTimelineSections(dashboard?.categories ?? [], transactions, selectedMonth, filter, new Date(), paidEntryKeys),
+    () => buildTimelineSections(
+      dashboard?.categories ?? [],
+      transactions,
+      selectedMonth,
+      filter,
+      new Date(),
+      paidEntryKeys,
+      3,
+      dashboard?.incomeCategories ?? [],
+      dashboard?.allIncomeEntries ?? [],
+    ),
     [dashboard, filter, paidEntryKeys, selectedMonth, transactions],
   )
 

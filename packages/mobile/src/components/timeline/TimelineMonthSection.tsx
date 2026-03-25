@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { FontAwesome5, Ionicons } from '@expo/vector-icons'
 import type { TimelineSection } from '../../features/timeline/types'
-import { buildWeekBands, formatTimelineCurrency, getTimelinePaymentMeta } from '../../features/timeline/utils'
+import { buildWeekBands, formatTimelineCurrency, getTimelinePaymentMeta, getIncomePaymentMeta } from '../../features/timeline/utils'
 import { TimelineLandscapeBanner } from './TimelineLandscapeBanner'
 
 type Props = {
@@ -53,7 +53,10 @@ export function TimelineMonthSection({ section, onEntryPress, now }: Props) {
               ) : (
                 /* Entry cards for this week */
                 band.entries.map((entry, entryIndex) => {
-                  const paymentMeta = getTimelinePaymentMeta(entry.paymentStatus)
+                  const isIncome = entry.entryKind === 'income'
+                  const paymentMeta = isIncome
+                    ? getIncomePaymentMeta(entry.paymentStatus)
+                    : getTimelinePaymentMeta(entry.paymentStatus)
                   const isLastEntry = isLastBand && entryIndex === band.entries.length - 1
                   const iconName = (entry.icon as keyof typeof Ionicons.glyphMap | null) ?? 'ellipse-outline'
 
@@ -73,12 +76,12 @@ export function TimelineMonthSection({ section, onEntryPress, now }: Props) {
                       </View>
 
                       <TouchableOpacity
-                        style={styles.card}
+                        style={[styles.card, isIncome && styles.cardIncome]}
                         activeOpacity={0.88}
                         onPress={() => onEntryPress?.(entry)}
                       >
                         <View style={styles.cardTop}>
-                          <View style={styles.categoryPill}>
+                          <View style={[styles.categoryPill, isIncome && styles.categoryPillIncome]}>
                             <View style={[styles.categoryIconWrap, { backgroundColor: `${entry.accent}1d` }]}>
                               <Ionicons name={iconName} size={12} color={entry.accent} />
                             </View>
@@ -231,6 +234,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
+  },
+  cardIncome: {
+    backgroundColor: 'rgba(94,210,140,0.05)',
+    borderColor: 'rgba(94,210,140,0.14)',
+  },
+  categoryPillIncome: {
+    backgroundColor: 'rgba(94,210,140,0.08)',
   },
   cardTop: {
     flexDirection: 'row',
