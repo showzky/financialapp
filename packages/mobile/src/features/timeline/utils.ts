@@ -287,8 +287,11 @@ function getRangeLabel(entries: TimelineEntry[]) {
 }
 
 function getNearestDueLabel(entries: TimelineEntry[]) {
-  if (entries.length === 0) return '--'
-  return rangeFormatter.format(entries[0].dueDate)
+  const upcoming = entries.find(
+    (e) => e.paymentStatus !== 'paid' && e.paymentStatus !== 'received' && e.daysLeft >= 0,
+  )
+  if (!upcoming) return '--'
+  return rangeFormatter.format(upcoming.dueDate)
 }
 
 function getEntryAccent(color?: string | null, iconColor?: string | null) {
