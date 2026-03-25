@@ -54,6 +54,7 @@ export function TimelineMonthSection({ section, onEntryPress, now }: Props) {
                 /* Entry cards for this week */
                 band.entries.map((entry, entryIndex) => {
                   const isIncome = entry.entryKind === 'income'
+                  const isPressable = !isIncome || entry.source === 'income_entry'
                   const paymentMeta = isIncome
                     ? getIncomePaymentMeta(entry.paymentStatus)
                     : getTimelinePaymentMeta(entry.paymentStatus)
@@ -77,7 +78,8 @@ export function TimelineMonthSection({ section, onEntryPress, now }: Props) {
 
                       <TouchableOpacity
                         style={[styles.card, isIncome && styles.cardIncome]}
-                        activeOpacity={0.88}
+                        activeOpacity={isPressable ? 0.88 : 1}
+                        disabled={!isPressable}
                         onPress={() => onEntryPress?.(entry)}
                       >
                         <View style={styles.cardTop}>

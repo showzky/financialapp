@@ -8,8 +8,10 @@ export type TimelineEntry = {
   source: 'planned' | 'scheduled_expense' | 'planned_income' | 'income_entry'
   entryKind: 'expense' | 'income'
   transactionId?: string
+  incomeEntryId?: string
   title: string
   category: string
+  categoryName: string
   icon?: string | null
   color?: string | null
   iconColor?: string | null
