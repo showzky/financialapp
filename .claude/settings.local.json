@@ -5,7 +5,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(node -e \":*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "WebFetch(domain:www.elkjop.no)",
+      "Bash(npx expo:*)",
+      "Bash(./gradlew app:assembleDebug -x lint -x test)"
     ]
   }
 }
