@@ -105,13 +105,15 @@ export function TimelineMonthSection({ section, onEntryPress, now }: Props) {
                             <Text style={styles.recurringText}>{entry.recurring ? 'Recurring' : 'One-time'}</Text>
                           </View>
                           <Text style={styles.daysLeftText}>
-                            {entry.daysLeft === 0
-                              ? 'Due today'
-                              : entry.daysLeft === 1
-                                ? '1 day left'
-                                : entry.daysLeft < 0
-                                  ? `${Math.abs(entry.daysLeft)}d overdue`
-                                  : `${entry.daysLeft} days left`}
+                            {entry.paymentStatus === 'paid' || entry.paymentStatus === 'received'
+                              ? ''
+                              : entry.daysLeft === 0
+                                ? 'Due today'
+                                : entry.daysLeft === 1
+                                  ? '1 day left'
+                                  : entry.daysLeft < 0
+                                    ? `${Math.abs(entry.daysLeft)}d overdue`
+                                    : `${entry.daysLeft} days left`}
                           </Text>
                         </View>
                       </TouchableOpacity>
