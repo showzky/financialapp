@@ -1,7 +1,7 @@
 {
   "name": "newapp",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.2",
   "packageManager": "pnpm@10.18.3",
   "type": "module",
   "scripts": {

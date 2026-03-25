@@ -1,6 +1,6 @@
 {
   "name": "financial-app-mobile",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Mobile app for Financial App using React Native & Expo",
   "main": "index.js",
   "scripts": {
