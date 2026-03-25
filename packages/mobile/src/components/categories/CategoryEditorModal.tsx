@@ -122,9 +122,7 @@ export function CategoryEditorModal({
         : 'budget',
     )
     setDueDayOfMonth(
-      kind === 'expense'
-        ? category?.dueDayOfMonth?.toString() ?? draftCategory?.dueDayOfMonth?.toString() ?? ''
-        : '',
+      category?.dueDayOfMonth?.toString() ?? draftCategory?.dueDayOfMonth?.toString() ?? '',
     )
     setPickerKey(null)
     setSubmitting(false)
@@ -164,12 +162,16 @@ export function CategoryEditorModal({
       (category && category.parentName !== category.name) ||
       draftCategory?.parentName?.trim(),
     )
+  const dueDayInvalid =
+    dueDayOfMonth.trim().length > 0 &&
+    (!Number.isInteger(Number(dueDayOfMonth)) || Number(dueDayOfMonth) < 1 || Number(dueDayOfMonth) > 31)
+
   const dueDayError =
-    isSubcategoryFlow && expenseType === 'fixed' && dueDayOfMonth.trim().length > 0
-      ? !Number.isInteger(Number(dueDayOfMonth)) || Number(dueDayOfMonth) < 1 || Number(dueDayOfMonth) > 31
+    kind === 'income' && dueDayInvalid
+      ? 'Recurring day must be between 1 and 31'
+      : isSubcategoryFlow && expenseType === 'fixed' && dueDayInvalid
         ? 'Due day must be between 1 and 31'
         : ''
-      : ''
 
   const iconOptions = useMemo(() => CATEGORY_ICON_OPTIONS.map(String), [])
 
@@ -185,13 +187,15 @@ export function CategoryEditorModal({
     }
 
     const resolvedDueDay =
-      kind === 'expense'
-        ? expenseType === 'fixed'
+      kind === 'income'
+        ? dueDayOfMonth.trim().length > 0
+          ? Number(dueDayOfMonth)
+          : null
+        : expenseType === 'fixed'
           ? dueDayOfMonth.trim().length > 0
             ? Number(dueDayOfMonth)
             : null
           : null
-        : undefined
 
     try {
       setSubmitting(true)
@@ -205,7 +209,7 @@ export function CategoryEditorModal({
           color,
           iconColor,
           type: kind === 'expense' ? expenseType : undefined,
-          dueDayOfMonth: isSubcategoryFlow ? resolvedDueDay : undefined,
+          dueDayOfMonth: kind === 'income' ? resolvedDueDay : isSubcategoryFlow ? resolvedDueDay : undefined,
         })
       } else {
         await categoryApi.createCategory({
@@ -217,7 +221,7 @@ export function CategoryEditorModal({
           iconColor,
           type: kind === 'expense' ? expenseType : undefined,
           allocated: kind === 'expense' ? 0 : undefined,
-          dueDayOfMonth: isSubcategoryFlow ? resolvedDueDay : undefined,
+          dueDayOfMonth: kind === 'income' ? resolvedDueDay : isSubcategoryFlow ? resolvedDueDay : undefined,
         })
       }
       onSaved()
@@ -347,6 +351,21 @@ export function CategoryEditorModal({
                 />
               ))}
             </View>
+
+            {kind === 'income' ? (
+              <>
+                <Text style={styles.fieldLabel}>Recurring day of month</Text>
+                <TextInput
+                  style={styles.input}
+                  value={dueDayOfMonth}
+                  onChangeText={setDueDayOfMonth}
+                  keyboardType="number-pad"
+                  placeholder="Optional, e.g. 25"
+                  placeholderTextColor="rgba(255,255,255,0.24)"
+                />
+                {dueDayError ? <Text style={styles.errorText}>{dueDayError}</Text> : null}
+              </>
+            ) : null}
 
             {category && showSubcategorySection ? (
               <View style={styles.subcategorySection}>
