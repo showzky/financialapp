@@ -22,6 +22,7 @@ type CachedProductMetadata = {
 
 const previewCache = new Map<string, CachedProductMetadata>()
 const PREVIEW_CACHE_TTL_MS = 5 * 60 * 1000
+const PREVIEW_CACHE_INCOMPLETE_TTL_MS = 30 * 1000
 
 const toAbsoluteUrl = (value: string, baseUrl: string) => {
   try {
@@ -112,6 +113,55 @@ const extractCurrencyPriceMatches = (value: string): string[] => {
   return Array.from(results)
 }
 
+const PRICE_LIKE_KEYWORDS = [
+  'price',
+  'saleprice',
+  'salesprice',
+  'sale_price',
+  'sales_price',
+  'sale-price',
+  'currentprice',
+  'current_price',
+  'current-price',
+  'displayprice',
+  'display_price',
+  'productprice',
+  'product_price',
+  'offerprice',
+  'offer_price',
+  'finalprice',
+  'final_price',
+  'unitprice',
+  'unit_price',
+  'regularprice',
+  'regular_price',
+  'nowprice',
+  'now_price',
+  'wasprice',
+  'was_price',
+  'discountedprice',
+  'discounted_price',
+  'pricevalue',
+  'price_value',
+  'amount',
+  'amountvalue',
+  'priceamount',
+  'pricewithtax',
+  'priceincvat',
+  'priceinclvat',
+  'listprice',
+  'lowestprice',
+  'lowest_price',
+  'highestprice',
+  'specialprice',
+  'pris',
+  'kampanjepris',
+  'normalpris',
+]
+
+const hasPriceLikeKey = (key: string) =>
+  PRICE_LIKE_KEYWORDS.some((keyword) => key.includes(keyword))
+
 const collectPriceCandidates = ($: ReturnType<typeof load>) => {
   const candidates = new Set<string>()
 
@@ -140,6 +190,8 @@ const collectPriceCandidates = ($: ReturnType<typeof load>) => {
       '[class*="price" i]',
       '[id*="price" i]',
       '[aria-label*="price" i]',
+      '[class*="amount" i]',
+      '[id*="amount" i]',
     ].join(', '),
   )
     .toArray()
@@ -153,6 +205,27 @@ const collectPriceCandidates = ($: ReturnType<typeof load>) => {
       addCandidate(element.attr('data-product-price'))
       addCandidate(element.attr('aria-label'))
       addCandidate(element.text())
+    })
+
+  $('script')
+    .toArray()
+    .forEach((tag) => {
+      const scriptText = $(tag).text()
+      if (!scriptText) return
+
+      const normalized = scriptText.toLowerCase()
+      if (
+        !normalized.includes('price') &&
+        !normalized.includes('amount') &&
+        !normalized.includes('currency') &&
+        !normalized.includes('sale') &&
+        !normalized.includes('offer') &&
+        !/[$€£]|nok|kr|usd|eur|gbp|sek|dkk/i.test(scriptText)
+      ) {
+        return
+      }
+
+      addCandidate(scriptText)
     })
 
   const bodyText = $('body').text().replace(/\s+/g, ' ')
@@ -330,7 +403,7 @@ const extractFromAppJson = (raw: string): JsonLdExtraction => {
 
   const titleKeys = new Set(['name', 'title', 'productname', 'producttitle'])
   const imageKeys = new Set(['image', 'imageurl', 'mainimage', 'thumbnail', 'primaryimage'])
-  const priceKeys = new Set(['price', 'currentprice', 'saleprice', 'regularprice', 'amount'])
+  const priceKeys = new Set(PRICE_LIKE_KEYWORDS)
 
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -365,14 +438,14 @@ const extractFromAppJson = (raw: string): JsonLdExtraction => {
             images.add(text)
           }
 
-          if (priceKeys.has(key)) {
+          if (hasPriceLikeKey(key)) {
             prices.add(text)
           }
 
           continue
         }
 
-        if (typeof value === 'number' && Number.isFinite(value) && priceKeys.has(key)) {
+        if (typeof value === 'number' && Number.isFinite(value) && hasPriceLikeKey(key)) {
           prices.add(String(value))
           continue
         }
@@ -438,9 +511,25 @@ const fetchHtmlViaBrowserless = async (
     {
       url,
       gotoOptions: { waitUntil: 'networkidle2', timeout },
+      waitForSelector: {
+        selector: '[class*="price" i], [itemprop="price"], [data-price], [data-price-amount]',
+        timeout: 6000,
+      },
+      evaluate: `
+        (() => {
+          try {
+            const nd = window.__NEXT_DATA__
+            if (nd) {
+              const el = document.getElementById('__NEXT_DATA__')
+              if (el) el.setAttribute('data-extracted', 'true')
+            }
+          } catch {}
+          return document.documentElement.outerHTML
+        })()
+      `,
     },
     {
-      timeout: timeout + 5000,
+      timeout: timeout + 10000,
       headers: { 'Content-Type': 'application/json' },
       responseType: 'text',
     },
@@ -623,7 +712,7 @@ export const getProductData = async (url: string): Promise<ProductMetadata> => {
   }
 
   previewCache.set(url, {
-    expiresAt: Date.now() + PREVIEW_CACHE_TTL_MS,
+    expiresAt: Date.now() + (result.price ? PREVIEW_CACHE_TTL_MS : PREVIEW_CACHE_INCOMPLETE_TTL_MS),
     data: result,
   })
 
