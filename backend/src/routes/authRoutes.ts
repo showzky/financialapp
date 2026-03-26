@@ -8,24 +8,25 @@ import { authCredentialModel } from '../models/authCredentialModel.js'
 import { authSettingsModel } from '../models/authSettingsModel.js'
 import { userModel } from '../models/userModel.js'
 import { requireAuth } from '../middleware/requireAuth.js'
+import {
+  issueLocalSession,
+  refreshLocalSession,
+  revokeAllLocalSessionsForUser,
+  revokeLocalSession,
+} from '../services/localSessionService.js'
 import { AppError } from '../utils/appError.js'
-import { createLocalAuthToken } from '../utils/localAuth.js'
+import { applyLocalAuthCookies, clearLocalAuthCookies } from '../utils/localAuthCookies.js'
 import { createPasswordHash, verifyPasswordHash } from '../utils/passwordHash.js'
 
 export const authRouter = Router()
 
-const getCookieOptions = () => ({
-  // ADD THIS: hardened session cookie policy
-  httpOnly: true,
-  sameSite: env.LOCAL_AUTH_COOKIE_SAME_SITE,
-  secure: env.NODE_ENV === 'production',
-  path: '/',
-  maxAge: env.LOCAL_AUTH_COOKIE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
-})
-
 const loginSchema = z.object({
   email: z.string().email().trim().toLowerCase(),
   password: z.string().min(8).max(128),
+})
+
+const refreshSessionSchema = z.object({
+  refreshToken: z.string().min(32).max(512).optional(),
 })
 
 const registerSchema = z.object({
@@ -56,13 +57,16 @@ const sendSuccessfulLogin = async (
   res: Response,
   input: { userId: string; email: string; displayName: string },
 ) => {
-  const accessToken = await createLocalAuthToken({ userId: input.userId, email: input.email })
+  const session = await issueLocalSession({ userId: input.userId, email: input.email })
 
-  res.cookie(env.LOCAL_AUTH_COOKIE_NAME, accessToken, getCookieOptions())
+  applyLocalAuthCookies(res, session)
 
   res.status(200).json({
     tokenType: 'Bearer',
-    expiresIn: env.LOCAL_AUTH_JWT_EXPIRES_IN,
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    expiresIn: session.expiresIn,
+    refreshTokenExpiresAt: session.refreshTokenExpiresAt,
     user: {
       id: input.userId,
       email: input.email,
@@ -328,6 +332,7 @@ authRouter.post('/change-password', requireAuth, async (req, res, next) => {
 
     const nextPasswordHash = await createPasswordHash(payload.newPassword)
     await authCredentialModel.updateByUserId(req.auth.userId, { passwordHash: nextPasswordHash })
+    await revokeAllLocalSessionsForUser(req.auth.userId)
 
     res.status(204).send()
   } catch (error) {
@@ -335,14 +340,63 @@ authRouter.post('/change-password', requireAuth, async (req, res, next) => {
   }
 })
 
-authRouter.post('/logout', (req, res) => {
-  // ADD THIS: clear auth cookie on explicit logout
-  res.clearCookie(env.LOCAL_AUTH_COOKIE_NAME, {
-    httpOnly: true,
-    sameSite: env.LOCAL_AUTH_COOKIE_SAME_SITE,
-    secure: env.NODE_ENV === 'production',
-    path: '/',
-  })
+authRouter.post('/refresh', async (req, res, next) => {
+  try {
+    if (env.AUTH_PROVIDER !== 'local') {
+      throw new AppError('Session refresh is only available for local auth', 400)
+    }
 
+    const payload = refreshSessionSchema.parse(req.body ?? {})
+    const refreshToken =
+      payload.refreshToken ??
+      (typeof req.cookies?.[env.LOCAL_AUTH_REFRESH_COOKIE_NAME] === 'string'
+        ? req.cookies[env.LOCAL_AUTH_REFRESH_COOKIE_NAME]
+        : undefined)
+
+    if (!refreshToken) {
+      throw new AppError('Missing refresh token', 401)
+    }
+
+    const session = await refreshLocalSession(refreshToken)
+    const user = await userModel.getById(session.userId)
+    if (!user) {
+      throw new AppError('User not found', 404)
+    }
+
+    applyLocalAuthCookies(res, session)
+
+    res.status(200).json({
+      tokenType: 'Bearer',
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      expiresIn: session.expiresIn,
+      refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+authRouter.post('/logout', (req, res) => {
+  const payload = refreshSessionSchema.safeParse(req.body ?? {})
+  const refreshToken =
+    (payload.success ? payload.data.refreshToken : undefined) ??
+    (typeof req.cookies?.[env.LOCAL_AUTH_REFRESH_COOKIE_NAME] === 'string'
+      ? req.cookies[env.LOCAL_AUTH_REFRESH_COOKIE_NAME]
+      : undefined)
+
+  clearLocalAuthCookies(res)
+
+  if (!refreshToken) {
+    res.status(204).send()
+    return
+  }
+
+  void revokeLocalSession(refreshToken)
   res.status(204).send()
 })

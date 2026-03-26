@@ -24,6 +24,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({ id: me.id, email: me.email, displayName: me.displayName })
       setStatus('signedIn')
     } catch (err) {
+      const restoredUser = await authApi.refreshSession()
+      if (restoredUser) {
+        setUser(restoredUser)
+        setStatus('signedIn')
+        return
+      }
+
       if (err instanceof BackendError && err.status === 401) {
         setUser(null)
         setStatus('signedOut')

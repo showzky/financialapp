@@ -35,10 +35,17 @@ async function run() {
     process.exit(2);
   }
 
-  const allowInsecure = (process.env.ALLOW_INSECURE_DB || '').toLowerCase() === 'true';
+  const allowInsecure =
+    (process.env.ALLOW_INSECURE_DB || '').toLowerCase() === 'true' ||
+    (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED || '').toLowerCase() === 'false';
+
+  // Strip sslmode from connection string so pg client SSL config takes precedence
+  const cleanedConnectionString = allowInsecure
+    ? connectionString.replace(/[?&]sslmode=[^&]*/g, (m) => m.startsWith('?') ? '?' : '')
+    : connectionString;
 
   const client = new Client({
-    connectionString,
+    connectionString: cleanedConnectionString,
     ssl: allowInsecure ? { rejectUnauthorized: false } : undefined,
   });
 

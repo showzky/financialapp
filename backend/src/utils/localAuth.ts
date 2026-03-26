@@ -1,4 +1,5 @@
 // ADD THIS: secure local authentication helpers (scrypt + signed JWT)
+import { createHash, randomBytes } from 'node:crypto'
 import { jwtVerify, SignJWT } from 'jose'
 import { env } from '../config/env.js'
 import { AppError } from './appError.js'
@@ -41,6 +42,12 @@ export const createLocalAuthToken = async (payload: {
   } catch {
     return baseToken.setExpirationTime('8h').sign(secret)
   }
+}
+
+export const createLocalRefreshToken = (): string => randomBytes(48).toString('base64url')
+
+export const hashLocalRefreshToken = (token: string): string => {
+  return createHash('sha256').update(token).digest('hex')
 }
 
 export const verifyLocalAuthToken = async (

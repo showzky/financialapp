@@ -3,7 +3,9 @@ import type { NextFunction, Request, Response } from 'express'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { env } from '../config/env.js'
 import { userModel } from '../models/userModel.js'
+import { refreshLocalSession } from '../services/localSessionService.js'
 import { AppError } from '../utils/appError.js'
+import { applyLocalAuthCookies } from '../utils/localAuthCookies.js'
 import { verifyLocalAuthToken } from '../utils/localAuth.js'
 
 const issuer = env.SUPABASE_JWT_ISSUER ?? `${env.SUPABASE_URL}/auth/v1`
@@ -37,6 +39,15 @@ const parseLocalAuthToken = (req: Request): string => {
   throw new AppError('Missing authorization token', 401)
 }
 
+const parseLocalRefreshCookie = (req: Request): string | null => {
+  const refreshCookie = req.cookies?.[env.LOCAL_AUTH_REFRESH_COOKIE_NAME]
+  if (typeof refreshCookie === 'string' && refreshCookie.trim().length > 0) {
+    return refreshCookie
+  }
+
+  return null
+}
+
 const isLocalhostRequest = (req: Request): boolean => {
   const hostHeader = req.get('host')?.toLowerCase() ?? ''
   const hostname = req.hostname?.toLowerCase() ?? ''
@@ -64,8 +75,37 @@ export const requireAuth = async (
     const authorizationHeader = req.header('authorization')
 
     if (env.AUTH_PROVIDER === 'local') {
-      const token = parseLocalAuthToken(req)
-      req.auth = await verifyLocalAuthToken(token)
+      if (authorizationHeader) {
+        const token = parseBearerToken(authorizationHeader)
+        req.auth = await verifyLocalAuthToken(token)
+      } else {
+        const cookieToken = req.cookies?.[env.LOCAL_AUTH_COOKIE_NAME]
+        let verifiedCookieAuth: { userId: string; email?: string } | null = null
+
+        if (typeof cookieToken === 'string' && cookieToken.trim().length > 0) {
+          try {
+            verifiedCookieAuth = await verifyLocalAuthToken(cookieToken)
+          } catch {
+            verifiedCookieAuth = null
+          }
+        }
+
+        if (!verifiedCookieAuth) {
+          const refreshCookie = parseLocalRefreshCookie(req)
+          if (!refreshCookie) {
+            throw new AppError('Missing authorization token', 401)
+          }
+
+          const session = await refreshLocalSession(refreshCookie)
+          applyLocalAuthCookies(_res, session)
+          req.auth = {
+            userId: session.userId,
+            email: session.email,
+          }
+        } else {
+          req.auth = verifiedCookieAuth
+        }
+      }
     } else if (!authorizationHeader) {
       const canBypassDevAuth =
         env.NODE_ENV !== 'production' && env.ALLOW_DEV_AUTH_BYPASS && isLocalhostRequest(req)

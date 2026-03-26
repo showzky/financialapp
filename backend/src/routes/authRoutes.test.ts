@@ -28,8 +28,10 @@ test('authRouter exposes expected route contracts', () => {
     'GET /register-status',
     'GET /settings',
     'PATCH /settings',
+    'POST /change-password',
     'POST /login',
     'POST /logout',
+    'POST /refresh',
     'POST /register',
   ])
 })

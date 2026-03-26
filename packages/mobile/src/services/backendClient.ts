@@ -1,4 +1,5 @@
 import Constants from 'expo-constants'
+import { clearStoredRefreshToken, getStoredRefreshToken, storeRefreshToken } from './authSessionStorage'
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
@@ -21,6 +22,11 @@ const developmentFallbackBaseUrl = 'http://10.0.2.2:4000/api/v1'
 type ExpoExtraConfig = {
   backendUrl?: string
   backendAuthToken?: string
+}
+
+type RefreshSessionResponse = {
+  accessToken: string
+  refreshToken?: string
 }
 
 const getExpoExtraConfig = (): ExpoExtraConfig => {
@@ -89,6 +95,7 @@ const extractBackendMessage = (bodyText: string | undefined): string | undefined
 
 // In-memory token store – set by authApi after login, cleared on logout.
 let savedAuthToken: string | undefined
+let refreshInFlight: Promise<boolean> | null = null
 
 export const setAuthToken = (token: string | undefined) => {
   savedAuthToken = token
@@ -96,11 +103,77 @@ export const setAuthToken = (token: string | undefined) => {
 
 export const getAuthToken = (): string | undefined => savedAuthToken
 
+const refreshMobileSession = async (baseUrl: string): Promise<boolean> => {
+  const storedRefreshToken = await getStoredRefreshToken()
+  if (!storedRefreshToken) {
+    return false
+  }
+
+  const response = await fetch(buildUrl(baseUrl, '/auth/refresh'), {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken: storedRefreshToken }),
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      setAuthToken(undefined)
+      await clearStoredRefreshToken()
+      return false
+    }
+
+    let bodyText: string | undefined
+    try {
+      bodyText = await response.text()
+    } catch {
+      bodyText = undefined
+    }
+
+    throw new BackendError(
+      extractBackendMessage(bodyText) ?? `Request failed (${response.status})`,
+      {
+        status: response.status,
+        bodyText,
+      },
+    )
+  }
+
+  const payload = (await response.json()) as RefreshSessionResponse
+  if (!payload.accessToken) {
+    return false
+  }
+
+  setAuthToken(payload.accessToken)
+
+  if (payload.refreshToken?.trim()) {
+    await storeRefreshToken(payload.refreshToken)
+  }
+
+  return true
+}
+
+const ensureRefreshedSession = (baseUrl: string): Promise<boolean> => {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshMobileSession(baseUrl).finally(() => {
+      refreshInFlight = null
+    })
+  }
+
+  return refreshInFlight
+}
+
 export const createBackendClient = (options: BackendClientOptions = {}) => {
   const baseUrl = options.baseUrl?.replace(/\/+$/, '') ?? defaultBaseUrl()
   const authToken = options.authToken ?? defaultAuthToken()
 
-  const request = async <TResponse>(input: BackendRequestOptions): Promise<TResponse> => {
+  const request = async <TResponse>(
+    input: BackendRequestOptions,
+    allowRefreshRetry = true,
+  ): Promise<TResponse> => {
     const effectiveAuthToken =
       input.authToken === undefined
         ? savedAuthToken ?? authToken
@@ -122,6 +195,21 @@ export const createBackendClient = (options: BackendClientOptions = {}) => {
       // Let native cookie storage work (needed for local auth mode).
       credentials: input.withCredentials === false ? 'omit' : 'include',
     })
+
+    const canAttemptRefresh =
+      allowRefreshRetry &&
+      input.authToken !== null &&
+      input.path !== '/auth/login' &&
+      input.path !== '/auth/logout' &&
+      input.path !== '/auth/refresh' &&
+      input.path !== '/auth/register'
+
+    if (response.status === 401 && canAttemptRefresh) {
+      const refreshed = await ensureRefreshedSession(baseUrl)
+      if (refreshed) {
+        return request<TResponse>(input, false)
+      }
+    }
 
     if (!response.ok) {
       let bodyText: string | undefined

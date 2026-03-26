@@ -8,7 +8,18 @@
       "Bash(xargs grep:*)",
       "WebFetch(domain:www.elkjop.no)",
       "Bash(npx expo:*)",
-      "Bash(./gradlew app:assembleDebug -x lint -x test)"
+      "Bash(./gradlew app:assembleDebug -x lint -x test)",
+      "Bash(npm run:*)",
+      "Bash(ALLOW_INSECURE_DB=true npm run migrate:latest)",
+      "Bash(supabase --version)",
+      "Bash(npx supabase:*)",
+      "Bash(supabase db:*)",
+      "Bash(/c/Users/andre/AppData/Local/npm-cache/_npx/aa8e5c70f9d8d161/node_modules/supabase/bin/supabase.exe db:*)",
+      "Bash(SUPABASE_DB_PASSWORD=\"fyt4qpb1zgf@JEC0ary\" /c/Users/andre/AppData/Local/npm-cache/_npx/aa8e5c70f9d8d161/node_modules/supabase/bin/supabase.exe db dump --schema public -f ./supabase/schema_dump.sql)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }
