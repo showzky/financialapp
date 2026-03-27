@@ -18,14 +18,21 @@ import { Controller, useForm } from 'react-hook-form'
 import { type CategoryWithSpent } from '../services/dashboardApi'
 import { FinancialAccountPickerModal } from './balance/FinancialAccountPickerModal'
 import { financialAccountApi } from '../services/financialAccountApi'
-import { incomeApi } from '../services/incomeApi'
+import { incomeApi, type RepeatOption } from '../services/incomeApi'
+import { incomeReminderScheduler } from '../services/incomeReminderScheduler'
 import { transactionApi } from '../services/transactionApi'
+import { borrowedLoanApi } from '../services/borrowedLoanApi'
+import { wishlistApi } from '../services/wishlistApi'
 import { type CategoryDto } from '../services/categoryApi'
 import type { FinancialAccount } from '../shared/contracts/accounts'
 import { CategoryPickerModal } from './categories/CategoryPickerModal'
+import { GoalDebtPickerSheet, type GoalDebtTarget } from './GoalDebtPickerSheet'
+import { OptionPickerSheet } from './OptionPickerSheet'
 import { setIncomeModalStyles as styles } from './SetIncomeModal.styles'
 
 type EntryMode = 'income' | 'expense'
+
+type RemindOption = 'none' | 'on_date' | 'custom'
 
 type Props = {
   isOpen: boolean
@@ -45,6 +52,14 @@ type EntryFormValues = {
   countsTowardBills: boolean
   selectedAccountId: string | null
   notes: string
+  // Repeat
+  repeatOption: RepeatOption
+  repeatCustomDate: Date | null
+  // Remind
+  remindOption: RemindOption
+  remindDate: Date | null
+  // Goal or Debt
+  goalDebtTarget: GoalDebtTarget | null
 }
 
 function formatDisplayDate(date: Date) {
@@ -115,8 +130,45 @@ function getIoniconName(icon: string | null | undefined): keyof typeof Ionicons.
   if (icon && icon in Ionicons.glyphMap) {
     return icon as keyof typeof Ionicons.glyphMap
   }
-
   return 'ellipse-outline'
+}
+
+const REPEAT_OPTIONS = [
+  { value: 'none', label: 'Does not repeat' },
+  { value: 'weekly', label: 'Every week' },
+  { value: 'monthly', label: 'Every month' },
+  { value: 'custom', label: 'Custom date…', hint: 'Pick a specific next occurrence date' },
+] satisfies { value: RepeatOption; label: string; hint?: string }[]
+
+const REMIND_OPTIONS = [
+  { value: 'none', label: "Don't remind" },
+  { value: 'on_date', label: 'On the day', hint: 'Notify at 9:00 AM on the income date' },
+  { value: 'custom', label: 'Pick a date…', hint: 'Choose an exact reminder date and time' },
+] satisfies { value: RemindOption; label: string; hint?: string }[]
+
+function repeatLabel(option: RepeatOption, customDate: Date | null): string {
+  if (option === 'weekly') return 'Every week'
+  if (option === 'monthly') return 'Every month'
+  if (option === 'custom') {
+    return customDate ? `Next: ${formatDisplayDate(customDate)}` : 'Custom date…'
+  }
+  return 'Does not repeat'
+}
+
+function remindLabel(option: RemindOption, remindDate: Date | null): string {
+  if (option === 'on_date') return 'On the day'
+  if (option === 'custom') {
+    return remindDate
+      ? `${formatDisplayDate(remindDate)} ${formatDisplayTime(remindDate)}`
+      : 'Pick a date…'
+  }
+  return "Don't remind"
+}
+
+function goalDebtLabel(target: GoalDebtTarget | null): string {
+  if (!target) return 'None'
+  if (target.type === 'wishlist') return `Goal: ${target.title}`
+  return `Debt: ${target.lender}`
 }
 
 export function SetIncomeModal({
@@ -127,29 +179,30 @@ export function SetIncomeModal({
   onClose,
   onEntryCreated,
 }: Props) {
-  const defaultExpenseCategory = useMemo(
-    () => {
-      if (categories.length === 0) {
-        return null
-      }
-
-      const preferredExpenseCategory =
-        categories.find((category) => category.type === 'fixed') ?? categories[0]
-
-      return toCategoryDto(preferredExpenseCategory)
-    },
-    [categories],
-  )
+  const defaultExpenseCategory = useMemo(() => {
+    if (categories.length === 0) return null
+    const preferredExpenseCategory =
+      categories.find((category) => category.type === 'fixed') ?? categories[0]
+    return toCategoryDto(preferredExpenseCategory)
+  }, [categories])
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [accountPickerOpen, setAccountPickerOpen] = useState(false)
+  const [repeatPickerOpen, setRepeatPickerOpen] = useState(false)
+  const [remindPickerOpen, setRemindPickerOpen] = useState(false)
+  const [goalDebtPickerOpen, setGoalDebtPickerOpen] = useState(false)
   const [iosPickerMode, setIosPickerMode] = useState<null | 'date' | 'time'>(null)
+  // Separate iOS picker mode for remind date
+  const [iosRemindPickerMode, setIosRemindPickerMode] = useState<null | 'date' | 'time'>(null)
+  // Separate iOS picker mode for repeat custom date
+  const [iosRepeatCustomPickerOpen, setIosRepeatCustomPickerOpen] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const amountInputRef = useRef<TextInput>(null)
+
   const { control, watch, reset, setValue, getValues } = useForm<EntryFormValues>({
     defaultValues: {
       amount: '',
@@ -160,6 +213,11 @@ export function SetIncomeModal({
       countsTowardBills: false,
       selectedAccountId: null,
       notes: '',
+      repeatOption: 'none',
+      repeatCustomDate: null,
+      remindOption: 'none',
+      remindDate: null,
+      goalDebtTarget: null,
     },
   })
 
@@ -171,6 +229,12 @@ export function SetIncomeModal({
   const countsTowardBills = watch('countsTowardBills')
   const selectedAccountId = watch('selectedAccountId')
   const notes = watch('notes')
+  const repeatOption = watch('repeatOption')
+  const repeatCustomDate = watch('repeatCustomDate')
+  const remindOption = watch('remindOption')
+  const remindDate = watch('remindDate')
+  const goalDebtTarget = watch('goalDebtTarget')
+
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId) ?? null,
     [accounts, selectedAccountId],
@@ -181,6 +245,8 @@ export function SetIncomeModal({
       setCategoryPickerOpen(false)
       setAccountPickerOpen(false)
       setIosPickerMode(null)
+      setIosRemindPickerMode(null)
+      setIosRepeatCustomPickerOpen(false)
       return
     }
 
@@ -193,6 +259,11 @@ export function SetIncomeModal({
       countsTowardBills: false,
       selectedAccountId: null,
       notes: '',
+      repeatOption: 'none',
+      repeatCustomDate: null,
+      remindOption: 'none',
+      remindDate: null,
+      goalDebtTarget: null,
     })
     setShowMore(false)
     setHasTriedSubmit(false)
@@ -201,6 +272,8 @@ export function SetIncomeModal({
     setCategoryPickerOpen(false)
     setAccountPickerOpen(false)
     setIosPickerMode(null)
+    setIosRemindPickerMode(null)
+    setIosRepeatCustomPickerOpen(false)
 
     const timer = setTimeout(() => {
       amountInputRef.current?.focus()
@@ -210,10 +283,7 @@ export function SetIncomeModal({
   }, [defaultExpenseCategory, isOpen, mode, reset, selectedMonth])
 
   useEffect(() => {
-    if (!isOpen) {
-      return
-    }
-
+    if (!isOpen) return
     void financialAccountApi
       .listAccounts()
       .then(setAccounts)
@@ -232,6 +302,8 @@ export function SetIncomeModal({
   const handleClose = () => {
     setCategoryPickerOpen(false)
     setIosPickerMode(null)
+    setIosRemindPickerMode(null)
+    setIosRepeatCustomPickerOpen(false)
     setHasTriedSubmit(false)
     setSubmitError('')
     onClose()
@@ -254,8 +326,45 @@ export function SetIncomeModal({
       })
       return
     }
-
     setIosPickerMode(pickerMode)
+  }
+
+  const openRemindDatePicker = (pickerMode: 'date' | 'time') => {
+    if (Platform.OS === 'android') {
+      const current = getValues('remindDate') ?? new Date()
+      DateTimePickerAndroid.open({
+        mode: pickerMode,
+        is24Hour: true,
+        value: current,
+        onChange: (_event, picked) => {
+          if (!picked) return
+          const base = getValues('remindDate') ?? new Date()
+          setValue(
+            'remindDate',
+            pickerMode === 'date' ? mergeDatePart(base, picked) : mergeTimePart(base, picked),
+          )
+        },
+      })
+      return
+    }
+    setIosRemindPickerMode(pickerMode)
+  }
+
+  const openRepeatCustomPicker = () => {
+    if (Platform.OS === 'android') {
+      const current = getValues('repeatCustomDate') ?? new Date()
+      DateTimePickerAndroid.open({
+        mode: 'date',
+        is24Hour: true,
+        value: current,
+        onChange: (_event, picked) => {
+          if (!picked) return
+          setValue('repeatCustomDate', picked)
+        },
+      })
+      return
+    }
+    setIosRepeatCustomPickerOpen(true)
   }
 
   const handleSubmit = async () => {
@@ -266,7 +375,7 @@ export function SetIncomeModal({
     setSubmitError('')
     try {
       if (mode === 'income') {
-        await incomeApi.createIncomeEntry({
+        const entry = await incomeApi.createIncomeEntry({
           incomeCategoryId: selectedCategory.id,
           category: selectedCategory.name,
           name: entryName.trim() || selectedCategory.name,
@@ -275,7 +384,54 @@ export function SetIncomeModal({
           accountId: selectedAccount?.id,
           accountName: selectedAccount?.name,
           isPaid,
+          repeat: repeatOption !== 'none' ? repeatOption : undefined,
+          repeatCustomDate:
+            repeatOption === 'custom' && repeatCustomDate
+              ? repeatCustomDate.toISOString().split('T')[0]
+              : undefined,
         })
+
+        // Schedule reminder notification
+        if (remindOption !== 'none') {
+          let reminderDate: Date | null = null
+          if (remindOption === 'on_date') {
+            reminderDate = new Date(selectedDateTime)
+            reminderDate.setHours(9, 0, 0, 0)
+          } else if (remindOption === 'custom' && remindDate) {
+            reminderDate = remindDate
+          }
+          if (reminderDate) {
+            await incomeReminderScheduler.scheduleAsync(
+              entry.id,
+              reminderDate,
+              entryName.trim() || selectedCategory.name,
+            ).catch((err) => {
+              console.warn('Failed to schedule income reminder:', err)
+            })
+          }
+        }
+
+        // Apply to goal or debt
+        if (goalDebtTarget) {
+          const amountValue = Number(amount)
+          if (goalDebtTarget.type === 'wishlist') {
+            await wishlistApi
+              .update(goalDebtTarget.id, {
+                savedAmount: goalDebtTarget.savedAmount + amountValue,
+              })
+              .catch((err) => {
+                console.warn('Failed to update wishlist saved amount:', err)
+              })
+          } else if (goalDebtTarget.type === 'borrowed_loan') {
+            await borrowedLoanApi
+              .update(goalDebtTarget.id, {
+                currentBalance: Math.max(0, goalDebtTarget.currentBalance - amountValue),
+              })
+              .catch((err) => {
+                console.warn('Failed to update borrowed loan balance:', err)
+              })
+          }
+        }
       } else {
         await transactionApi.createTransaction({
           categoryId: selectedCategory.id,
@@ -340,8 +496,8 @@ export function SetIncomeModal({
                           <View
                             style={[
                               styles.selectIcon,
-              {
-                backgroundColor: selectedCategory.color,
+                              {
+                                backgroundColor: selectedCategory.color,
                                 borderColor: 'rgba(255,255,255,0.08)',
                               },
                             ]}
@@ -488,7 +644,11 @@ export function SetIncomeModal({
                     />
                   </View>
 
-                  <TouchableOpacity style={styles.moreToggle} onPress={() => setShowMore((current) => !current)} activeOpacity={0.86}>
+                  <TouchableOpacity
+                    style={styles.moreToggle}
+                    onPress={() => setShowMore((current) => !current)}
+                    activeOpacity={0.86}
+                  >
                     <Text style={styles.moreToggleText}>MORE</Text>
                     <Ionicons name={showMore ? 'chevron-up' : 'chevron-down'} size={14} color="rgba(92,163,255,0.92)" />
                   </TouchableOpacity>
@@ -514,29 +674,126 @@ export function SetIncomeModal({
                         />
                       </View>
 
-                      <View style={styles.section}>
-                        <Text style={styles.label}>REPEAT</Text>
-                        <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
-                          <Text style={styles.dateText}>Does not repeat</Text>
-                          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
-                        </TouchableOpacity>
-                      </View>
+                      {/* REPEAT — income only */}
+                      {mode === 'income' ? (
+                        <View style={styles.section}>
+                          <Text style={styles.label}>REPEAT</Text>
+                          <TouchableOpacity
+                            style={styles.inlineField}
+                            activeOpacity={0.9}
+                            onPress={() => setRepeatPickerOpen(true)}
+                          >
+                            <Text style={styles.dateText}>
+                              {repeatLabel(repeatOption, repeatCustomDate)}
+                            </Text>
+                            <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                          </TouchableOpacity>
+                          {/* Show date picker for custom repeat date */}
+                          {repeatOption === 'custom' ? (
+                            <TouchableOpacity
+                              style={[styles.inlineField, { marginTop: 8 }]}
+                              activeOpacity={0.9}
+                              onPress={openRepeatCustomPicker}
+                            >
+                              <Text style={styles.dateText}>
+                                {repeatCustomDate ? formatDisplayDate(repeatCustomDate) : 'Pick next occurrence…'}
+                              </Text>
+                              <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.3)" />
+                            </TouchableOpacity>
+                          ) : null}
+                          {iosRepeatCustomPickerOpen && Platform.OS === 'ios' ? (
+                            <View style={[styles.inlineField, { marginTop: 8 }]}>
+                              <DateTimePicker
+                                mode="date"
+                                display="spinner"
+                                value={repeatCustomDate ?? new Date()}
+                                onChange={(_event, picked) => {
+                                  if (picked) setValue('repeatCustomDate', picked)
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
 
-                      <View style={styles.section}>
-                        <Text style={styles.label}>REMIND</Text>
-                        <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
-                          <Text style={styles.dateText}>Don't remind</Text>
-                          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
-                        </TouchableOpacity>
-                      </View>
+                      {/* REMIND — income only */}
+                      {mode === 'income' ? (
+                        <View style={styles.section}>
+                          <Text style={styles.label}>REMIND</Text>
+                          <TouchableOpacity
+                            style={styles.inlineField}
+                            activeOpacity={0.9}
+                            onPress={() => setRemindPickerOpen(true)}
+                          >
+                            <Text style={styles.dateText}>
+                              {remindLabel(remindOption, remindDate)}
+                            </Text>
+                            <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                          </TouchableOpacity>
+                          {/* Show date + time pickers when custom remind is selected */}
+                          {remindOption === 'custom' ? (
+                            <View style={{ marginTop: 8, gap: 8 }}>
+                              <TouchableOpacity
+                                style={styles.inlineField}
+                                activeOpacity={0.9}
+                                onPress={() => openRemindDatePicker('date')}
+                              >
+                                <Text style={styles.dateText}>
+                                  {remindDate ? formatDisplayDate(remindDate) : 'Pick date…'}
+                                </Text>
+                                <Ionicons name="calendar-outline" size={16} color="rgba(255,255,255,0.3)" />
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.inlineField}
+                                activeOpacity={0.9}
+                                onPress={() => openRemindDatePicker('time')}
+                              >
+                                <Text style={styles.dateText}>
+                                  {remindDate ? formatDisplayTime(remindDate) : 'Pick time…'}
+                                </Text>
+                                <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.3)" />
+                              </TouchableOpacity>
+                            </View>
+                          ) : null}
+                          {iosRemindPickerMode && Platform.OS === 'ios' ? (
+                            <View style={[styles.inlineField, { marginTop: 8 }]}>
+                              <DateTimePicker
+                                mode={iosRemindPickerMode}
+                                display="spinner"
+                                value={remindDate ?? new Date()}
+                                is24Hour
+                                onChange={(_event, picked) => {
+                                  if (!picked) return
+                                  const base = getValues('remindDate') ?? new Date()
+                                  setValue(
+                                    'remindDate',
+                                    iosRemindPickerMode === 'date'
+                                      ? mergeDatePart(base, picked)
+                                      : mergeTimePart(base, picked),
+                                  )
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
 
-                      <View style={styles.section}>
-                        <Text style={styles.label}>GOAL OR DEBT</Text>
-                        <TouchableOpacity style={styles.inlineField} activeOpacity={0.9}>
-                          <Text style={styles.dateText}>None</Text>
-                          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
-                        </TouchableOpacity>
-                      </View>
+                      {/* GOAL OR DEBT — income only */}
+                      {mode === 'income' ? (
+                        <View style={styles.section}>
+                          <Text style={styles.label}>GOAL OR DEBT</Text>
+                          <TouchableOpacity
+                            style={styles.inlineField}
+                            activeOpacity={0.9}
+                            onPress={() => setGoalDebtPickerOpen(true)}
+                          >
+                            <Text style={styles.dateText}>{goalDebtLabel(goalDebtTarget)}</Text>
+                            <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
 
                       <View style={styles.section}>
                         <Text style={styles.label}>COLOR</Text>
@@ -641,6 +898,38 @@ export function SetIncomeModal({
           setValue('selectedAccountId', account?.id ?? null)
           setAccountPickerOpen(false)
         }}
+      />
+
+      <OptionPickerSheet
+        visible={repeatPickerOpen}
+        title="Repeat"
+        options={REPEAT_OPTIONS}
+        selectedValue={repeatOption}
+        onSelect={(value) => setValue('repeatOption', value as RepeatOption)}
+        onClose={() => setRepeatPickerOpen(false)}
+      />
+
+      <OptionPickerSheet
+        visible={remindPickerOpen}
+        title="Remind me"
+        options={REMIND_OPTIONS}
+        selectedValue={remindOption}
+        onSelect={(value) => {
+          const next = value as RemindOption
+          setValue('remindOption', next)
+          // Pre-populate remindDate when switching to custom
+          if (next === 'custom' && !getValues('remindDate')) {
+            setValue('remindDate', new Date())
+          }
+        }}
+        onClose={() => setRemindPickerOpen(false)}
+      />
+
+      <GoalDebtPickerSheet
+        visible={goalDebtPickerOpen}
+        selectedTarget={goalDebtTarget}
+        onSelect={(target) => setValue('goalDebtTarget', target)}
+        onClose={() => setGoalDebtPickerOpen(false)}
       />
     </>
   )

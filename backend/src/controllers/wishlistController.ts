@@ -16,7 +16,7 @@ const wishlistPrioritySchema = z.enum(['High', 'Medium', 'Low'])
 
 const wishlistItemSchema = z.object({
   title: z.string().trim().min(1).max(300),
-  url: z.string().trim().url(),
+  url: z.string().trim().url().or(z.literal('')).optional().default(''),
   price: z.number().finite().nonnegative().nullable(),
   imageUrl: z.string().trim().url().or(z.literal('')).optional(),
   category: z.string().trim().max(100).optional(),
@@ -148,18 +148,20 @@ export const createWishlistItem = asyncHandler(async (req: Request, res: Respons
   }
 
   const payload = wishlistItemSchema.parse(req.body)
-  const normalizedUrl = normalizeWishlistUrl(payload.url)
+  const normalizedUrl = payload.url ? normalizeWishlistUrl(payload.url) : ''
   const normalizedNotes = normalizeWishlistNotes(payload.notes)
-  const duplicate = await wishlistItemModel.findByNormalizedUrl(req.auth.userId, normalizedUrl)
 
-  if (duplicate) {
-    throw new AppError('A wishlist item with this URL already exists', 409)
+  if (normalizedUrl) {
+    const duplicate = await wishlistItemModel.findByNormalizedUrl(req.auth.userId, normalizedUrl)
+    if (duplicate) {
+      throw new AppError('A wishlist item with this URL already exists', 409)
+    }
   }
 
   const created = await wishlistItemModel.create({
     userId: req.auth.userId,
     title: payload.title,
-    url: payload.url,
+    url: payload.url ?? '',
     normalizedUrl,
     price: payload.price,
     imageUrl: payload.imageUrl ?? '',

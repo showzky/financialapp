@@ -1,4 +1,4 @@
-export const notificationTopics = ['loans', 'wishlist', 'vacations', 'system'] as const
+export const notificationTopics = ['loans', 'wishlist', 'vacations', 'income', 'system'] as const
 
 export type AppNotificationTopic = (typeof notificationTopics)[number]
 
@@ -10,6 +10,7 @@ export const notificationKinds = [
   'wishlist_reminder',
   'wishlist_price_drop',
   'vacation_reminder',
+  'income_reminder',
 ] as const
 
 export type AppNotificationKind = (typeof notificationKinds)[number]
@@ -47,6 +48,7 @@ export const defaultNotificationPreferences: NotificationPreferences = {
     loans: true,
     wishlist: true,
     vacations: true,
+    income: true,
     system: true,
   },
 }

@@ -18,6 +18,9 @@ export type IncomeEntry = {
   createdAt: string
 }
 
+// Repeat cadence — stored for future automation; not yet enforced server-side
+export type RepeatOption = 'none' | 'weekly' | 'monthly' | 'custom'
+
 export type CreateIncomeEntryPayload = {
   incomeCategoryId?: string
   accountId?: string
@@ -27,6 +30,8 @@ export type CreateIncomeEntryPayload = {
   receivedAt: string
   accountName?: string
   isPaid?: boolean
+  repeat?: RepeatOption
+  repeatCustomDate?: string // ISO date string, only meaningful when repeat === 'custom'
 }
 
 export const incomeApi = {
