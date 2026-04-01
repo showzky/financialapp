@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import Constants from 'expo-constants'
 import { useAuth } from '../auth/AuthContext'
 import { useNotifications } from '../context/NotificationContext'
 import { ScreenHero } from '../components/ScreenHero'
@@ -301,7 +302,7 @@ export function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: activeTheme.colors.mutedText }]}>App</Text>
-        {renderLinkRow('information-circle', 'About', 'v1.0.0')}
+        {renderLinkRow('information-circle', 'About', `v${Constants.expoConfig?.version ?? '1.0.3'} Beta`)}
         {renderLinkRow('document-text', 'Terms of Service', 'Read our terms')}
         {renderLinkRow('shield-checkmark', 'Privacy Policy', 'Read our privacy policy')}
       </View>
