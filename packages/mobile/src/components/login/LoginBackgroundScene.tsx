@@ -196,17 +196,48 @@ function Lily({ rotate, offset }: { rotate: number; offset: number }) {
 export function LoginBackgroundScene({ theme }: { theme: LoginScreenTheme }) {
   return (
     <LinearGradient colors={theme.colors.sceneGradient} style={styles.scene}>
-      {theme.id === 'easter-renewal' ? <EasterSkyDecor /> : <DefaultSceneDecor />}
+      {theme.id === 'easter-renewal' ? <EasterSkyDecor /> : <DefaultSceneDecor theme={theme} />}
     </LinearGradient>
   )
 }
 
-function DefaultSceneDecor() {
+function DefaultSceneDecor({ theme }: { theme: LoginScreenTheme }) {
   return (
     <>
-      <View style={[styles.softGlow, styles.softGlowLarge]} />
-      <View style={[styles.softGlow, styles.softGlowSmall]} />
-      <View style={styles.defaultHill} />
+      <View style={styles.defaultGridWrap}>
+        {Array.from({ length: 15 }).map((_, index) => (
+          <View
+            key={`h-${index}`}
+            style={[
+              styles.gridLineHorizontal,
+              { top: index * 32, backgroundColor: theme.colors.gridLine },
+            ]}
+          />
+        ))}
+        {Array.from({ length: 12 }).map((_, index) => (
+          <View
+            key={`v-${index}`}
+            style={[
+              styles.gridLineVertical,
+              { left: index * 32, backgroundColor: theme.colors.gridLine },
+            ]}
+          />
+        ))}
+      </View>
+      <View
+        style={[
+          styles.softGlow,
+          styles.softGlowLarge,
+          { backgroundColor: theme.colors.haloPrimary },
+        ]}
+      />
+      <View
+        style={[
+          styles.softGlow,
+          styles.softGlowSmall,
+          { backgroundColor: theme.colors.haloSecondary },
+        ]}
+      />
     </>
   )
 }
@@ -412,28 +443,34 @@ const styles = StyleSheet.create({
   softGlow: {
     position: 'absolute',
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   softGlowLarge: {
-    top: 40,
-    left: 28,
-    width: 180,
-    height: 180,
+    top: -40,
+    left: -30,
+    width: 210,
+    height: 210,
   },
   softGlowSmall: {
     top: 140,
-    right: 32,
-    width: 110,
-    height: 110,
+    right: -20,
+    width: 160,
+    height: 160,
   },
-  defaultHill: {
+  defaultGridWrap: {
     position: 'absolute',
-    left: -24,
-    right: -24,
-    bottom: -12,
-    height: 180,
-    borderTopLeftRadius: 240,
-    borderTopRightRadius: 240,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    inset: 0,
+    opacity: 0.95,
+  },
+  gridLineHorizontal: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+  },
+  gridLineVertical: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
   },
 })

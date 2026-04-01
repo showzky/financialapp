@@ -1,40 +1,60 @@
-import React from 'react'
+import React, { RefObject } from 'react'
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
+import PagerView from 'react-native-pager-view'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 
 import type { LoginScreenTheme } from '../../customthemes/login'
 
+type AuthMode = 'login' | 'register'
+
 type LoginFormCardProps = {
   theme: LoginScreenTheme
-  email: string
-  password: string
-  error: string | null
-  loading: boolean
-  onEmailChange: (value: string) => void
-  onPasswordChange: (value: string) => void
-  onSubmit: () => void
+  mode: AuthMode
+  pagerRef: RefObject<PagerView | null>
+  onModeChange: (mode: AuthMode) => void
+  onPageSelected: (index: number) => void
+  login: {
+    email: string
+    password: string
+    error: string | null
+    loading: boolean
+    onEmailChange: (value: string) => void
+    onPasswordChange: (value: string) => void
+    onSubmit: () => void
+  }
+  register: {
+    displayName: string
+    email: string
+    password: string
+    error: string | null
+    loading: boolean
+    enabled: boolean
+    checkingAvailability: boolean
+    onDisplayNameChange: (value: string) => void
+    onEmailChange: (value: string) => void
+    onPasswordChange: (value: string) => void
+    onSubmit: () => void
+  }
 }
 
 export function LoginFormCard({
   theme,
-  email,
-  password,
-  error,
-  loading,
-  onEmailChange,
-  onPasswordChange,
-  onSubmit,
+  mode,
+  pagerRef,
+  onModeChange,
+  onPageSelected,
+  login,
+  register,
 }: LoginFormCardProps) {
-  const canSubmit = Boolean(email.trim() && password && !loading)
-
   return (
     <View
       style={[
@@ -45,26 +65,252 @@ export function LoginFormCard({
         },
       ]}
     >
-      {theme.badgeLabel ? (
-        <View
+      <View
+        style={[
+          styles.segmentedWrap,
+          {
+            backgroundColor: theme.colors.segmentedBackground,
+            borderColor: theme.colors.segmentedBorder,
+          },
+        ]}
+      >
+        <SegmentButton
+          theme={theme}
+          active={mode === 'login'}
+          label="Sign in"
+          onPress={() => onModeChange('login')}
+        />
+        <SegmentButton
+          theme={theme}
+          active={mode === 'register'}
+          label="Create account"
+          onPress={() => onModeChange('register')}
+        />
+      </View>
+
+      <PagerView
+        ref={pagerRef}
+        style={styles.pager}
+        initialPage={0}
+        onPageSelected={(event) => onPageSelected(event.nativeEvent.position)}
+      >
+        <View key="login" style={styles.page}>
+          <AuthPanel
+            theme={theme}
+            title="Sign in"
+            description="Connect to your Finance Tracker account and continue where your cashflow left off."
+            error={login.error}
+            fields={
+              <>
+                <Field
+                  label="Email or username"
+                  theme={theme}
+                  value={login.email}
+                  onChangeText={login.onEmailChange}
+                  editable={!login.loading}
+                  placeholder="owner@financetracker.local"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Field
+                  label="Password"
+                  theme={theme}
+                  value={login.password}
+                  onChangeText={login.onPasswordChange}
+                  editable={!login.loading}
+                  placeholder="Enter your password"
+                  secureTextEntry
+                />
+              </>
+            }
+            footer={
+              <View style={styles.metaRow}>
+                <View style={styles.keepSignedInRow}>
+                  <View
+                    style={[
+                      styles.checkbox,
+                      {
+                        backgroundColor: theme.colors.accentSurface,
+                        borderColor: theme.colors.accentBorder,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.checkboxTick, { color: theme.colors.accentIcon }]}>✓</Text>
+                  </View>
+                  <Text style={[styles.metaText, { color: theme.colors.body }]}>
+                    {theme.keepSignedInLabel}
+                  </Text>
+                </View>
+
+                <TouchableOpacity activeOpacity={0.75}>
+                  <Text style={[styles.metaAction, { color: theme.colors.accentIcon }]}>
+                    {theme.forgotPasswordLabel}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            }
+            submitLabel={theme.submitLabel}
+            submitDisabled={!login.email.trim() || !login.password || login.loading}
+            submitLoading={login.loading}
+            onSubmit={login.onSubmit}
+          />
+        </View>
+
+        <View key="register" style={styles.page}>
+          <AuthPanel
+            theme={theme}
+            title="Create account"
+            description="Create your Finance Tracker account and start managing your money flow from one place."
+            error={
+              !register.checkingAvailability && !register.enabled
+                ? 'Public registration is currently disabled'
+                : register.error
+            }
+            fields={
+              <>
+                <Field
+                  label="Display name"
+                  theme={theme}
+                  value={register.displayName}
+                  onChangeText={register.onDisplayNameChange}
+                  editable={!register.loading && register.enabled}
+                  placeholder="Andre"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+                <Field
+                  label="Email"
+                  theme={theme}
+                  value={register.email}
+                  onChangeText={register.onEmailChange}
+                  editable={!register.loading && register.enabled}
+                  placeholder="owner@financetracker.local"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Field
+                  label="Password"
+                  theme={theme}
+                  value={register.password}
+                  onChangeText={register.onPasswordChange}
+                  editable={!register.loading && register.enabled}
+                  placeholder="Choose a secure password"
+                  secureTextEntry
+                />
+              </>
+            }
+            footer={
+              <View style={styles.swipeHintWrap}>
+                <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
+                <Text style={[styles.swipeHint, { color: theme.colors.muted }]}>
+                  Swipe back to sign in
+                </Text>
+                <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
+              </View>
+            }
+            submitLabel="Create account"
+            submitDisabled={
+              !register.enabled ||
+              register.loading ||
+              !register.displayName.trim() ||
+              !register.email.trim() ||
+              !register.password
+            }
+            submitLoading={register.loading}
+            onSubmit={register.onSubmit}
+          />
+        </View>
+      </PagerView>
+    </View>
+  )
+}
+
+function SegmentButton({
+  theme,
+  active,
+  label,
+  onPress,
+}: {
+  theme: LoginScreenTheme
+  active: boolean
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.segmentButton}>
+      {active ? (
+        <LinearGradient
+          colors={theme.colors.segmentedThumb}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
           style={[
-            styles.badge,
+            styles.segmentThumb,
             {
-              backgroundColor: theme.colors.cardChipBackground,
-              borderColor: theme.colors.cardChipBorder,
+              shadowColor: theme.colors.segmentedThumbShadow,
             },
           ]}
         >
-          <View style={styles.badgeDot} />
-          <Text style={[styles.badgeText, { color: theme.colors.muted }]}>{theme.badgeLabel}</Text>
+          <Text style={[styles.segmentTextActive, { color: theme.colors.segmentedActiveText }]}>
+            {label}
+          </Text>
+        </LinearGradient>
+      ) : (
+        <View style={styles.segmentThumbIdle}>
+          <Text style={[styles.segmentTextIdle, { color: theme.colors.segmentedInactiveText }]}>
+            {label}
+          </Text>
         </View>
-      ) : null}
+      )}
+    </Pressable>
+  )
+}
 
-      <Text style={[styles.title, { color: theme.colors.title }]}>{theme.title}</Text>
-      <Text style={[styles.subtitle, { color: theme.colors.body }]}>
-        {theme.subtitleLead ? <Text style={[styles.subtitleLead, { color: theme.colors.title }]}>{theme.subtitleLead} </Text> : null}
-        {theme.subtitle}
-      </Text>
+function AuthPanel({
+  theme,
+  title,
+  description,
+  error,
+  fields,
+  footer,
+  submitLabel,
+  submitDisabled,
+  submitLoading,
+  onSubmit,
+}: {
+  theme: LoginScreenTheme
+  title: string
+  description: string
+  error: string | null
+  fields: React.ReactNode
+  footer: React.ReactNode
+  submitLabel: string
+  submitDisabled: boolean
+  submitLoading: boolean
+  onSubmit: () => void
+}) {
+  return (
+    <View style={styles.panel}>
+      <View style={styles.headerRow}>
+        <View style={styles.headerCopy}>
+          <Text style={[styles.eyebrow, { color: theme.colors.eyebrow }]}>Secure access</Text>
+          <Text style={[styles.title, { color: theme.colors.title }]}>{title}</Text>
+          <Text style={[styles.description, { color: theme.colors.body }]}>{description}</Text>
+        </View>
+
+        <View
+          style={[
+            styles.accentBadge,
+            {
+              backgroundColor: theme.colors.accentSurface,
+              borderColor: theme.colors.accentBorder,
+            },
+          ]}
+        >
+          <Ionicons name="sparkles" size={16} color={theme.colors.accentIcon} />
+        </View>
+      </View>
 
       {error ? (
         <View
@@ -76,63 +322,35 @@ export function LoginFormCard({
             },
           ]}
         >
-          <Ionicons name="alert-circle" size={18} color={theme.colors.errorText} />
           <Text style={[styles.errorText, { color: theme.colors.errorText }]}>{error}</Text>
         </View>
       ) : null}
 
-      <Field
-        label="Email or Username"
-        value={email}
-        onChangeText={onEmailChange}
-        editable={!loading}
-        placeholder="Enter your email or username"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        theme={theme}
-      />
+      <View style={styles.fields}>{fields}</View>
 
-      <Field
-        label="Password"
-        value={password}
-        onChangeText={onPasswordChange}
-        editable={!loading}
-        placeholder="Enter your password"
-        secureTextEntry
-        theme={theme}
-      />
+      {footer}
 
-      <View style={styles.metaRow}>
-        <Text style={[styles.metaText, { color: theme.colors.body }]}>{theme.keepSignedInLabel}</Text>
-        <TouchableOpacity activeOpacity={0.75}>
-          <Text style={[styles.metaAction, { color: theme.id === 'easter-renewal' ? '#ddd3ff' : theme.colors.title }]}>
-            {theme.forgotPasswordLabel}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity activeOpacity={0.9} onPress={onSubmit} disabled={!canSubmit}>
+      <TouchableOpacity activeOpacity={0.92} onPress={onSubmit} disabled={submitDisabled}>
         <LinearGradient
-          colors={canSubmit ? theme.colors.buttonGradient : theme.colors.buttonDisabled}
+          colors={submitDisabled ? theme.colors.buttonDisabled : theme.colors.buttonGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.submitButton}
+          style={[
+            styles.submitButton,
+            {
+              shadowColor: theme.colors.buttonShadow,
+            },
+          ]}
         >
-          {loading ? (
-            <ActivityIndicator size="small" color="#ffffff" />
+          {submitLoading ? (
+            <ActivityIndicator size="small" color={theme.colors.buttonText} />
           ) : (
-            <Text style={styles.submitButtonText}>{theme.submitLabel}</Text>
+            <Text style={[styles.submitButtonText, { color: theme.colors.buttonText }]}>
+              {submitLabel}
+            </Text>
           )}
         </LinearGradient>
       </TouchableOpacity>
-
-      <Text style={[styles.secondaryText, { color: theme.colors.body }]}>
-        {theme.secondaryPrompt}{' '}
-        <Text style={[styles.secondaryActionText, { color: theme.id === 'easter-renewal' ? '#eab7c8' : theme.colors.title }]}>
-          {theme.secondaryActionLabel}
-        </Text>
-      </Text>
     </View>
   )
 }
@@ -164,76 +382,121 @@ function Field({
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 28,
-    padding: 18,
+    borderRadius: 34,
+    padding: 14,
+    overflow: 'hidden',
   },
-  badge: {
-    alignSelf: 'flex-start',
+  segmentedWrap: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
+    gap: 10,
     borderWidth: 1,
-    marginBottom: 14,
+    borderRadius: 28,
+    padding: 10,
+    marginBottom: 16,
   },
-  badgeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: '#f3d27a',
+  segmentButton: {
+    flex: 1,
   },
-  badgeText: {
-    fontSize: 11,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+  segmentThumb: {
+    minHeight: 44,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOpacity: 0.32,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  segmentThumbIdle: {
+    minHeight: 44,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentTextActive: {
+    fontSize: 15,
     fontFamily: 'DMSans_700Bold',
+  },
+  segmentTextIdle: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+  },
+  pager: {
+    minHeight: 610,
+  },
+  page: {
+    flex: 1,
+  },
+  panel: {
+    flex: 1,
+    paddingHorizontal: 6,
+    paddingBottom: 10,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginBottom: 22,
+  },
+  headerCopy: {
+    flex: 1,
+  },
+  eyebrow: {
+    fontSize: 12,
+    letterSpacing: 3.6,
+    textTransform: 'uppercase',
+    fontFamily: 'DMSans_600SemiBold',
+    marginBottom: 12,
   },
   title: {
-    fontSize: 34,
-    letterSpacing: -1.4,
-    fontFamily: 'DMSerifDisplay_400Regular',
-  },
-  subtitle: {
-    marginTop: 8,
-    marginBottom: 20,
-    fontSize: 14,
-    lineHeight: 24,
-    fontFamily: 'DMSans_500Medium',
-  },
-  subtitleLead: {
+    fontSize: 40,
+    letterSpacing: -1.8,
     fontFamily: 'DMSans_700Bold',
   },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  description: {
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 31,
+    fontFamily: 'DMSans_500Medium',
+    maxWidth: 320,
+  },
+  accentBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 28,
+  },
+  errorBox: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
   },
   errorText: {
-    flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'DMSans_500Medium',
   },
+  fields: {
+    marginBottom: 6,
+  },
   field: {
-    marginBottom: 12,
+    marginBottom: 18,
   },
   label: {
-    marginBottom: 7,
-    fontSize: 11,
-    letterSpacing: 0.8,
+    marginBottom: 9,
+    fontSize: 12,
+    letterSpacing: 3.2,
     textTransform: 'uppercase',
     fontFamily: 'DMSans_700Bold',
   },
   input: {
-    height: 50,
+    height: 54,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingHorizontal: 16,
     fontSize: 15,
     fontFamily: 'DMSans_500Medium',
@@ -242,36 +505,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 2,
-    marginBottom: 16,
-    gap: 12,
+    gap: 16,
+    marginBottom: 22,
   },
-  metaText: {
-    fontSize: 13,
-    fontFamily: 'DMSans_500Medium',
+  keepSignedInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  metaAction: {
-    fontSize: 13,
-    fontFamily: 'DMSans_700Bold',
-  },
-  submitButton: {
-    height: 52,
-    borderRadius: 16,
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontFamily: 'DMSans_800ExtraBold',
+  checkboxTick: {
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
   },
-  secondaryText: {
-    marginTop: 14,
-    textAlign: 'center',
-    fontSize: 13,
+  metaText: {
+    fontSize: 14,
     fontFamily: 'DMSans_500Medium',
   },
-  secondaryActionText: {
+  metaAction: {
+    fontSize: 14,
     fontFamily: 'DMSans_700Bold',
+  },
+  submitButton: {
+    height: 56,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOpacity: 0.3,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 12,
+  },
+  submitButtonText: {
+    fontSize: 17,
+    fontFamily: 'DMSans_700Bold',
+  },
+  swipeHintWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 22,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  swipeHint: {
+    fontSize: 12,
+    letterSpacing: 2.8,
+    textTransform: 'uppercase',
+    fontFamily: 'DMSans_600SemiBold',
   },
 })

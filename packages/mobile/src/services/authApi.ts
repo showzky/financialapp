@@ -7,6 +7,10 @@ export type AuthUser = {
   displayName: string
 }
 
+export type RegistrationStatus = {
+  publicRegistrationEnabled: boolean
+}
+
 type LoginResponseDto = {
   tokenType: string
   accessToken: string
@@ -43,6 +47,37 @@ export const authApi = {
     }
 
     return response.user
+  },
+
+  async register(input: { displayName: string; email: string; password: string }): Promise<AuthUser> {
+    const response = await backendClient.request<LoginResponseDto>({
+      path: '/auth/register',
+      method: 'POST',
+      body: {
+        displayName: input.displayName,
+        email: input.email,
+        password: input.password,
+      },
+      authToken: null,
+    })
+
+    if (response.accessToken) {
+      setAuthToken(response.accessToken)
+    }
+
+    if (response.refreshToken) {
+      await storeRefreshToken(response.refreshToken)
+    }
+
+    return response.user
+  },
+
+  async getRegistrationStatus(): Promise<RegistrationStatus> {
+    return backendClient.request<RegistrationStatus>({
+      path: '/auth/register-status',
+      method: 'GET',
+      authToken: null,
+    })
   },
 
   async refreshSession(): Promise<AuthUser | null> {

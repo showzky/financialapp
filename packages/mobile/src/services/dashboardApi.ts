@@ -389,11 +389,18 @@ export const dashboardApi = {
     const assignedBudgetTotal = sum(
       budgetAssignments.map((assignment) => (Number.isFinite(assignment.allocated) ? assignment.allocated : 0)),
     )
+    const assignedBudgetEffective = sum(
+      budgetAssignments.map((assignment) => {
+        const allocated = Number.isFinite(assignment.allocated) ? assignment.allocated : 0
+        const spent = spendByCategory.get(assignment.categoryId) ?? 0
+        return Math.max(allocated, spent)
+      }),
+    )
     const totalBudget =
       typeof monthlyBudgetTarget === 'number'
         ? monthlyBudgetTarget
         : assignedBudgetTotal
-    const totalAllocated = fixedCostsTotal + assignedBudgetTotal
+    const totalAllocated = fixedCostsTotal + assignedBudgetEffective
     const remaining = totalIncome - totalSpent
     const freeToAssign = totalIncome - totalAllocated
 

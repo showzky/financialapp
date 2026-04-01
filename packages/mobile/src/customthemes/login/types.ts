@@ -18,19 +18,34 @@ export type LoginScreenTheme = {
     screenGradient: GradientColors
     frameGradient: GradientColors
     sceneGradient: GradientColors
+    gridLine: string
+    haloPrimary: string
+    haloSecondary: string
     cardBackground: string
     cardBorder: string
     cardChipBackground: string
     cardChipBorder: string
+    segmentedBackground: string
+    segmentedBorder: string
+    segmentedThumb: GradientColors
+    segmentedThumbShadow: string
+    segmentedActiveText: string
+    segmentedInactiveText: string
     title: string
     body: string
     muted: string
+    eyebrow: string
+    accentSurface: string
+    accentBorder: string
+    accentIcon: string
     inputBackground: string
     inputBorder: string
     inputText: string
     inputPlaceholder: string
+    divider: string
     buttonGradient: GradientColors
     buttonShadow: string
+    buttonText: string
     buttonDisabled: GradientColors
     errorBackground: string
     errorBorder: string

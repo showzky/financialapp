@@ -8,6 +8,7 @@ type AuthContextValue = {
   status: AuthStatus
   user: AuthUser | null
   signIn: (input: { email: string; password: string }) => Promise<void>
+  signUp: (input: { displayName: string; email: string; password: string }) => Promise<void>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -51,6 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   )
 
+  const signUp = useCallback(
+    async (input: { displayName: string; email: string; password: string }) => {
+      await authApi.register(input)
+      await refresh()
+    },
+    [refresh],
+  )
+
   const signOut = useCallback(async () => {
     try {
       await authApi.logout()
@@ -71,10 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       status,
       user,
       signIn,
+      signUp,
       signOut,
       refresh,
     }),
-    [status, user, signIn, signOut, refresh],
+    [status, user, signIn, signUp, signOut, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

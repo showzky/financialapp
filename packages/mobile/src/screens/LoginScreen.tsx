@@ -1,36 +1,105 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
+import PagerView from 'react-native-pager-view'
 import { LinearGradient } from 'expo-linear-gradient'
 
 import { useAuth } from '../auth/AuthContext'
 import { LoginBackgroundScene } from '../components/login/LoginBackgroundScene'
 import { LoginFormCard } from '../components/login/LoginFormCard'
 import { useLoginScreenTheme } from '../customthemes/login'
+import { authApi } from '../services/authApi'
+
+type AuthMode = 'login' | 'register'
 
 export function LoginScreen() {
-  const { signIn } = useAuth()
+  const { signIn, signUp } = useAuth()
   const loginTheme = useLoginScreenTheme()
+  const pagerRef = useRef<PagerView>(null)
+
+  const [mode, setMode] = useState<AuthMode>('login')
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
-  const onSubmit = async () => {
+  const [registerDisplayName, setRegisterDisplayName] = useState('')
+  const [registerEmail, setRegisterEmail] = useState('')
+  const [registerPassword, setRegisterPassword] = useState('')
+  const [registerLoading, setRegisterLoading] = useState(false)
+  const [registerError, setRegisterError] = useState<string | null>(null)
+  const [registrationEnabled, setRegistrationEnabled] = useState(true)
+  const [checkingRegistrationStatus, setCheckingRegistrationStatus] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    void authApi
+      .getRegistrationStatus()
+      .then((result) => {
+        if (!isMounted) return
+        setRegistrationEnabled(result.publicRegistrationEnabled)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setRegistrationEnabled(true)
+      })
+      .finally(() => {
+        if (!isMounted) return
+        setCheckingRegistrationStatus(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const syncMode = (nextMode: AuthMode) => {
+    setMode(nextMode)
+    pagerRef.current?.setPage(nextMode === 'login' ? 0 : 1)
+  }
+
+  const onLoginSubmit = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoginLoading(true)
+      setLoginError(null)
       await signIn({ email: email.trim(), password })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed'
-      setError(message)
+      setLoginError(message)
     } finally {
-      setLoading(false)
+      setLoginLoading(false)
+    }
+  }
+
+  const onRegisterSubmit = async () => {
+    if (!registrationEnabled) {
+      setRegisterError('Public registration is currently disabled')
+      return
+    }
+
+    try {
+      setRegisterLoading(true)
+      setRegisterError(null)
+      await signUp({
+        displayName: registerDisplayName.trim(),
+        email: registerEmail.trim().toLowerCase(),
+        password: registerPassword,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Registration failed'
+      setRegisterError(message)
+    } finally {
+      setRegisterLoading(false)
     }
   }
 
   return (
     <LinearGradient colors={loginTheme.colors.screenGradient} style={styles.screen}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.sceneShell}>
           <LoginBackgroundScene theme={loginTheme} />
 
@@ -41,16 +110,38 @@ export function LoginScreen() {
           ) : null}
 
           <View style={styles.content}>
-            <View style={styles.contentSpacer} />
             <LoginFormCard
               theme={loginTheme}
-              email={email}
-              password={password}
-              error={error}
-              loading={loading}
-              onEmailChange={setEmail}
-              onPasswordChange={setPassword}
-              onSubmit={onSubmit}
+              mode={mode}
+              pagerRef={pagerRef}
+              onModeChange={syncMode}
+              onPageSelected={(index) => {
+                setMode(index === 0 ? 'login' : 'register')
+                setLoginError(null)
+                setRegisterError(null)
+              }}
+              login={{
+                email,
+                password,
+                error: loginError,
+                loading: loginLoading,
+                onEmailChange: setEmail,
+                onPasswordChange: setPassword,
+                onSubmit: onLoginSubmit,
+              }}
+              register={{
+                displayName: registerDisplayName,
+                email: registerEmail,
+                password: registerPassword,
+                error: registerError,
+                loading: registerLoading,
+                enabled: registrationEnabled,
+                checkingAvailability: checkingRegistrationStatus,
+                onDisplayNameChange: setRegisterDisplayName,
+                onEmailChange: setRegisterEmail,
+                onPasswordChange: setRegisterPassword,
+                onSubmit: onRegisterSubmit,
+              }}
             />
           </View>
         </View>
@@ -69,8 +160,7 @@ const styles = StyleSheet.create({
   sceneShell: {
     flex: 1,
     overflow: 'hidden',
-    borderRadius: 0,
-    backgroundColor: '#0a0a0e',
+    backgroundColor: '#08101f',
   },
   eventPill: {
     position: 'absolute',
@@ -94,10 +184,9 @@ const styles = StyleSheet.create({
   content: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 4,
-    paddingTop: 18,
     paddingHorizontal: 16,
-  },
-  contentSpacer: {
-    height: 195,
+    paddingTop: 42,
+    paddingBottom: 24,
+    justifyContent: 'center',
   },
 })

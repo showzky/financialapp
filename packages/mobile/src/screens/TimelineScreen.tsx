@@ -112,49 +112,15 @@ export function TimelineScreen() {
     [dashboard, filter, paidEntryKeys, selectedMonth, transactions],
   )
 
-  const navigateToIncomeEditor = useCallback(
-    (entry: {
-      id: string
-      incomeCategoryId: string | null
-      category: string
-      name: string | null
-      amount: number
-      receivedAt: string
-      iconColor?: string | null
-      color?: string | null
-    }) => {
-      navigation.navigate('EditPlannedExpense', {
-        entryType: 'income',
-        entryId: entry.id,
-        incomeCategoryId: entry.incomeCategoryId,
-        categoryLabel: entry.category,
-        titleValue: entry.name ?? entry.category,
-        amount: entry.amount,
-        dueDate: entry.receivedAt,
-        accent: entry.iconColor || entry.color || '#78d89c',
-        recurring: false,
-        dueDayOfMonth: null,
-      })
-    },
-    [navigation],
-  )
-
-  const handleOpenTimelineEntry = useCallback(
+const handleOpenTimelineEntry = useCallback(
     (entry: TimelineEntry) => {
       if (entry.entryKind === 'income') {
         if (entry.source !== 'income_entry' || !entry.incomeEntryId) return
 
-        navigation.navigate('EditPlannedExpense', {
-          entryType: 'income',
-          entryId: entry.incomeEntryId,
-          incomeCategoryId: entry.categoryId || null,
-          categoryLabel: entry.categoryName,
-          titleValue: entry.title,
-          amount: entry.amount,
-          dueDate: entry.dueDate.toISOString(),
+        navigation.navigate('IncomeEntry', {
+          incomeEntryId: entry.incomeEntryId,
+          category: entry.categoryName,
           accent: entry.accent,
-          recurring: false,
-          dueDayOfMonth: null,
         })
         return
       }
@@ -179,9 +145,13 @@ export function TimelineScreen() {
 
   const handleOpenIncomeEntry = useCallback(
     (entry: DashboardData['incomeEntries'][number]) => {
-      navigateToIncomeEditor(entry)
+      navigation.navigate('IncomeEntry', {
+        incomeEntryId: entry.id,
+        category: entry.category,
+        accent: entry.iconColor || entry.color || '#78d89c',
+      })
     },
-    [navigateToIncomeEditor],
+    [navigation],
   )
 
   const nearestDueLabel = timelineSections.find((s) => s.nearestDueLabel !== '--')?.nearestDueLabel ?? '--'
