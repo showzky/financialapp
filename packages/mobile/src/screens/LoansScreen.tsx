@@ -223,7 +223,7 @@ function LentLoanCard({
           </View>
           <View style={styles.loanIdentityText}>
             <Text style={styles.loanName}>{loan.recipient}</Text>
-            <Text style={styles.loanSubtext}>Given {formatDate(loan.dateGiven)}</Text>
+            <Text style={styles.loanSubtext}>Due {formatDate(loan.expectedRepaymentDate)}</Text>
           </View>
         </View>
 
@@ -236,41 +236,41 @@ function LentLoanCard({
         </View>
       </View>
 
-      <View style={styles.metricRow}>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Amount</Text>
-          <Text style={styles.metricValue}>{formatNOK(loan.amount)}</Text>
-        </View>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Due date</Text>
-          <Text style={styles.metricValue}>{formatDate(loan.expectedRepaymentDate)}</Text>
-        </View>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Days left</Text>
-          <Text
-            style={[
-              styles.metricValue,
-              loan.status !== 'repaid' && typeof loan.daysRemaining === 'number' && loan.daysRemaining <= 7
-                ? styles.metricValueWarning
-                : null,
-            ]}
-          >
-            {getDaysRemaining(loan)}
-          </Text>
-        </View>
-      </View>
-
-      {getLoanNotes(loan) ? (
-        <View style={styles.notesBanner}>
-          <Ionicons name="chatbubble-ellipses-outline" size={14} color={activeTheme.colors.accent} />
-          <Text style={styles.notesText} numberOfLines={2}>
-            {getLoanNotes(loan)}
-          </Text>
-        </View>
-      ) : null}
-
       {expanded ? (
         <View style={styles.loanExpandedSection}>
+          <View style={styles.metricRow}>
+            <View style={styles.metricBlock}>
+              <Text style={styles.metricLabel}>Amount</Text>
+              <Text style={styles.metricValue}>{formatNOK(loan.amount)}</Text>
+            </View>
+            <View style={styles.metricBlock}>
+              <Text style={styles.metricLabel}>Due date</Text>
+              <Text style={styles.metricValue}>{formatDate(loan.expectedRepaymentDate)}</Text>
+            </View>
+            <View style={styles.metricBlock}>
+              <Text style={styles.metricLabel}>Days left</Text>
+              <Text
+                style={[
+                  styles.metricValue,
+                  loan.status !== 'repaid' && typeof loan.daysRemaining === 'number' && loan.daysRemaining <= 7
+                    ? styles.metricValueWarning
+                    : null,
+                ]}
+              >
+                {getDaysRemaining(loan)}
+              </Text>
+            </View>
+          </View>
+
+          {getLoanNotes(loan) ? (
+            <View style={styles.notesBanner}>
+              <Ionicons name="chatbubble-ellipses-outline" size={14} color={activeTheme.colors.accent} />
+              <Text style={styles.notesText} numberOfLines={2}>
+                {getLoanNotes(loan)}
+              </Text>
+            </View>
+          ) : null}
+
           <View style={styles.loanExpandedGrid}>
             <View style={styles.detailCard}>
               <Text style={styles.detailLabel}>Created</Text>
@@ -429,267 +429,270 @@ function BorrowedLoanCard({
         loan.status === 'paid_off' ? styles.loanCardRepaid : null,
       ]}
     >
-      <View style={styles.loanTopRow}>
-        <View style={styles.loanIdentity}>
-          <View style={[styles.avatar, styles.borrowedAvatar, { backgroundColor: avatar }]}>
-            <Text style={styles.avatarText}>{getInitials(loan.lender)}</Text>
-          </View>
-          <View style={styles.loanIdentityText}>
-            <Text style={[styles.loanName, styles.borrowedLoanName]}>{loan.lender}</Text>
-            <Text style={styles.loanSubtext}>
-              Original {formatNOK(loan.originalAmount)} · {formatRate(loan.interestRate)} APR
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.loanRightBlock}>
-          <View
-            style={[
-              styles.statusPill,
-              styles.borrowedStatusPill,
-              { backgroundColor: statusTheme.backgroundColor, borderColor: statusTheme.borderColor },
-            ]}
-          >
-            <View style={[styles.statusDot, { backgroundColor: statusTheme.dotColor }]} />
-            <Text style={[styles.statusPillText, { color: statusTheme.color }]}>{status.label}</Text>
-          </View>
-        </View>
-      </View>
-
       <TouchableOpacity activeOpacity={0.9} onPress={toggleExpanded}>
-        <View style={styles.balanceSection}>
-          <Text style={styles.balanceLabel}>Remaining balance</Text>
-          <Text style={styles.balanceValue}>{formatNOK(loan.currentBalance)}</Text>
-        </View>
+        <View style={styles.loanTopRow}>
+          <View style={styles.loanIdentity}>
+            <View style={[styles.avatar, styles.borrowedAvatar, { backgroundColor: avatar }]}>
+              <Text style={styles.avatarText}>{getInitials(loan.lender)}</Text>
+            </View>
+            <View style={styles.loanIdentityText}>
+              <Text style={[styles.loanName, styles.borrowedLoanName]}>{loan.lender}</Text>
+              <Text style={styles.loanSubtext}>
+                Due {formatDate(loan.payoffDate)} · {formatRate(loan.interestRate)} APR
+              </Text>
+            </View>
+          </View>
 
-        <View style={styles.progressWrap}>
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressLabel}>Principal paid</Text>
-            <Text style={styles.progressLabel}>{formatNOK(paidAmount)}</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${paidPercent}%` }]} />
-          </View>
-          <Text style={styles.progressPct}>{paidPercent}% of principal paid off</Text>
-        </View>
-
-        <View style={styles.metricRow}>
-          <View style={styles.metricBlock}>
-            <Text style={styles.metricLabel}>Balance</Text>
-            <Text style={styles.metricValue}>{formatNOK(loan.currentBalance)}</Text>
-          </View>
-          <View style={styles.metricBlock}>
-            <Text style={styles.metricLabel}>Payoff date</Text>
-            <Text style={styles.metricValue}>{formatDate(loan.payoffDate)}</Text>
-          </View>
-          <View style={styles.metricBlock}>
-            <Text style={styles.metricLabel}>Days left</Text>
-            <Text
+          <View style={styles.loanRightBlock}>
+            <View
               style={[
-                styles.metricValue,
-                loan.status !== 'paid_off' &&
-                typeof loan.daysRemaining === 'number' &&
-                loan.daysRemaining <= 7
-                  ? styles.metricValueWarning
-                  : null,
+                styles.statusPill,
+                styles.borrowedStatusPill,
+                { backgroundColor: statusTheme.backgroundColor, borderColor: statusTheme.borderColor },
               ]}
             >
-              {getBorrowedDaysRemaining(loan)}
-            </Text>
+              <View style={[styles.statusDot, { backgroundColor: statusTheme.dotColor }]} />
+              <Text style={[styles.statusPillText, { color: statusTheme.color }]}>{status.label}</Text>
+            </View>
+            <Text style={styles.remainingAmount}>{formatNOK(loan.currentBalance)}</Text>
           </View>
         </View>
-
-        {getBorrowedLoanNotes(loan) ? (
-          <View style={[styles.notesBanner, styles.borrowedNotesBanner]}>
-            <Ionicons name="document-text-outline" size={14} color={colors.mutedText} />
-            <Text style={styles.notesText} numberOfLines={2}>
-              {getBorrowedLoanNotes(loan)}
-            </Text>
-          </View>
-        ) : null}
       </TouchableOpacity>
 
       {expanded ? (
-        <View style={styles.loanExpandedSection}>
-          <View style={[styles.loanExpandedGrid, styles.borrowedFootGrid]}>
-            <View style={[styles.detailCard, styles.borrowedFootCard]}>
-              <Text style={styles.detailLabel}>Created</Text>
-              <Text style={styles.detailValue}>{formatDate(loan.createdAt)}</Text>
+        <>
+          <View style={styles.balanceSection}>
+            <Text style={styles.balanceLabel}>Remaining balance</Text>
+            <Text style={styles.balanceValue}>{formatNOK(loan.currentBalance)}</Text>
+          </View>
+
+          <View style={styles.progressWrap}>
+            <View style={styles.progressLabels}>
+              <Text style={styles.progressLabel}>Principal paid</Text>
+              <Text style={styles.progressLabel}>{formatNOK(paidAmount)}</Text>
             </View>
-            <View style={[styles.detailCard, styles.borrowedFootCard]}>
-              <Text style={styles.detailLabel}>Updated</Text>
-              <Text style={styles.detailValue}>{formatDate(loan.updatedAt)}</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${paidPercent}%` }]} />
             </View>
-            <View style={[styles.detailCard, styles.borrowedFootCard]}>
-              <Text style={styles.detailLabel}>
-                {loan.status === 'paid_off' ? 'Paid off' : 'Last updated'}
-              </Text>
-              <Text style={styles.detailValue}>
-                {formatDate(loan.status === 'paid_off' ? loan.paidOffAt : loan.updatedAt)}
+            <Text style={styles.progressPct}>{paidPercent}% of principal paid off</Text>
+          </View>
+
+          <View style={styles.metricRow}>
+            <View style={styles.metricBlock}>
+              <Text style={styles.metricLabel}>Balance</Text>
+              <Text style={styles.metricValue}>{formatNOK(loan.currentBalance)}</Text>
+            </View>
+            <View style={styles.metricBlock}>
+              <Text style={styles.metricLabel}>Payoff date</Text>
+              <Text style={styles.metricValue}>{formatDate(loan.payoffDate)}</Text>
+            </View>
+            <View style={styles.metricBlock}>
+              <Text style={styles.metricLabel}>Days left</Text>
+              <Text
+                style={[
+                  styles.metricValue,
+                  loan.status !== 'paid_off' &&
+                  typeof loan.daysRemaining === 'number' &&
+                  loan.daysRemaining <= 7
+                    ? styles.metricValueWarning
+                    : null,
+                ]}
+              >
+                {getBorrowedDaysRemaining(loan)}
               </Text>
             </View>
           </View>
 
-          <View style={styles.actionRow}>
-            {loan.status !== 'paid_off' ? (
-              <TouchableOpacity
-                style={[styles.primaryAction, paymentPanelOpen ? styles.primaryActionOpen : null]}
-                onPress={togglePaymentPanel}
-                activeOpacity={0.8}
-                disabled={isSavingPayment}
-              >
-                <Ionicons
-                  name={paymentPanelOpen ? 'close' : 'checkmark-circle'}
-                  size={16}
-                  color={paymentPanelOpen ? activeTheme.colors.warning : activeTheme.colors.success}
-                />
-                <Text style={[styles.primaryActionText, paymentPanelOpen ? styles.primaryActionTextOpen : null]}>
-                  {paymentPanelOpen ? 'Cancel payment' : 'Record payment'}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {loan.status !== 'paid_off' ? (
-              <TouchableOpacity
-                style={styles.secondaryAction}
-                onPress={() => onEdit(loan)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="pencil" size={15} color={colors.mutedText} />
-                <Text style={styles.secondaryActionText}>Edit</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.dangerAction}
-                onPress={() => onDelete(loan)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="trash-outline" size={16} color={activeTheme.colors.danger} />
-                <Text style={styles.dangerActionText}>Delete</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {loan.status !== 'paid_off' && paymentPanelOpen ? (
-            <View style={styles.paymentPanel}>
-              <Text style={styles.paymentPanelTitle}>Record payment</Text>
-              <Text style={styles.paymentPanelHint}>
-                Split the payment between interest and principal.
+          {getBorrowedLoanNotes(loan) ? (
+            <View style={[styles.notesBanner, styles.borrowedNotesBanner]}>
+              <Ionicons name="document-text-outline" size={14} color={colors.mutedText} />
+              <Text style={styles.notesText} numberOfLines={2}>
+                {getBorrowedLoanNotes(loan)}
               </Text>
-
-              <View style={styles.paymentPresets}>
-                {presetAmounts.map((amount) => {
-                  const isActive = paymentAmount === String(amount)
-
-                  return (
-                    <TouchableOpacity
-                      key={amount}
-                      style={[
-                        styles.presetButton,
-                        isActive ? styles.presetButtonActive : null,
-                      ]}
-                      onPress={() => setPaymentAmount(String(amount))}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          styles.presetButtonText,
-                          isActive ? styles.presetButtonTextActive : null,
-                        ]}
-                      >
-                        {formatNOK(amount)}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                })}
-              </View>
-
-              <View style={styles.paymentFieldsRow}>
-                <View style={styles.paymentField}>
-                  <Text style={styles.paymentFieldLabel}>Payment (NOK)</Text>
-                  <TextInput
-                    style={styles.paymentInput}
-                    keyboardType="numeric"
-                    value={paymentAmount}
-                    onChangeText={setPaymentAmount}
-                    placeholder="0"
-                    placeholderTextColor={colors.mutedText}
-                  />
-                </View>
-                <View style={styles.paymentField}>
-                  <Text style={styles.paymentFieldLabel}>
-                    Interest ({formatRate(loan.interestRate)} APR)
-                  </Text>
-                  <TextInput
-                    style={styles.paymentInput}
-                    keyboardType="numeric"
-                    value={interestAmount}
-                    onChangeText={setInterestAmount}
-                    placeholder="0"
-                    placeholderTextColor={colors.mutedText}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.paymentFieldsRow}>
-                <View style={styles.paymentField}>
-                  <Text style={styles.paymentFieldLabel}>Date</Text>
-                  <TextInput
-                    style={styles.paymentInput}
-                    value={paymentDate}
-                    onChangeText={setPaymentDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.mutedText}
-                    autoCapitalize="none"
-                  />
-                </View>
-                <View style={[styles.paymentField, styles.paymentBreakdownCard]}>
-                  <Text style={styles.paymentFieldLabel}>Principal applied</Text>
-                  <Text style={styles.paymentBreakdownValue}>{formatNOK(principalApplied)}</Text>
-                  <Text style={styles.paymentBreakdownHint}>
-                    This is what reduces the balance.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.paymentPanelActions}>
-                <TouchableOpacity
-                  style={styles.paymentCancelButton}
-                  onPress={closePaymentPanel}
-                  activeOpacity={0.85}
-                  disabled={isSavingPayment}
-                >
-                  <Text style={styles.paymentCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.paymentSaveButton,
-                    !paymentAmount ||
-                    principalApplied <= 0 ||
-                    parsedInterestAmount > parsedPaymentAmount ||
-                    principalApplied > loan.currentBalance ||
-                    isSavingPayment
-                      ? styles.paymentSaveButtonDisabled
-                      : null,
-                  ]}
-                  onPress={handleSavePayment}
-                  activeOpacity={0.85}
-                  disabled={
-                    !paymentAmount ||
-                    principalApplied <= 0 ||
-                    parsedInterestAmount > parsedPaymentAmount ||
-                    principalApplied > loan.currentBalance ||
-                    isSavingPayment
-                  }
-                >
-                  <Text style={styles.paymentSaveButtonText}>
-                    {isSavingPayment ? 'Saving...' : 'Save payment'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
           ) : null}
-        </View>
+
+          <View style={styles.loanExpandedSection}>
+            <View style={[styles.loanExpandedGrid, styles.borrowedFootGrid]}>
+              <View style={[styles.detailCard, styles.borrowedFootCard]}>
+                <Text style={styles.detailLabel}>Created</Text>
+                <Text style={styles.detailValue}>{formatDate(loan.createdAt)}</Text>
+              </View>
+              <View style={[styles.detailCard, styles.borrowedFootCard]}>
+                <Text style={styles.detailLabel}>Updated</Text>
+                <Text style={styles.detailValue}>{formatDate(loan.updatedAt)}</Text>
+              </View>
+              <View style={[styles.detailCard, styles.borrowedFootCard]}>
+                <Text style={styles.detailLabel}>
+                  {loan.status === 'paid_off' ? 'Paid off' : 'Last updated'}
+                </Text>
+                <Text style={styles.detailValue}>
+                  {formatDate(loan.status === 'paid_off' ? loan.paidOffAt : loan.updatedAt)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.actionRow}>
+              {loan.status !== 'paid_off' ? (
+                <TouchableOpacity
+                  style={[styles.primaryAction, paymentPanelOpen ? styles.primaryActionOpen : null]}
+                  onPress={togglePaymentPanel}
+                  activeOpacity={0.8}
+                  disabled={isSavingPayment}
+                >
+                  <Ionicons
+                    name={paymentPanelOpen ? 'close' : 'checkmark-circle'}
+                    size={16}
+                    color={paymentPanelOpen ? activeTheme.colors.warning : activeTheme.colors.success}
+                  />
+                  <Text style={[styles.primaryActionText, paymentPanelOpen ? styles.primaryActionTextOpen : null]}>
+                    {paymentPanelOpen ? 'Cancel payment' : 'Record payment'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {loan.status !== 'paid_off' ? (
+                <TouchableOpacity
+                  style={styles.secondaryAction}
+                  onPress={() => onEdit(loan)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="pencil" size={15} color={colors.mutedText} />
+                  <Text style={styles.secondaryActionText}>Edit</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.dangerAction}
+                  onPress={() => onDelete(loan)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="trash-outline" size={16} color={activeTheme.colors.danger} />
+                  <Text style={styles.dangerActionText}>Delete</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {loan.status !== 'paid_off' && paymentPanelOpen ? (
+              <View style={styles.paymentPanel}>
+                <Text style={styles.paymentPanelTitle}>Record payment</Text>
+                <Text style={styles.paymentPanelHint}>
+                  Split the payment between interest and principal.
+                </Text>
+
+                <View style={styles.paymentPresets}>
+                  {presetAmounts.map((amount) => {
+                    const isActive = paymentAmount === String(amount)
+
+                    return (
+                      <TouchableOpacity
+                        key={amount}
+                        style={[
+                          styles.presetButton,
+                          isActive ? styles.presetButtonActive : null,
+                        ]}
+                        onPress={() => setPaymentAmount(String(amount))}
+                        activeOpacity={0.85}
+                      >
+                        <Text
+                          style={[
+                            styles.presetButtonText,
+                            isActive ? styles.presetButtonTextActive : null,
+                          ]}
+                        >
+                          {formatNOK(amount)}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+
+                <View style={styles.paymentFieldsRow}>
+                  <View style={styles.paymentField}>
+                    <Text style={styles.paymentFieldLabel}>Payment (NOK)</Text>
+                    <TextInput
+                      style={styles.paymentInput}
+                      keyboardType="numeric"
+                      value={paymentAmount}
+                      onChangeText={setPaymentAmount}
+                      placeholder="0"
+                      placeholderTextColor={colors.mutedText}
+                    />
+                  </View>
+                  <View style={styles.paymentField}>
+                    <Text style={styles.paymentFieldLabel}>
+                      Interest ({formatRate(loan.interestRate)} APR)
+                    </Text>
+                    <TextInput
+                      style={styles.paymentInput}
+                      keyboardType="numeric"
+                      value={interestAmount}
+                      onChangeText={setInterestAmount}
+                      placeholder="0"
+                      placeholderTextColor={colors.mutedText}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.paymentFieldsRow}>
+                  <View style={styles.paymentField}>
+                    <Text style={styles.paymentFieldLabel}>Date</Text>
+                    <TextInput
+                      style={styles.paymentInput}
+                      value={paymentDate}
+                      onChangeText={setPaymentDate}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={colors.mutedText}
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  <View style={[styles.paymentField, styles.paymentBreakdownCard]}>
+                    <Text style={styles.paymentFieldLabel}>Principal applied</Text>
+                    <Text style={styles.paymentBreakdownValue}>{formatNOK(principalApplied)}</Text>
+                    <Text style={styles.paymentBreakdownHint}>
+                      This is what reduces the balance.
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.paymentPanelActions}>
+                  <TouchableOpacity
+                    style={styles.paymentCancelButton}
+                    onPress={closePaymentPanel}
+                    activeOpacity={0.85}
+                    disabled={isSavingPayment}
+                  >
+                    <Text style={styles.paymentCancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentSaveButton,
+                      !paymentAmount ||
+                      principalApplied <= 0 ||
+                      parsedInterestAmount > parsedPaymentAmount ||
+                      principalApplied > loan.currentBalance ||
+                      isSavingPayment
+                        ? styles.paymentSaveButtonDisabled
+                        : null,
+                    ]}
+                    onPress={handleSavePayment}
+                    activeOpacity={0.85}
+                    disabled={
+                      !paymentAmount ||
+                      principalApplied <= 0 ||
+                      parsedInterestAmount > parsedPaymentAmount ||
+                      principalApplied > loan.currentBalance ||
+                      isSavingPayment
+                    }
+                  >
+                    <Text style={styles.paymentSaveButtonText}>
+                      {isSavingPayment ? 'Saving...' : 'Save payment'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        </>
       ) : null}
     </View>
   )

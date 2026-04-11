@@ -27,36 +27,26 @@ import { DashboardUpcomingPreview } from '../components/dashboard/DashboardUpcom
 import { useAuth } from '../auth/AuthContext'
 import { usePeriod } from '../context/PeriodContext'
 import { useScreenPalette } from '../customthemes'
-import { dashboardApi, type CategoryWithSpent, type DashboardData } from '../services/dashboardApi'
+import { dashboardApi, type DashboardData } from '../services/dashboardApi'
+import { transactionApi, type TransactionResponse } from '../services/transactionApi'
+
+const PLANNED_PAYMENT_NOTE = '[planned-payment]'
 
 function fmtKr(n: number) {
   return `KR ${n.toLocaleString('nb-NO')}`
 }
 
-function getDaysInMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-}
-
-function getDueDateForMonth(baseMonth: Date, dueDayOfMonth: number) {
-  const maxDay = getDaysInMonth(baseMonth)
-  const clampedDay = Math.min(Math.max(1, dueDayOfMonth), maxDay)
-  const date = new Date(baseMonth.getFullYear(), baseMonth.getMonth(), clampedDay)
-
-  return {
-    date,
-    day: String(clampedDay).padStart(2, '0'),
-    month: date
-      .toLocaleDateString('en-US', { month: 'short' })
-      .toUpperCase()
-      .replace('.', ''),
-  }
-}
-
-type UpcomingPreviewItem = CategoryWithSpent & {
+type UpcomingCardItem = {
+  id: string
+  name: string
   amount: number
-  isDue: boolean
+  categoryId: string
+  transactionId?: string
+  source: 'planned' | 'scheduled_expense'
+  dueDate: Date
+  accent: string
+  category: string
   preview: {
-    date: Date
     day: string
     month: string
   }
@@ -70,6 +60,7 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets()
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
+  const [transactions, setTransactions] = useState<TransactionResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -94,8 +85,12 @@ export function HomeScreen() {
         setLoading(true)
       }
       setError(null)
-      const data = await dashboardApi.get(selectedMonth)
+      const [data, txns] = await Promise.all([
+        dashboardApi.get(selectedMonth),
+        transactionApi.listTransactions(),
+      ])
       setDashboard(data)
+      setTransactions(txns)
     } catch (err) {
       console.error('Dashboard load error:', err)
       setError('Failed to load dashboard')
@@ -143,39 +138,85 @@ export function HomeScreen() {
     }, [loadDashboard]),
   )
 
-  const fixedCategories = useMemo(
-    () => (dashboard ? dashboard.categories.filter((category) => category.type === 'fixed') : []),
-    [dashboard],
-  )
+  const upcomingCards = useMemo<UpcomingCardItem[]>(() => {
+    if (!dashboard) return []
+    const categoryById = new Map(dashboard.categories.map((c) => [c.id, c]))
+    const monthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1)
+    const monthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0, 23, 59, 59, 999)
 
-  const upcomingCards = useMemo<UpcomingPreviewItem[]>(
-    () =>
-      fixedCategories
-        .filter((item) => item.dueDayOfMonth && item.dueDayOfMonth > 0)
-        .map((item) => ({
-          ...item,
-          preview: getDueDateForMonth(selectedMonth, item.dueDayOfMonth ?? 1),
-        }))
-        .sort((left, right) => left.preview.date.getTime() - right.preview.date.getTime())
-        .slice(0, 5)
-        .map((item, index) => ({
-          ...item,
-          amount: item.allocated,
-          isDue: index === 0,
-        })),
-    [fixedCategories, selectedMonth],
-  )
+    const recurringItems: UpcomingCardItem[] = dashboard.categories
+      .filter((cat) => cat.type === 'fixed' && cat.dueDayOfMonth && cat.dueDayOfMonth > 0)
+      .map((cat) => {
+        const daysInMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate()
+        const clampedDay = Math.min(cat.dueDayOfMonth ?? 1, daysInMonth)
+        const dueDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), clampedDay)
+        return {
+          id: cat.id,
+          name: cat.name,
+          amount: cat.allocated,
+          categoryId: cat.id,
+          source: 'planned' as const,
+          dueDate,
+          accent: cat.iconColor || cat.color,
+          category: cat.parentName,
+          preview: {
+            day: String(clampedDay).padStart(2, '0'),
+            month: dueDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase().replace('.', ''),
+          },
+        }
+      })
+
+    const scheduledItems: UpcomingCardItem[] = transactions
+      .filter((t) => {
+        if (t.note?.includes(PLANNED_PAYMENT_NOTE)) return false
+        if (t.isPaid) return false
+        const date = new Date(t.transactionDate)
+        return date >= monthStart && date <= monthEnd
+      })
+      .map((t) => {
+        const date = new Date(t.transactionDate)
+        const category = categoryById.get(t.categoryId)
+        return {
+          id: `sched-${t.id}`,
+          name: t.note?.trim() || category?.name || 'Expense',
+          amount: t.amount,
+          categoryId: t.categoryId,
+          transactionId: t.id,
+          source: 'scheduled_expense' as const,
+          dueDate: date,
+          accent: category?.iconColor || category?.color || 'rgba(91,163,201,0.9)',
+          category: category?.parentName || 'Other',
+          preview: {
+            day: String(date.getDate()).padStart(2, '0'),
+            month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase().replace('.', ''),
+          },
+        }
+      })
+
+    const scheduledKeys = new Set(
+      scheduledItems.map((i) => `${i.categoryId}-${i.dueDate.getFullYear()}-${i.dueDate.getMonth()}`),
+    )
+    const filteredRecurring = recurringItems.filter(
+      (i) => !scheduledKeys.has(`${i.categoryId}-${i.dueDate.getFullYear()}-${i.dueDate.getMonth()}`),
+    )
+
+    return [...filteredRecurring, ...scheduledItems]
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+      .slice(0, 3)
+  }, [dashboard, transactions, selectedMonth])
 
   const handleOpenPlannedExpense = useCallback(
-    (item: UpcomingPreviewItem) => {
+    (item: UpcomingCardItem) => {
       navigation.navigate('PlannedExpense', {
-        categoryId: item.id,
+        categoryId: item.categoryId,
+        transactionId: item.transactionId,
+        source: item.source,
         title: item.name,
-        amount: item.allocated,
-        dueDate: item.preview.date.toISOString().split('T')[0],
-        category: item.parentName,
-        accent: item.iconColor || item.color,
-        recurring: true,
+        amount: item.amount,
+        dueDate: item.dueDate.toISOString().split('T')[0],
+        category: item.category,
+        accent: item.accent,
+        recurring: item.source === 'planned',
       })
     },
     [navigation],
@@ -295,7 +336,7 @@ export function HomeScreen() {
 
         <Animated.View entering={FadeInUp.delay(220).duration(360)}>
           <DashboardUpcomingPreview
-            items={upcomingCards.slice(0, 3)}
+            items={upcomingCards}
             onOpenTimeline={() => navigation.navigate('Timeline')}
             onOpenItem={handleOpenPlannedExpense}
           />
