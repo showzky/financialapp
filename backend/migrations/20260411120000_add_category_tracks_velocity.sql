@@ -1,0 +1,2 @@
+ALTER TABLE budget_categories
+  ADD COLUMN IF NOT EXISTS tracks_velocity BOOLEAN NOT NULL DEFAULT TRUE;
