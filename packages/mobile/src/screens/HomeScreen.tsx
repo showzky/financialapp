@@ -194,10 +194,10 @@ export function HomeScreen() {
       })
 
     const scheduledKeys = new Set(
-      scheduledItems.map((i) => `${i.categoryId}-${i.dueDate.getFullYear()}-${i.dueDate.getMonth()}`),
+      scheduledItems.map((i) => `${i.categoryId}-${i.dueDate.getFullYear()}-${String(i.dueDate.getMonth()).padStart(2, '0')}`),
     )
     const filteredRecurring = recurringItems.filter(
-      (i) => !scheduledKeys.has(`${i.categoryId}-${i.dueDate.getFullYear()}-${i.dueDate.getMonth()}`),
+      (i) => !scheduledKeys.has(`${i.categoryId}-${i.dueDate.getFullYear()}-${String(i.dueDate.getMonth()).padStart(2, '0')}`),
     )
 
     return [...filteredRecurring, ...scheduledItems]
