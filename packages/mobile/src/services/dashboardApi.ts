@@ -46,6 +46,18 @@ export type BillEntry = {
   isPaid: boolean
 }
 
+export type ScheduledTransaction = {
+  id: string
+  categoryId: string
+  name: string
+  icon: string
+  color: string
+  iconColor: string
+  amount: number
+  note: string | null
+  transactionDate: string
+}
+
 export type DashboardData = {
   totalIncome: number
   totalBudget: number
@@ -65,6 +77,7 @@ export type DashboardData = {
   billEntries: BillEntry[]
   incomeCategories: IncomeCategoryWithDueDay[]
   allIncomeEntries: IncomeEntry[]
+  scheduledTransactions: ScheduledTransaction[]
 }
 
 type CurrentUserDto = {
@@ -447,6 +460,23 @@ export const dashboardApi = {
         accountName: entry.accountName,
         isPaid: entry.isPaid,
       })),
+      scheduledTransactions: transactions
+        .filter((t) => !t.isPaid && new Date(t.transactionDate) > now)
+        .sort((a, b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime())
+        .map((t) => {
+          const cat = categoryById.get(t.categoryId)
+          return {
+            id: t.id,
+            categoryId: t.categoryId,
+            name: t.note?.trim() || cat?.name || 'Expense',
+            icon: cat?.icon ?? 'receipt-outline',
+            color: cat?.color ?? '#1f2a3d',
+            iconColor: cat?.iconColor ?? '#d8d8e6',
+            amount: Number.isFinite(t.amount) ? t.amount : 0,
+            note: t.note ?? null,
+            transactionDate: t.transactionDate,
+          }
+        }),
       incomeEntries: monthIncomeEntries.map((entry) => ({
         id: entry.id,
         incomeCategoryId: entry.incomeCategoryId,
