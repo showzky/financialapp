@@ -1,5 +1,13 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { BillEntry, DailySpend } from '../../services/dashboardApi'
@@ -88,6 +96,27 @@ export function DashboardSpendingVelocityCard({
   selectedMonth,
 }: Props) {
   const [activeState, setActiveState] = useState<0 | 1 | 2>(0)
+  const translateX = useSharedValue(0)
+  const opacity = useSharedValue(1)
+
+  const animateToState = (next: 0 | 1 | 2, direction: 'left' | 'right') => {
+    const outX = direction === 'left' ? -40 : 40
+    const inX = direction === 'left' ? 40 : -40
+    // slide + fade out
+    translateX.value = withTiming(outX, { duration: 140, easing: Easing.out(Easing.quad) })
+    opacity.value = withTiming(0, { duration: 120, easing: Easing.out(Easing.quad) }, () => {
+      runOnJS(setActiveState)(next)
+      // snap to opposite side, then slide + fade in
+      translateX.value = inX
+      translateX.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) })
+      opacity.value = withTiming(1, { duration: 180, easing: Easing.out(Easing.cubic) })
+    })
+  }
+
+  const contentStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    opacity: opacity.value,
+  }))
 
   const pendingBills = billEntries
     .filter((b) => !b.isPaid)
@@ -107,11 +136,23 @@ export function DashboardSpendingVelocityCard({
   const maxDailySpend = Math.max(...recentDailySpend.map((d) => d.amount), 1)
 
   const cycleState = () => {
-    setActiveState((prev) => ((prev + 1) % 3) as 0 | 1 | 2)
+    animateToState(((activeState + 1) % 3) as 0 | 1 | 2, 'left')
   }
 
+  const swipeGesture = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-20, 20])
+    .onEnd((e) => {
+      if (e.translationX < -20) {
+        animateToState(((activeState + 1) % 3) as 0 | 1 | 2, 'left')
+      } else if (e.translationX > 20) {
+        animateToState(((activeState + 2) % 3) as 0 | 1 | 2, 'right')
+      }
+    })
+
   return (
-    <TouchableOpacity activeOpacity={0.96} onPress={cycleState}>
+    <GestureDetector gesture={swipeGesture}>
+      <TouchableOpacity activeOpacity={0.96} onPress={cycleState}>
       <LinearGradient
         colors={['rgba(24,22,38,0.98)', 'rgba(13,14,22,0.98)']}
         style={styles.card}
@@ -121,7 +162,7 @@ export function DashboardSpendingVelocityCard({
           style={styles.cardBloom}
         />
 
-        {/* Header */}
+        {/* Header — static, never animates */}
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Spending Velocity</Text>
@@ -131,6 +172,9 @@ export function DashboardSpendingVelocityCard({
             <Text style={[styles.statusText, { color: vc.primary }]}>{statusLabel}</Text>
           </View>
         </View>
+
+        {/* Animated content — slides and fades on state change */}
+        <Animated.View style={contentStyle}>
 
         {/* State 0 — Velocity view */}
         {activeState === 0 && (
@@ -344,6 +388,8 @@ export function DashboardSpendingVelocityCard({
           </>
         )}
 
+        </Animated.View>
+
         {/* State dots */}
         <View style={styles.dots}>
           {([0, 1, 2] as const).map((i) => (
@@ -355,6 +401,7 @@ export function DashboardSpendingVelocityCard({
         </View>
       </LinearGradient>
     </TouchableOpacity>
+    </GestureDetector>
   )
 }
 
