@@ -319,9 +319,11 @@ export function DashboardSpendingVelocityCard({
               <View style={styles.metricBlock}>
                 <Text style={styles.metricLabel}>FORECAST</Text>
                 <Text style={[styles.metricValue, { color: projectedSpend > pocketMoneyBudget ? 'rgba(201,107,107,0.95)' : 'rgba(94,189,151,0.95)' }]}>
-                  {projectedSpend > pocketMoneyBudget ? '+' + fmtKr(projectedSpend - pocketMoneyBudget) : '-' + fmtKr(pocketMoneyBudget - projectedSpend)}
+                  {projectedSpend > pocketMoneyBudget
+                    ? fmtKr(projectedSpend - pocketMoneyBudget) + ' over'
+                    : fmtKr(pocketMoneyBudget - projectedSpend) + ' saved'}
                 </Text>
-                <Text style={styles.metricSub}>{projectedSpend > pocketMoneyBudget ? 'over pocket budget' : 'under pocket budget'}</Text>
+                <Text style={styles.metricSub}>{projectedSpend > pocketMoneyBudget ? 'projected overspend' : 'on track this month'}</Text>
               </View>
             </View>
 

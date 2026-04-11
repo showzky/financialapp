@@ -154,8 +154,8 @@ export function HomeScreen() {
     },
     {
       label: 'Pocket money',
-      value: dashboard.pocketMoneyBudget,
-      hint: 'Pocket money',
+      value: dashboard.pocketMoneyRemaining,
+      hint: 'Remaining',
       icon: 'sparkles-outline' as const,
       accent: '#5ba3c9',
     },

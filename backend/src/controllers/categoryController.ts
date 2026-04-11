@@ -33,6 +33,7 @@ const createCategorySchema = z.object({
   sortOrder: z.number().int().nonnegative().optional(),
   isDefault: z.boolean().optional(),
   isArchived: z.boolean().optional(),
+  tracksVelocity: z.boolean().optional(),
 })
 
 const updateCategorySchema = z
@@ -50,6 +51,7 @@ const updateCategorySchema = z
     sortOrder: z.number().int().nonnegative().optional(),
     isDefault: z.boolean().optional(),
     isArchived: z.boolean().optional(),
+    tracksVelocity: z.boolean().optional(),
   })
   .refine(
     (value) =>
@@ -65,7 +67,8 @@ const updateCategorySchema = z
       value.dueDayOfMonth !== undefined ||
       value.sortOrder !== undefined ||
       value.isDefault !== undefined ||
-      value.isArchived !== undefined,
+      value.isArchived !== undefined ||
+      value.tracksVelocity !== undefined,
     {
       message: 'At least one field must be provided',
     },
@@ -127,6 +130,7 @@ export const createCategory = asyncHandler(async (req: Request, res: Response) =
             sortOrder: payload.sortOrder,
             isDefault: payload.isDefault,
             isArchived: payload.isArchived,
+            tracksVelocity: payload.tracksVelocity,
           })
         : await incomeCategoryModel.create({
             userId,
@@ -211,6 +215,7 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response) =
           sortOrder: payload.sortOrder,
           isDefault: payload.isDefault,
           isArchived: payload.isArchived,
+          tracksVelocity: payload.tracksVelocity,
         })
       : await incomeCategoryModel.update(id, userId, {
           name: payload.name,

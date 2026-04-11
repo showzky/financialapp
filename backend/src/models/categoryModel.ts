@@ -18,6 +18,7 @@ export type BudgetCategory = {
   sortOrder: number
   isDefault: boolean
   isArchived: boolean
+  tracksVelocity: boolean
   createdAt: string
 }
 
@@ -35,6 +36,7 @@ export type CreateCategoryInput = {
   sortOrder?: number | undefined
   isDefault?: boolean | undefined
   isArchived?: boolean | undefined
+  tracksVelocity?: boolean | undefined
 }
 
 export type UpdateCategoryInput = {
@@ -50,6 +52,7 @@ export type UpdateCategoryInput = {
   sortOrder?: number | undefined
   isDefault?: boolean | undefined
   isArchived?: boolean | undefined
+  tracksVelocity?: boolean | undefined
 }
 
 const DUPLICATE_CATEGORY_NAME_ERROR = 'CATEGORY_NAME_EXISTS'
@@ -73,6 +76,7 @@ const categorySelect = `
   budget_categories.sort_order AS "sortOrder",
   budget_categories.is_default AS "isDefault",
   budget_categories.is_archived AS "isArchived",
+  budget_categories.tracks_velocity AS "tracksVelocity",
   budget_categories.created_at AS "createdAt"
 `
 
@@ -160,9 +164,10 @@ export const categoryModel = {
           due_day_of_month,
           sort_order,
           is_default,
-          is_archived
+          is_archived,
+          tracks_velocity
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING
           id,
           user_id AS "userId",
@@ -178,6 +183,7 @@ export const categoryModel = {
           sort_order AS "sortOrder",
           is_default AS "isDefault",
           is_archived AS "isArchived",
+          tracks_velocity AS "tracksVelocity",
           created_at AS "createdAt"
         `,
         [
@@ -194,6 +200,7 @@ export const categoryModel = {
           nextSortOrder,
           input.isDefault ?? false,
           input.isArchived ?? false,
+          input.tracksVelocity ?? false,
         ],
       )
 
@@ -258,7 +265,8 @@ export const categoryModel = {
         due_day_of_month = COALESCE($11, due_day_of_month),
         sort_order = COALESCE($12, sort_order),
         is_default = COALESCE($13, is_default),
-        is_archived = COALESCE($14, is_archived)
+        is_archived = COALESCE($14, is_archived),
+        tracks_velocity = COALESCE($15, tracks_velocity)
       WHERE id = $1 AND user_id = $2
       RETURNING
         id,
@@ -275,6 +283,7 @@ export const categoryModel = {
         sort_order AS "sortOrder",
         is_default AS "isDefault",
         is_archived AS "isArchived",
+        tracks_velocity AS "tracksVelocity",
         created_at AS "createdAt"
       `,
       [
@@ -292,6 +301,7 @@ export const categoryModel = {
         input.sortOrder ?? null,
         input.isDefault ?? null,
         input.isArchived ?? null,
+        input.tracksVelocity ?? null,
       ],
     )
 

@@ -20,6 +20,7 @@ export type CategoryWithSpent = {
   sortOrder: number
   isDefault: boolean
   isArchived: boolean
+  tracksVelocity: boolean
 }
 
 export type IncomeEntry = {
@@ -86,6 +87,7 @@ export type DashboardData = {
   recentDailySpend: DailySpend[]
   pocketMoneyBudget: number
   pocketMoneySpent: number
+  pocketMoneyRemaining: number
 }
 
 type CurrentUserDto = {
@@ -110,6 +112,7 @@ type CategoryDto = {
   sortOrder: number
   isDefault: boolean
   isArchived: boolean
+  tracksVelocity: boolean
   createdAt: string
 }
 
@@ -293,6 +296,7 @@ function toCategoryWithSpent(
     sortOrder: Number.isFinite(category.sortOrder) ? category.sortOrder : 0,
     isDefault: Boolean(category.isDefault),
     isArchived: Boolean(category.isArchived),
+    tracksVelocity: category.tracksVelocity ?? false,
   }
 }
 
@@ -424,14 +428,17 @@ export const dashboardApi = {
     const totalAllocated = fixedCostsTotal + assignedBudgetEffective
     const remaining = totalIncome - totalSpent
     const freeToAssign = totalIncome - totalAllocated
-    // Pocket money budget = income minus ALL bills (paid or reserved).
-    // Pocket money spent = every paid expense not flagged as a bill.
-    const pocketMoneyBudget = Math.max(totalIncome - billsTotal, 0)
+    // Envelope system — single source of truth:
+    //   Income − Bills − Budget allocations = pocket money envelope (money not locked in any bucket)
+    //   Only tracksVelocity expenses burn from that envelope (unplanned, outside allocated buckets)
+    //   Paying from a budgeted category is neutral — already deducted via allocation
+    const pocketMoneyBudget = Math.max(totalIncome - billsTotal - assignedBudgetTotal, 0)
     const pocketMoneySpent = sum(
       monthTransactions
-        .filter((t) => !t.countsTowardBills)
+        .filter((t) => !t.countsTowardBills && categoryById.get(t.categoryId)?.tracksVelocity === true)
         .map((t) => (Number.isFinite(t.amount) ? t.amount : 0)),
     )
+    const pocketMoneyRemaining = Math.max(pocketMoneyBudget - pocketMoneySpent, 0)
 
     return {
       totalIncome,
@@ -445,6 +452,7 @@ export const dashboardApi = {
       freeToAssign,
       pocketMoneyBudget,
       pocketMoneySpent,
+      pocketMoneyRemaining,
       categoryCount: categories.length,
       loanBalance: Number.isFinite(loanSummary.totalOutstandingAmount)
         ? loanSummary.totalOutstandingAmount
@@ -483,8 +491,9 @@ export const dashboardApi = {
         d.setHours(0, 0, 0, 0)
         d.setDate(d.getDate() - (6 - i))
         const dateStr = d.toISOString().split('T')[0]
+        // Only non-bill paid transactions — mirrors pocket money spending
         const dayTotal = transactions
-          .filter((t) => t.isPaid && t.transactionDate.startsWith(dateStr))
+          .filter((t) => t.isPaid && !t.countsTowardBills && t.transactionDate.startsWith(dateStr))
           .reduce((s, t) => s + (Number.isFinite(t.amount) ? t.amount : 0), 0)
         return { date: dateStr, amount: dayTotal }
       }),

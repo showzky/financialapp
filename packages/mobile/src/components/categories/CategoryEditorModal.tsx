@@ -101,6 +101,7 @@ export function CategoryEditorModal({
   const [color, setColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0])
   const [iconColor, setIconColor] = useState<string>(CATEGORY_ICON_COLOR_OPTIONS[0])
   const [expenseType, setExpenseType] = useState<'budget' | 'fixed'>('budget')
+  const [tracksVelocity, setTracksVelocity] = useState(false)
   const [dueDayOfMonth, setDueDayOfMonth] = useState('')
   const [pickerKey, setPickerKey] = useState<PickerKey>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -121,6 +122,7 @@ export function CategoryEditorModal({
         ? (category?.type ?? draftCategory?.type ?? 'budget')
         : 'budget',
     )
+    setTracksVelocity(category?.tracksVelocity ?? false)
     setDueDayOfMonth(
       category?.dueDayOfMonth?.toString() ?? draftCategory?.dueDayOfMonth?.toString() ?? '',
     )
@@ -210,6 +212,7 @@ export function CategoryEditorModal({
           iconColor,
           type: kind === 'expense' ? expenseType : undefined,
           dueDayOfMonth: kind === 'income' ? resolvedDueDay : isSubcategoryFlow ? resolvedDueDay : undefined,
+          tracksVelocity: kind === 'expense' ? tracksVelocity : undefined,
         })
       } else {
         await categoryApi.createCategory({
@@ -222,6 +225,7 @@ export function CategoryEditorModal({
           type: kind === 'expense' ? expenseType : undefined,
           allocated: kind === 'expense' ? 0 : undefined,
           dueDayOfMonth: kind === 'income' ? resolvedDueDay : isSubcategoryFlow ? resolvedDueDay : undefined,
+          tracksVelocity: kind === 'expense' ? tracksVelocity : undefined,
         })
       }
       onSaved()
@@ -351,6 +355,22 @@ export function CategoryEditorModal({
                 />
               ))}
             </View>
+
+            {kind === 'expense' ? (
+              <TouchableOpacity
+                style={styles.toggleRow}
+                activeOpacity={0.88}
+                onPress={() => setTracksVelocity((v) => !v)}
+              >
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.toggleLabel}>Count in spending velocity</Text>
+                  <Text style={styles.toggleHint}>Affects pocket money burn rate</Text>
+                </View>
+                <View style={[styles.toggleTrack, tracksVelocity && styles.toggleTrackOn]}>
+                  <View style={[styles.toggleThumb, tracksVelocity && styles.toggleThumbOn]} />
+                </View>
+              </TouchableOpacity>
+            ) : null}
 
             {kind === 'income' ? (
               <>
@@ -595,6 +615,56 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.34)',
     fontSize: 12,
     fontFamily: 'DMSans_500Medium',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 18,
+    marginBottom: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  toggleInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  toggleLabel: {
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  toggleHint: {
+    marginTop: 2,
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+  },
+  toggleTrack: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  toggleTrackOn: {
+    backgroundColor: '#5ca3ff',
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    alignSelf: 'flex-start',
+  },
+  toggleThumbOn: {
+    backgroundColor: '#fff',
+    alignSelf: 'flex-end',
   },
   errorText: {
     marginTop: 16,

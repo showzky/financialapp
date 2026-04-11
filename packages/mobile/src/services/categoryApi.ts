@@ -14,6 +14,7 @@ export type CategoryDto = {
   sortOrder: number
   isDefault: boolean
   isArchived: boolean
+  tracksVelocity: boolean
   createdAt: string
   type?: ExpenseCategoryType
   allocated?: number
@@ -31,6 +32,7 @@ export type CreateCategoryPayload = {
   sortOrder?: number
   isDefault?: boolean
   isArchived?: boolean
+  tracksVelocity?: boolean
   type?: ExpenseCategoryType
   allocated?: number
   spent?: number
