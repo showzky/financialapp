@@ -244,8 +244,8 @@ function LentLoanCard({
               <Text style={styles.metricValue}>{formatNOK(loan.amount)}</Text>
             </View>
             <View style={styles.metricBlock}>
-              <Text style={styles.metricLabel}>Due date</Text>
-              <Text style={styles.metricValue}>{formatDate(loan.expectedRepaymentDate)}</Text>
+              <Text style={styles.metricLabel}>Date given</Text>
+              <Text style={styles.metricValue}>{formatDate(loan.dateGiven)}</Text>
             </View>
             <View style={styles.metricBlock}>
               <Text style={styles.metricLabel}>Days left</Text>
@@ -483,8 +483,8 @@ function BorrowedLoanCard({
               <Text style={styles.metricValue}>{formatNOK(loan.currentBalance)}</Text>
             </View>
             <View style={styles.metricBlock}>
-              <Text style={styles.metricLabel}>Payoff date</Text>
-              <Text style={styles.metricValue}>{formatDate(loan.payoffDate)}</Text>
+              <Text style={styles.metricLabel}>Original</Text>
+              <Text style={styles.metricValue}>{formatNOK(loan.originalAmount)}</Text>
             </View>
             <View style={styles.metricBlock}>
               <Text style={styles.metricLabel}>Days left</Text>

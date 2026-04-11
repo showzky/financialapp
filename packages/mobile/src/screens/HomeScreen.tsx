@@ -178,7 +178,7 @@ export function HomeScreen() {
         const category = categoryById.get(t.categoryId)
         return {
           id: `sched-${t.id}`,
-          name: t.note?.trim() || category?.name || 'Expense',
+          name: t.categoryName || category?.name || t.note?.trim() || 'Expense',
           amount: t.amount,
           categoryId: t.categoryId,
           transactionId: t.id,
