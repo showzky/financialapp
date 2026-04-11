@@ -61,7 +61,7 @@ export function DashboardUpcomingPreview<T extends UpcomingItem>({ items, onOpen
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {item.name}
               </Text>
-              <Text style={styles.rowMeta}>Fixed cost preview</Text>
+              <Text style={styles.rowMeta}>Upcoming payment</Text>
             </View>
             <Text style={styles.rowAmount}>{fmtKr(item.amount)}</Text>
           </TouchableOpacity>
