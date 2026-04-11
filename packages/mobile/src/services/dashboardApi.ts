@@ -58,6 +58,11 @@ export type ScheduledTransaction = {
   transactionDate: string
 }
 
+export type DailySpend = {
+  date: string   // YYYY-MM-DD
+  amount: number
+}
+
 export type DashboardData = {
   totalIncome: number
   totalBudget: number
@@ -78,6 +83,9 @@ export type DashboardData = {
   incomeCategories: IncomeCategoryWithDueDay[]
   allIncomeEntries: IncomeEntry[]
   scheduledTransactions: ScheduledTransaction[]
+  recentDailySpend: DailySpend[]
+  pocketMoneyBudget: number
+  pocketMoneySpent: number
 }
 
 type CurrentUserDto = {
@@ -416,6 +424,14 @@ export const dashboardApi = {
     const totalAllocated = fixedCostsTotal + assignedBudgetEffective
     const remaining = totalIncome - totalSpent
     const freeToAssign = totalIncome - totalAllocated
+    // Pocket money budget = income minus ALL bills (paid or reserved).
+    // Pocket money spent = every paid expense not flagged as a bill.
+    const pocketMoneyBudget = Math.max(totalIncome - billsTotal, 0)
+    const pocketMoneySpent = sum(
+      monthTransactions
+        .filter((t) => !t.countsTowardBills)
+        .map((t) => (Number.isFinite(t.amount) ? t.amount : 0)),
+    )
 
     return {
       totalIncome,
@@ -427,6 +443,8 @@ export const dashboardApi = {
       remaining,
       totalAllocated,
       freeToAssign,
+      pocketMoneyBudget,
+      pocketMoneySpent,
       categoryCount: categories.length,
       loanBalance: Number.isFinite(loanSummary.totalOutstandingAmount)
         ? loanSummary.totalOutstandingAmount
@@ -460,6 +478,16 @@ export const dashboardApi = {
         accountName: entry.accountName,
         isPaid: entry.isPaid,
       })),
+      recentDailySpend: Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(now)
+        d.setHours(0, 0, 0, 0)
+        d.setDate(d.getDate() - (6 - i))
+        const dateStr = d.toISOString().split('T')[0]
+        const dayTotal = transactions
+          .filter((t) => t.isPaid && t.transactionDate.startsWith(dateStr))
+          .reduce((s, t) => s + (Number.isFinite(t.amount) ? t.amount : 0), 0)
+        return { date: dateStr, amount: dayTotal }
+      }),
       scheduledTransactions: transactions
         .filter((t) => !t.isPaid && new Date(t.transactionDate) > now)
         .sort((a, b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime())
