@@ -318,6 +318,9 @@ const styles = StyleSheet.create({
   domainBadge: { maxWidth: 160, minHeight: 28, borderRadius: 14, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.12)' },
   domainText: { flexShrink: 1, color: 'rgba(255,233,246,0.9)', fontSize: 12, fontFamily: 'DMSans_700Bold' },
   leftText: { color: '#FFF5FC', fontSize: 12, fontFamily: 'DMSans_700Bold' },
+  fulfilledSection: {
+    gap: 12,
+  },
   // fulfilled collapsible toggle bar
   fulfilledToggle: {
     flexDirection: 'row',
