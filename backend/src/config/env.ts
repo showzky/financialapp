@@ -1,8 +1,39 @@
 // ADD THIS: centralized environment parsing and validation
 import dotenv from 'dotenv'
+import fs from 'node:fs'
+import path from 'node:path'
 import { z } from 'zod'
 
-dotenv.config()
+// Read NODE_ENV from the shell BEFORE dotenv runs (set by cross-env in scripts).
+// Validated against the allowlist so it can never be used as a path traversal vector.
+const VALID_NODE_ENVS = ['development', 'test', 'staging', 'production'] as const
+type NodeEnv = (typeof VALID_NODE_ENVS)[number]
+const rawEnv = (process.env.NODE_ENV ?? '').trim() as NodeEnv
+const preNodeEnv: NodeEnv = VALID_NODE_ENVS.includes(rawEnv) ? rawEnv : 'development'
+
+// Cascade: each file overrides the previous. Later entries win.
+// .env            — base / staging defaults  (committed or secret-free template)
+// .env.<NODE_ENV> — environment-specific defaults  (safe to commit if secret-free)
+// .env.local      — per-machine personal overrides  (gitignored, never committed)
+// .env.<NODE_ENV>.local — per-machine env-specific overrides  (gitignored)
+const cascadeFiles = [
+  '.env',
+  `.env.${preNodeEnv}`,
+  '.env.local',
+  `.env.${preNodeEnv}.local`,
+]
+
+const backendRoot = path.resolve(
+  new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'),
+  '../../../',
+)
+
+for (const file of cascadeFiles) {
+  const filePath = path.join(backendRoot, file)
+  if (fs.existsSync(filePath)) {
+    dotenv.config({ path: filePath, override: true })
+  }
+}
 
 const booleanFromEnv = (fallback: boolean) =>
   z
@@ -51,6 +82,9 @@ const envSchema = z
     BROWSERLESS_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(20000),
     GLOBAL_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).max(60 * 60 * 1000).optional(),
     GLOBAL_RATE_LIMIT_MAX: z.coerce.number().int().min(10).max(100000).optional(),
+    // Set to true in .env.development when you intentionally use a remote DB in dev
+    // (e.g. no local Postgres installed). Never set in staging/production.
+    ALLOW_REMOTE_DB_IN_DEV: booleanFromEnv(false),
   })
   .superRefine((value, ctx) => {
     // ADD THIS: strict conditional auth configuration validation
@@ -75,21 +109,25 @@ const envSchema = z
       }
     }
 
-    // ADD THIS: prevent accidental production database usage during local development
-    if (value.NODE_ENV === 'development') {
-      const normalizedDatabaseUrl = value.DATABASE_URL.toLowerCase()
-      const looksLikeProductionHost =
-        normalizedDatabaseUrl.includes('supabase.co') ||
-        normalizedDatabaseUrl.includes('render.com') ||
-        normalizedDatabaseUrl.includes('railway.app')
-
-      if (looksLikeProductionHost) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message:
-            'DATABASE_URL looks like a remote host while NODE_ENV=development. Use local/staging credentials to avoid production writes.',
-          path: ['DATABASE_URL'],
-        })
+    // Prevent accidental production database usage during local development.
+    // Guard fires on the shell-level NODE_ENV (preNodeEnv) OR the parsed value so
+    // a .env file cannot silently flip NODE_ENV to bypass the check.
+    // Set ALLOW_REMOTE_DB_IN_DEV=true in .env.development to opt-in when no local Postgres.
+    if ((value.NODE_ENV === 'development' || preNodeEnv === 'development') && !value.ALLOW_REMOTE_DB_IN_DEV) {
+      try {
+        const dbHost = new URL(value.DATABASE_URL).hostname.toLowerCase()
+        const safeLocalHosts = ['localhost', '127.0.0.1', '::1', 'host.docker.internal']
+        if (!safeLocalHosts.includes(dbHost)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              `DATABASE_URL points at a remote host (${dbHost}) while NODE_ENV=development. Use a localhost URL to avoid writing to a remote database.`,
+            path: ['DATABASE_URL'],
+          })
+        }
+      } catch {
+        // DATABASE_URL failed URL parsing — the min(1) check above already caught the empty case;
+        // an unparseable value will also fail the z.string().min(1) schema, so no extra issue needed.
       }
     }
   })

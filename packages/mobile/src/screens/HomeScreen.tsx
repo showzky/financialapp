@@ -27,7 +27,7 @@ import { DashboardUpcomingPreview } from '../components/dashboard/DashboardUpcom
 import { useAuth } from '../auth/AuthContext'
 import { usePeriod } from '../context/PeriodContext'
 import { useScreenPalette } from '../customthemes'
-import { dashboardApi, type CategoryWithSpent, type DashboardData } from '../services/dashboardApi'
+import { dashboardApi, type CategoryWithSpent, type DashboardData, type ScheduledTransaction } from '../services/dashboardApi'
 
 function fmtKr(n: number) {
   return `KR ${n.toLocaleString('nb-NO')}`
@@ -52,9 +52,31 @@ function getDueDateForMonth(baseMonth: Date, dueDayOfMonth: number) {
   }
 }
 
-type UpcomingPreviewItem = CategoryWithSpent & {
+type UpcomingPreviewItem = {
+  id: string
+  name: string
+  icon: string
+  color: string
+  iconColor: string
   amount: number
   isDue: boolean
+  source: 'fixed_category'
+  category: CategoryWithSpent
+  preview: {
+    date: Date
+    day: string
+    month: string
+  }
+} | {
+  id: string
+  name: string
+  icon: string
+  color: string
+  iconColor: string
+  amount: number
+  isDue: boolean
+  source: 'scheduled_transaction'
+  transaction: ScheduledTransaction
   preview: {
     date: Date
     day: string
@@ -148,35 +170,89 @@ export function HomeScreen() {
     [dashboard],
   )
 
-  const upcomingCards = useMemo<UpcomingPreviewItem[]>(
-    () =>
-      fixedCategories
-        .filter((item) => item.dueDayOfMonth && item.dueDayOfMonth > 0)
-        .map((item) => ({
-          ...item,
-          preview: getDueDateForMonth(selectedMonth, item.dueDayOfMonth ?? 1),
-        }))
-        .sort((left, right) => left.preview.date.getTime() - right.preview.date.getTime())
-        .slice(0, 5)
-        .map((item, index) => ({
-          ...item,
+  const upcomingCards = useMemo<UpcomingPreviewItem[]>(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+
+    const fixedItems: UpcomingPreviewItem[] = fixedCategories
+      .filter((item) => item.dueDayOfMonth && item.dueDayOfMonth > 0)
+      .map((item) => {
+        const thisMonthPreview = getDueDateForMonth(today, item.dueDayOfMonth ?? 1)
+        const preview =
+          thisMonthPreview.date >= today
+            ? thisMonthPreview
+            : getDueDateForMonth(nextMonth, item.dueDayOfMonth ?? 1)
+        return {
+          id: item.id,
+          name: item.name,
+          icon: item.icon,
+          color: item.color,
+          iconColor: item.iconColor,
           amount: item.allocated,
-          isDue: index === 0,
-        })),
-    [fixedCategories, selectedMonth],
-  )
+          isDue: false,
+          source: 'fixed_category' as const,
+          category: item,
+          preview,
+        }
+      })
+
+    const scheduledItems: UpcomingPreviewItem[] = (dashboard?.scheduledTransactions ?? [])
+      .map((t) => {
+        const date = new Date(t.transactionDate)
+        date.setHours(0, 0, 0, 0)
+        return {
+          id: t.id,
+          name: t.name,
+          icon: t.icon,
+          color: t.color,
+          iconColor: t.iconColor,
+          amount: t.amount,
+          isDue: false,
+          source: 'scheduled_transaction' as const,
+          transaction: t,
+          preview: {
+            date,
+            day: String(date.getDate()).padStart(2, '0'),
+            month: date
+              .toLocaleDateString('en-US', { month: 'short' })
+              .toUpperCase()
+              .replace('.', ''),
+          },
+        }
+      })
+
+    // Merge, deduplicate by date+amount to avoid showing both a fixed category
+    // and a scheduled transaction for the same bill, then take the 3 soonest.
+    return [...fixedItems, ...scheduledItems]
+      .sort((a, b) => a.preview.date.getTime() - b.preview.date.getTime())
+      .slice(0, 3)
+      .map((item, index) => ({ ...item, isDue: index === 0 }))
+  }, [fixedCategories, dashboard?.scheduledTransactions])
 
   const handleOpenPlannedExpense = useCallback(
     (item: UpcomingPreviewItem) => {
-      navigation.navigate('PlannedExpense', {
-        categoryId: item.id,
-        title: item.name,
-        amount: item.allocated,
-        dueDate: item.preview.date.toISOString().split('T')[0],
-        category: item.parentName,
-        accent: item.iconColor || item.color,
-        recurring: true,
-      })
+      if (item.source === 'fixed_category') {
+        navigation.navigate('PlannedExpense', {
+          categoryId: item.category.id,
+          title: item.name,
+          amount: item.category.allocated,
+          dueDate: item.preview.date.toISOString().split('T')[0],
+          category: item.category.parentName,
+          accent: item.iconColor || item.color,
+          recurring: true,
+        })
+      } else {
+        navigation.navigate('PlannedExpense', {
+          categoryId: item.transaction.categoryId,
+          title: item.name,
+          amount: item.amount,
+          dueDate: item.preview.date.toISOString().split('T')[0],
+          category: item.name,
+          accent: item.iconColor || item.color,
+          recurring: false,
+        })
+      }
     },
     [navigation],
   )
