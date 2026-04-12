@@ -3,6 +3,15 @@ import { z } from 'zod'
 export const borrowedLoanStatusSchema = z.enum(['active', 'due_soon', 'overdue', 'paid_off'])
 
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/
+const imageDataUrlRegex = /^data:image\/[a-z0-9.+-]+;base64,/i
+
+const iconUrlSchema = z
+  .string()
+  .trim()
+  .max(200_000)
+  .refine((value) => /^https:\/\//i.test(value) || imageDataUrlRegex.test(value), {
+    message: 'iconUrl must use HTTPS or be an image data URL',
+  })
 
 const isValidIsoDate = (value: string): boolean => {
   const match = isoDateRegex.exec(value)
@@ -40,6 +49,7 @@ export const createBorrowedLoanSchema = z.object({
   currentBalance: z.number().finite().min(0),
   interestRate: interestRateSchema,
   payoffDate: payoffDateSchema,
+  iconUrl: iconUrlSchema.nullable().optional(),
   notes: notesSchema.nullable().optional(),
 }).refine((value) => value.currentBalance <= value.originalAmount, {
   message: 'Current balance cannot exceed original amount',
@@ -53,6 +63,7 @@ export const updateBorrowedLoanSchema = z
     currentBalance: z.number().finite().min(0).optional(),
     interestRate: interestRateSchema.optional(),
     payoffDate: payoffDateSchema.optional(),
+    iconUrl: iconUrlSchema.nullable().optional(),
     notes: notesSchema.nullable().optional(),
   })
   .refine(
@@ -62,6 +73,7 @@ export const updateBorrowedLoanSchema = z
       value.currentBalance !== undefined ||
       value.interestRate !== undefined ||
       value.payoffDate !== undefined ||
+      value.iconUrl !== undefined ||
       value.notes !== undefined,
     {
       message: 'At least one field must be provided',

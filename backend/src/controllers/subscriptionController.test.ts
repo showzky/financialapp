@@ -134,6 +134,7 @@ test('createSubscription returns 201 and created payload', async () => {
     cadence: 'monthly',
     priceCents: 9900,
     nextRenewalDate: '2026-03-30',
+    iconUrl: null,
     notes: 'team plan',
   })
 

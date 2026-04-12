@@ -25,6 +25,7 @@ const sampleBorrowedLoan: BorrowedLoan = {
   interestRate: 5.4,
   payoffDate: '2035-05-01',
   notes: 'Fixed rate through 2030',
+  iconUrl: null,
   paidOffAt: null,
   status: 'active',
   daysRemaining: 100,
@@ -162,6 +163,7 @@ test('createBorrowedLoan passes normalized payload to the model', async () => {
       originalAmount: input.originalAmount,
       currentBalance: input.currentBalance,
       payoffDate: input.payoffDate,
+      iconUrl: input.iconUrl ?? null,
       notes: input.notes ?? null,
     }
   }
@@ -174,6 +176,7 @@ test('createBorrowedLoan passes normalized payload to the model', async () => {
       currentBalance: 215000,
       interestRate: 4.9,
       payoffDate: '2036-04-15',
+      iconUrl: 'data:image/png;base64,AAAA',
       notes: '   ',
     },
   } as unknown as Request
@@ -194,6 +197,7 @@ test('createBorrowedLoan passes normalized payload to the model', async () => {
     currentBalance: 215000,
     interestRate: 4.9,
     payoffDate: '2036-04-15',
+    iconUrl: 'data:image/png;base64,AAAA',
     notes: null,
   })
   assert.equal((getJsonBody() as BorrowedLoan).lender, 'DNB')
@@ -219,6 +223,7 @@ test('updateBorrowedLoan passes partial updates to the borrowed-loan model', asy
     return {
       ...sampleBorrowedLoan,
       currentBalance: payload.currentBalance ?? sampleBorrowedLoan.currentBalance,
+      iconUrl: payload.iconUrl ?? sampleBorrowedLoan.iconUrl,
       notes: payload.notes ?? sampleBorrowedLoan.notes,
     }
   }
@@ -228,6 +233,7 @@ test('updateBorrowedLoan passes partial updates to the borrowed-loan model', asy
     params: { id: sampleBorrowedLoan.id },
     body: {
       currentBalance: 0,
+      iconUrl: 'https://example.com/icon.png',
       notes: '  closed early  ',
     },
   } as unknown as Request
@@ -249,6 +255,7 @@ test('updateBorrowedLoan passes partial updates to the borrowed-loan model', asy
     userId: sampleBorrowedLoan.userId,
     payload: {
       currentBalance: 0,
+      iconUrl: 'https://example.com/icon.png',
       notes: 'closed early',
     },
   })

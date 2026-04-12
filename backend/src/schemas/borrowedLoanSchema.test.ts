@@ -10,11 +10,31 @@ test('createBorrowedLoanSchema accepts valid payload and normalizes blank notes 
     currentBalance: 190000,
     interestRate: 5.4,
     payoffDate: '2035-05-01',
+    iconUrl: 'data:image/png;base64,AAAA',
     notes: '   ',
   })
 
   assert.equal(parsed.notes, null)
+  assert.equal(parsed.iconUrl, 'data:image/png;base64,AAAA')
   assert.equal(parsed.payoffDate, '2035-05-01')
+})
+
+test('createBorrowedLoanSchema rejects non-https remote icon URLs', () => {
+  assert.throws(
+    () =>
+      createBorrowedLoanSchema.parse({
+        lender: 'Storebrand',
+        originalAmount: 250000,
+        currentBalance: 190000,
+        interestRate: 5.4,
+        payoffDate: '2035-05-01',
+        iconUrl: 'http://example.com/icon.png',
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof ZodError)
+      return true
+    },
+  )
 })
 
 test('createBorrowedLoanSchema rejects invalid payoff dates', () => {

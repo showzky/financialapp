@@ -54,6 +54,7 @@ test('borrowedLoanModel.create writes nullable notes and borrowed-loan fields', 
         currentBalance: 95000,
         interestRate: 4.2,
         payoffDate: '2030-01-01',
+        iconUrl: 'data:image/png;base64,AAAA',
         notes: null,
         paidOffAt: null,
         status: 'active',
@@ -71,14 +72,16 @@ test('borrowedLoanModel.create writes nullable notes and borrowed-loan fields', 
     currentBalance: 95000,
     interestRate: 4.2,
     payoffDate: '2030-01-01',
+    iconUrl: 'data:image/png;base64,AAAA',
     notes: null,
   })
 
   assert.match(capturedSql, /INSERT INTO borrowed_loans/i)
+  assert.match(capturedSql, /icon_url/i)
   assert.match(capturedSql, /paid_off_at/i)
   assert.match(capturedSql, /\$3::numeric\(12, 2\)/i)
   assert.match(capturedSql, /\$4::numeric\(12, 2\) <= 0::numeric/i)
-  assert.deepEqual(capturedParams, ['user-1', 'Storebrand', 100000, 95000, 4.2, '2030-01-01', null])
+  assert.deepEqual(capturedParams, ['user-1', 'Storebrand', 100000, 95000, 4.2, '2030-01-01', 'data:image/png;base64,AAAA', null])
 })
 
 test('borrowedLoanModel.getById scopes the lookup to the signed-in user', async () => {
@@ -110,6 +113,7 @@ test('borrowedLoanModel.update preserves patch semantics for nullable notes and 
   await borrowedLoanModel.update('loan-1', 'user-1', {
     originalAmount: 100000,
     currentBalance: 50000,
+    iconUrl: 'https://example.com/icon.png',
     notes: null,
   })
 
@@ -120,8 +124,9 @@ test('borrowedLoanModel.update preserves patch semantics for nullable notes and 
   assert.match(capturedSql, /paid_off_at = CASE/i)
   assert.match(capturedSql, /interest_rate = CASE WHEN \$8 THEN \$9::numeric\(5, 2\) ELSE interest_rate END/i)
   assert.match(capturedSql, /payoff_date = COALESCE\(\$10::date, payoff_date\)/i)
-  assert.match(capturedSql, /notes = CASE WHEN \$11 THEN \$12 ELSE notes END/i)
-  assert.deepEqual(capturedParams, ['loan-1', 'user-1', null, true, 100000, true, 50000, false, null, null, true, null])
+  assert.match(capturedSql, /icon_url = CASE WHEN \$11 THEN \$12 ELSE icon_url END/i)
+  assert.match(capturedSql, /notes = CASE WHEN \$13 THEN \$14 ELSE notes END/i)
+  assert.deepEqual(capturedParams, ['loan-1', 'user-1', null, true, 100000, true, 50000, false, null, null, true, 'https://example.com/icon.png', true, null])
 })
 
 test('borrowedLoanModel.markPaidOff zeros current balance and stamps paid_off_at', async () => {

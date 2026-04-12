@@ -1,0 +1,2 @@
+ALTER TABLE borrowed_loans
+ADD COLUMN IF NOT EXISTS icon_url TEXT;
