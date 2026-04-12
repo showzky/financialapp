@@ -3,11 +3,14 @@ import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 
+import { resolveActiveListPreview } from './activePreview'
 import type { BorrowedLoanPlanItem } from './types'
 
 type Props = {
   items: BorrowedLoanPlanItem[]
   onPressItem: (item: BorrowedLoanPlanItem) => void
+  activeExpanded: boolean
+  onToggleActiveExpanded: () => void
 }
 
 function formatKr(value: number) {
@@ -62,7 +65,12 @@ function PaidOffMiniCard({
   )
 }
 
-export function BorrowedLoansOverview({ items, onPressItem }: Props) {
+export function BorrowedLoansOverview({
+  items,
+  onPressItem,
+  activeExpanded,
+  onToggleActiveExpanded,
+}: Props) {
   const totalBalance = useMemo(
     () => items.reduce((sum, item) => sum + item.currentBalance, 0),
     [items],
@@ -82,6 +90,19 @@ export function BorrowedLoansOverview({ items, onPressItem }: Props) {
     () => paidOffItems.reduce((sum, item) => sum + item.originalAmount, 0),
     [paidOffItems],
   )
+
+  const activePreview = useMemo(
+    () => resolveActiveListPreview(activeItems, activeExpanded),
+    [activeExpanded, activeItems],
+  )
+
+  const activeToggleTitle = activePreview.showAllItems
+    ? 'Show less'
+    : `Show ${activePreview.hiddenCount} more`
+
+  const activeToggleSub = activePreview.showAllItems
+    ? `${activePreview.totalCount} active loans visible`
+    : `Showing ${activePreview.visibleCount} of ${activePreview.totalCount} active loans`
 
   const [paidOffOpen, setPaidOffOpen] = useState(false)
 
@@ -108,12 +129,11 @@ export function BorrowedLoansOverview({ items, onPressItem }: Props) {
             <Text style={styles.sectionTitle}>Actual</Text>
           </View>
 
-          {activeItems.map((item) => {
-        const paid = item.originalAmount - item.currentBalance
-        const progress =
-          item.originalAmount > 0 ? Math.min(paid / item.originalAmount, 1) : 0
-        const isPaidOff = item.currentBalance === 0
-        const progressPercent = isPaidOff ? 100 : Math.min(Math.floor(progress * 100), 99)
+          {activePreview.visibleItems.map((item) => {
+        const paidAmount = item.originalAmount - item.currentBalance
+        const paidRatio =
+          item.originalAmount > 0 ? Math.min(paidAmount / item.originalAmount, 1) : 0
+        const paidPercent = Math.min(Math.floor(paidRatio * 100), 99)
 
         return (
           <TouchableOpacity
@@ -155,34 +175,57 @@ export function BorrowedLoansOverview({ items, onPressItem }: Props) {
                   <Ionicons name="trending-up-outline" size={11} color="rgba(199,216,255,0.8)" />
                   <Text style={styles.metricText}>{item.interestRate}% APR</Text>
                 </View>
-                {isPaidOff ? (
-                  <View style={[styles.metricPill, styles.paidPill]}>
-                    <Ionicons name="checkmark-circle-outline" size={11} color="#34D399" />
-                    <Text style={[styles.metricText, styles.paidText]}>Paid off</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.originalText}>of {formatKr(item.originalAmount)}</Text>
-                )}
+                <Text style={styles.originalText}>of {formatKr(item.originalAmount)}</Text>
               </View>
 
               {/* Progress bar */}
               <View style={styles.progressTrack}>
                 <View
-                  style={[styles.progressFill, { width: `${Math.max(progressPercent, 2)}%` }]}
+                  style={[styles.progressFill, { width: `${Math.max(paidPercent, 2)}%` }]}
                 />
               </View>
 
               {/* Bottom row */}
               <View style={styles.bottomRow}>
-                <Text style={styles.paidAmountText}>{formatKr(paid)} paid</Text>
-                <Text style={styles.leftText}>
-                  {isPaidOff ? 'Fully repaid' : `${progressPercent}% · Left: ${formatKr(item.currentBalance)}`}
-                </Text>
+                <Text style={styles.paidAmountText}>{formatKr(paidAmount)} paid</Text>
+                <Text style={styles.leftText}>{`${paidPercent}% · Left: ${formatKr(item.currentBalance)}`}</Text>
               </View>
             </LinearGradient>
           </TouchableOpacity>
         )
           })}
+
+          {activePreview.hasOverflow ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={onToggleActiveExpanded}
+              style={styles.activeToggle}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: activePreview.showAllItems }}
+              accessibilityLabel={
+                activePreview.showAllItems
+                  ? 'Show fewer active borrowed loans'
+                  : `Show ${activePreview.hiddenCount} more active borrowed loans`
+              }
+            >
+              <View style={styles.activeToggleLeft}>
+                <View style={styles.activeToggleBadge}>
+                  <Text style={styles.activeToggleBadgeText}>
+                    {activePreview.showAllItems ? activePreview.totalCount : `+${activePreview.hiddenCount}`}
+                  </Text>
+                </View>
+                <View style={styles.activeToggleCopy}>
+                  <Text style={styles.activeToggleTitle}>{activeToggleTitle}</Text>
+                  <Text style={styles.activeToggleSub}>{activeToggleSub}</Text>
+                </View>
+              </View>
+              <Ionicons
+                name={activePreview.showAllItems ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="rgba(240,244,252,0.52)"
+              />
+            </TouchableOpacity>
+          ) : null}
         </>
       ) : null}
 
@@ -309,13 +352,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  paidPill: { backgroundColor: 'rgba(16,185,129,0.14)' },
   metricText: {
     color: 'rgba(199,216,255,0.9)',
     fontSize: 12,
     fontFamily: 'DMSans_600SemiBold',
   },
-  paidText: { color: '#34D399' },
   originalText: {
     color: 'rgba(199,216,255,0.55)',
     fontSize: 13,
@@ -341,6 +382,39 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_700Bold',
   },
   leftText: { color: '#EDF3FF', fontSize: 13, fontFamily: 'DMSans_700Bold' },
+  activeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  activeToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  activeToggleBadge: {
+    minWidth: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: 'rgba(109,178,255,0.16)',
+  },
+  activeToggleBadgeText: {
+    color: '#C7D8FF',
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: 'DMSans_700Bold',
+  },
+  activeToggleCopy: { flex: 1 },
+  activeToggleTitle: { color: '#EDF3FF', fontSize: 14, fontFamily: 'DMSans_700Bold' },
+  activeToggleSub: {
+    color: 'rgba(199,216,255,0.62)',
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 1,
+  },
   paidOffSection: { gap: 12 },
   paidOffToggle: {
     flexDirection: 'row',

@@ -3,11 +3,14 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 
+import { resolveActiveListPreview } from './activePreview'
 import type { Loan } from '../../services/loanApi'
 
 type Props = {
   items: Loan[]
   onPressItem: (item: Loan) => void
+  activeExpanded: boolean
+  onToggleActiveExpanded: () => void
 }
 
 function formatKr(value: number) {
@@ -56,7 +59,12 @@ function RepaidMiniCard({ item, onPress }: { item: Loan; onPress: () => void }) 
   )
 }
 
-export function LentLoansOverview({ items, onPressItem }: Props) {
+export function LentLoansOverview({
+  items,
+  onPressItem,
+  activeExpanded,
+  onToggleActiveExpanded,
+}: Props) {
   const activeItems = useMemo(() => items.filter((item) => item.status !== 'repaid'), [items])
   const repaidItems = useMemo(() => items.filter((item) => item.status === 'repaid'), [items])
 
@@ -69,6 +77,19 @@ export function LentLoansOverview({ items, onPressItem }: Props) {
     () => repaidItems.reduce((sum, item) => sum + item.amount, 0),
     [repaidItems],
   )
+
+  const activePreview = useMemo(
+    () => resolveActiveListPreview(activeItems, activeExpanded),
+    [activeExpanded, activeItems],
+  )
+
+  const activeToggleTitle = activePreview.showAllItems
+    ? 'Show less'
+    : `Show ${activePreview.hiddenCount} more`
+
+  const activeToggleSub = activePreview.showAllItems
+    ? `${activePreview.totalCount} active loans visible`
+    : `Showing ${activePreview.visibleCount} of ${activePreview.totalCount} active loans`
 
   const [repaidOpen, setRepaidOpen] = useState(false)
 
@@ -92,7 +113,7 @@ export function LentLoansOverview({ items, onPressItem }: Props) {
             <Text style={styles.sectionTitle}>Lent out</Text>
           </View>
 
-          {activeItems.map((item) => {
+          {activePreview.visibleItems.map((item) => {
             const overdue = item.status === 'overdue'
             const dueSoon = item.status === 'due_soon'
 
@@ -137,6 +158,38 @@ export function LentLoansOverview({ items, onPressItem }: Props) {
               </TouchableOpacity>
             )
           })}
+
+          {activePreview.hasOverflow ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={onToggleActiveExpanded}
+              style={styles.activeToggle}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: activePreview.showAllItems }}
+              accessibilityLabel={
+                activePreview.showAllItems
+                  ? 'Show fewer active lent loans'
+                  : `Show ${activePreview.hiddenCount} more active lent loans`
+              }
+            >
+              <View style={styles.activeToggleLeft}>
+                <View style={styles.activeToggleBadge}>
+                  <Text style={styles.activeToggleBadgeText}>
+                    {activePreview.showAllItems ? activePreview.totalCount : `+${activePreview.hiddenCount}`}
+                  </Text>
+                </View>
+                <View style={styles.activeToggleCopy}>
+                  <Text style={styles.activeToggleTitle}>{activeToggleTitle}</Text>
+                  <Text style={styles.activeToggleSub}>{activeToggleSub}</Text>
+                </View>
+              </View>
+              <Ionicons
+                name={activePreview.showAllItems ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="rgba(240,244,252,0.52)"
+              />
+            </TouchableOpacity>
+          ) : null}
         </>
       ) : null}
 
@@ -231,6 +284,39 @@ const styles = StyleSheet.create({
   statusWarning: { color: '#FFD99A' },
   bottomRow: { marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   bottomLabel: { color: 'rgba(220,230,255,0.75)', fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
+  activeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  activeToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  activeToggleBadge: {
+    minWidth: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: 'rgba(116,163,255,0.16)',
+  },
+  activeToggleBadgeText: {
+    color: '#DCE6FF',
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: 'DMSans_700Bold',
+  },
+  activeToggleCopy: { flex: 1 },
+  activeToggleTitle: { color: '#EDF3FF', fontSize: 14, fontFamily: 'DMSans_700Bold' },
+  activeToggleSub: {
+    color: 'rgba(220,230,255,0.62)',
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 1,
+  },
   repaidSection: { gap: 12 },
   repaidToggle: {
     flexDirection: 'row',

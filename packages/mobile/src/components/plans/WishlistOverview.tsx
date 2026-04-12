@@ -2,11 +2,21 @@ import React, { useMemo, useState } from 'react'
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { resolveGroupedActiveListPreview } from './activePreview'
 import type { WishlistPlanItem } from './types'
+
+type WishlistGroup = {
+  key: string
+  name: string
+  total: number
+  items: WishlistPlanItem[]
+}
 
 type Props = {
   items: WishlistPlanItem[]
   onPressItem: (item: WishlistPlanItem) => void
+  activeExpanded: boolean
+  onToggleActiveExpanded: () => void
 }
 
 function formatKr(value: number) {
@@ -23,7 +33,6 @@ function formatDomain(value: string) {
 
 const FULFILLED_CARD_W = 164
 
-// ADDED THIS — compact horizontal card for fulfilled items
 function FulfilledMiniCard({
   item,
   onPress,
@@ -75,14 +84,18 @@ function FulfilledMiniCard({
   )
 }
 
-export function WishlistOverview({ items, onPressItem }: Props) {
+export function WishlistOverview({
+  items,
+  onPressItem,
+  activeExpanded,
+  onToggleActiveExpanded,
+}: Props) {
   const totalLeft = useMemo(
     () => items.reduce((sum, item) => sum + Math.max(item.price - item.savedAmount, 0), 0),
     [items],
   )
 
-  // ADDED THIS — split into saving vs fulfilled
-  const savingItems = useMemo(
+  const activeItems = useMemo(
     () => items.filter((item) => !(item.savedAmount >= item.price && item.price > 0)),
     [items],
   )
@@ -95,19 +108,10 @@ export function WishlistOverview({ items, onPressItem }: Props) {
     [fulfilledItems],
   )
 
-  // Group only saving items by category
   const grouped = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        key: string
-        name: string
-        total: number
-        items: WishlistPlanItem[]
-      }
-    >()
+    const map = new Map<string, WishlistGroup>()
 
-    savingItems.forEach((item) => {
+    activeItems.forEach((item) => {
       const key = item.category?.id ?? 'uncategorized'
       const name = item.category?.name ?? 'Active'
       const existing = map.get(key)
@@ -120,7 +124,20 @@ export function WishlistOverview({ items, onPressItem }: Props) {
     })
 
     return Array.from(map.values())
-  }, [savingItems])
+  }, [activeItems])
+
+  const activePreview = useMemo(
+    () => resolveGroupedActiveListPreview<WishlistPlanItem, WishlistGroup>(grouped, activeExpanded),
+    [activeExpanded, grouped],
+  )
+
+  const activeToggleTitle = activePreview.showAllItems
+    ? 'Show less'
+    : `Show ${activePreview.hiddenCount} more`
+
+  const activeToggleSub = activePreview.showAllItems
+    ? `${activePreview.totalCount} active wishes visible`
+    : `Showing ${activePreview.visibleCount} of ${activePreview.totalCount} active wishes`
 
   const [fulfilledOpen, setFulfilledOpen] = useState(false)
 
@@ -137,7 +154,7 @@ export function WishlistOverview({ items, onPressItem }: Props) {
         </View>
       </View>
 
-      {grouped.map((group) => (
+      {activePreview.visibleGroups.map((group) => (
         <View key={group.key} style={styles.group}>
           <View style={styles.groupHeader}>
             <View>
@@ -158,7 +175,6 @@ export function WishlistOverview({ items, onPressItem }: Props) {
           {group.items.map((item) => {
             const progress = item.price > 0 ? Math.min(item.savedAmount / item.price, 1) : 0
             const left = Math.max(item.price - item.savedAmount, 0)
-            const purchased = item.savedAmount >= item.price && item.price > 0
             const domain = item.productUrl ? formatDomain(item.productUrl) : null
 
             return (
@@ -196,7 +212,7 @@ export function WishlistOverview({ items, onPressItem }: Props) {
 
                   <View style={styles.progressRow}>
                     <Text style={styles.bottomMetric}>{formatKr(item.savedAmount)}</Text>
-                    <Text style={styles.bottomMetric}>{purchased ? 'Purchased' : `${Math.round(progress * 100)} %`}</Text>
+                    <Text style={styles.bottomMetric}>{`${Math.round(progress * 100)} %`}</Text>
                   </View>
                   <View style={styles.progressTrack}>
                     <View style={[styles.progressFill, { width: `${Math.max(progress * 100, 3)}%` }]} />
@@ -206,7 +222,7 @@ export function WishlistOverview({ items, onPressItem }: Props) {
                       <Ionicons name="globe-outline" size={12} color="rgba(255,243,250,0.9)" />
                       <Text style={styles.domainText} numberOfLines={1}>{domain ?? 'No product link'}</Text>
                     </View>
-                    <Text style={styles.leftText}>{purchased ? 'Ready to buy' : `Left: ${formatKr(left)}`}</Text>
+                    <Text style={styles.leftText}>{`Left: ${formatKr(left)}`}</Text>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -214,6 +230,38 @@ export function WishlistOverview({ items, onPressItem }: Props) {
           })}
         </View>
       ))}
+
+      {activePreview.hasOverflow ? (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onToggleActiveExpanded}
+          style={styles.activeToggle}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: activePreview.showAllItems }}
+          accessibilityLabel={
+            activePreview.showAllItems
+              ? 'Show fewer active wishlist items'
+              : `Show ${activePreview.hiddenCount} more active wishlist items`
+          }
+        >
+          <View style={styles.activeToggleLeft}>
+            <View style={styles.activeToggleBadge}>
+              <Text style={styles.activeToggleBadgeText}>
+                {activePreview.showAllItems ? activePreview.totalCount : `+${activePreview.hiddenCount}`}
+              </Text>
+            </View>
+            <View style={styles.activeToggleCopy}>
+              <Text style={styles.activeToggleTitle}>{activeToggleTitle}</Text>
+              <Text style={styles.activeToggleSub}>{activeToggleSub}</Text>
+            </View>
+          </View>
+          <Ionicons
+            name={activePreview.showAllItems ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color="rgba(240,244,252,0.52)"
+          />
+        </TouchableOpacity>
+      ) : null}
 
       {/* Fulfilled — collapsible to prevent clutter */}
       {fulfilledItems.length > 0 ? (
@@ -318,6 +366,39 @@ const styles = StyleSheet.create({
   domainBadge: { maxWidth: 160, minHeight: 28, borderRadius: 14, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.12)' },
   domainText: { flexShrink: 1, color: 'rgba(255,233,246,0.9)', fontSize: 12, fontFamily: 'DMSans_700Bold' },
   leftText: { color: '#FFF5FC', fontSize: 12, fontFamily: 'DMSans_700Bold' },
+  activeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  activeToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  activeToggleBadge: {
+    minWidth: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  activeToggleBadgeText: {
+    color: '#FFF5FC',
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: 'DMSans_700Bold',
+  },
+  activeToggleCopy: { flex: 1 },
+  activeToggleTitle: { color: '#FFF5FC', fontSize: 14, fontFamily: 'DMSans_700Bold' },
+  activeToggleSub: {
+    color: 'rgba(255,240,249,0.64)',
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    marginTop: 1,
+  },
   fulfilledSection: {
     gap: 12,
   },
@@ -363,10 +444,6 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
     marginTop: 1,
   },
-  sectionHeader: { gap: 3, paddingHorizontal: 2 },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionTitle: { color: '#EAF0FA', fontSize: 17, fontFamily: 'DMSerifDisplay_400Regular' },
-  sectionSubtitle: { color: 'rgba(233,239,250,0.52)', fontSize: 13, fontFamily: 'DMSans_500Medium' },
   fScrollContent: { gap: 12, paddingRight: 4 },
   fCard: {
     borderRadius: 18,

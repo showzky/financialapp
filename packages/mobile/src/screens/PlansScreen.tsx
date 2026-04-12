@@ -68,6 +68,7 @@ function buildWishlistCategory(categoryName: string | null | undefined): Categor
     sortOrder: 0,
     isDefault: false,
     isArchived: false,
+    tracksVelocity: false,
     createdAt: '',
   }
 }
@@ -101,6 +102,11 @@ export function PlansScreen() {
   const pagerRef = useRef<PagerView>(null)
   const TAB_ORDER: PlansTabKey[] = ['wishlist', 'borrowed', 'lent']
   const [createVisible, setCreateVisible] = useState(false)
+  const [activeSectionExpanded, setActiveSectionExpanded] = useState<Record<PlansTabKey, boolean>>({
+    wishlist: false,
+    borrowed: false,
+    lent: false,
+  })
   const [wishlistItems, setWishlistItems] = useState<WishlistPlanItem[]>([])
   const wishlistFirstSeenAtRef = useRef<Record<string, string>>({})
   const [selectedWishlistItem, setSelectedWishlistItem] = useState<WishlistPlanItem | null>(null)
@@ -196,6 +202,13 @@ export function PlansScreen() {
   const hasBorrowedItems = borrowedLoanItems.length > 0
   const hasLentItems = lentLoanItems.length > 0
 
+  const toggleActiveSectionExpanded = useCallback((key: PlansTabKey) => {
+    setActiveSectionExpanded((current) => ({
+      ...current,
+      [key]: !current[key],
+    }))
+  }, [])
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={APP_BG} />
@@ -247,7 +260,12 @@ export function PlansScreen() {
         {/* Wishlist */}
         <ScrollView key="wishlist" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {hasWishlistItems ? (
-            <WishlistOverview items={wishlistItems} onPressItem={setSelectedWishlistItem} />
+            <WishlistOverview
+              items={wishlistItems}
+              onPressItem={setSelectedWishlistItem}
+              activeExpanded={activeSectionExpanded.wishlist}
+              onToggleActiveExpanded={() => toggleActiveSectionExpanded('wishlist')}
+            />
           ) : (
             <PlansEmptyState message={emptyLabels.wishlist} onCreate={() => setCreateVisible(true)} />
           )}
@@ -256,7 +274,12 @@ export function PlansScreen() {
         {/* Borrowed */}
         <ScrollView key="borrowed" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {hasBorrowedItems ? (
-            <BorrowedLoansOverview items={borrowedLoanItems} onPressItem={setSelectedBorrowedLoanItem} />
+            <BorrowedLoansOverview
+              items={borrowedLoanItems}
+              onPressItem={setSelectedBorrowedLoanItem}
+              activeExpanded={activeSectionExpanded.borrowed}
+              onToggleActiveExpanded={() => toggleActiveSectionExpanded('borrowed')}
+            />
           ) : (
             <PlansEmptyState message={emptyLabels.borrowed} onCreate={() => setCreateVisible(true)} />
           )}
@@ -265,7 +288,12 @@ export function PlansScreen() {
         {/* Lent */}
         <ScrollView key="lent" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {hasLentItems ? (
-            <LentLoansOverview items={lentLoanItems} onPressItem={setSelectedLentLoanItem} />
+            <LentLoansOverview
+              items={lentLoanItems}
+              onPressItem={setSelectedLentLoanItem}
+              activeExpanded={activeSectionExpanded.lent}
+              onToggleActiveExpanded={() => toggleActiveSectionExpanded('lent')}
+            />
           ) : (
             <PlansEmptyState message={emptyLabels.lent} onCreate={() => setCreateVisible(true)} />
           )}
