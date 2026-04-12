@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Image, LayoutAnimation, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, UIManager, View } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import PagerView from 'react-native-pager-view'
 import { useFocusEffect } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
@@ -19,7 +20,16 @@ import { LentLoansOverview } from '../components/plans/LentLoansOverview'
 import { PlansEmptyState } from '../components/plans/PlansEmptyState'
 import { PlansFab } from '../components/plans/PlansFab'
 import { PlansTabBar } from '../components/plans/PlansTabBar'
-import type { BorrowedLoanPaymentEntry, BorrowedLoanPlanItem, PlansTabKey, WishlistPlanItem } from '../components/plans/types'
+import {
+  DEFAULT_WISHLIST_SORT_OPTION,
+  isWishlistSortOption,
+  type BorrowedLoanPaymentEntry,
+  type BorrowedLoanPlanItem,
+  type PlansTabKey,
+  type WishlistCategoryDisplayPreference,
+  type WishlistPlanItem,
+  type WishlistSortOption,
+} from '../components/plans/types'
 import { WishlistCreateModal } from '../components/plans/WishlistCreateModal'
 import { WishlistDetailModal } from '../components/plans/WishlistDetailModal'
 import { WishlistOverview } from '../components/plans/WishlistOverview'
@@ -29,11 +39,94 @@ import { loanApi, type Loan } from '../services/loanApi'
 import { wishlistApi, type WishlistItem } from '../services/wishlistApi'
 
 const APP_BG = '#0A0A0E'
+const PLANS_DISPLAY_PREFERENCES_STORAGE_KEY = 'plans:display-preferences'
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true)
+}
+
+type PlansDisplayPreferences = {
+  activeSections: Partial<Record<PlansTabKey, boolean>>
+  wishlistCategories: Record<string, WishlistCategoryDisplayPreference>
+}
+
+const DEFAULT_ACTIVE_SECTION_EXPANDED: Record<PlansTabKey, boolean> = {
+  wishlist: false,
+  borrowed: false,
+  lent: false,
+}
+
+const PLANS_TAB_ORDER: readonly PlansTabKey[] = ['wishlist', 'borrowed', 'lent']
 
 const emptyLabels: Record<PlansTabKey, string> = {
   wishlist: 'No wishes',
   borrowed: 'No loans',
   lent: 'No debts',
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parsePlansDisplayPreferences(value: string | null): PlansDisplayPreferences | null {
+  if (!value) return null
+
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!isPlainRecord(parsed)) return null
+
+    const activeSectionsValue = isPlainRecord(parsed.activeSections) ? parsed.activeSections : null
+    const wishlistCategoriesValue = isPlainRecord(parsed.wishlistCategories) ? parsed.wishlistCategories : null
+    const activeSections: Partial<Record<PlansTabKey, boolean>> = {}
+    const wishlistCategories: Record<string, WishlistCategoryDisplayPreference> = {}
+
+    if (activeSectionsValue) {
+      ;(['wishlist', 'borrowed', 'lent'] as const).forEach((key) => {
+        const candidate = activeSectionsValue[key]
+        if (typeof candidate === 'boolean') {
+          activeSections[key] = candidate
+        }
+      })
+    }
+
+    if (wishlistCategoriesValue) {
+      Object.entries(wishlistCategoriesValue).forEach(([key, candidate]) => {
+        if (!isPlainRecord(candidate)) return
+
+        const collapsed = candidate.collapsed
+        const sort = candidate.sort
+
+        if (typeof collapsed !== 'boolean' || typeof sort !== 'string' || !isWishlistSortOption(sort)) {
+          return
+        }
+
+        wishlistCategories[key] = {
+          collapsed,
+          sort,
+        }
+      })
+    }
+
+    return {
+      activeSections,
+      wishlistCategories,
+    }
+  } catch {
+    return null
+  }
+}
+
+function animateLayoutChanges() {
+  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+}
+
+function resolveWishlistCategoryPreference(
+  preference?: WishlistCategoryDisplayPreference,
+): WishlistCategoryDisplayPreference {
+  return preference ?? {
+    collapsed: false,
+    sort: DEFAULT_WISHLIST_SORT_OPTION,
+  }
 }
 
 function mapBorrowedLoanToPlanItem(
@@ -100,15 +193,13 @@ export function PlansScreen() {
   const insets = useSafeAreaInsets()
   const [tab, setTab] = useState<PlansTabKey>('wishlist')
   const pagerRef = useRef<PagerView>(null)
-  const TAB_ORDER: PlansTabKey[] = ['wishlist', 'borrowed', 'lent']
   const [createVisible, setCreateVisible] = useState(false)
-  const [activeSectionExpanded, setActiveSectionExpanded] = useState<Record<PlansTabKey, boolean>>({
-    wishlist: false,
-    borrowed: false,
-    lent: false,
-  })
+  const [activeSectionExpanded, setActiveSectionExpanded] = useState<Record<PlansTabKey, boolean>>(DEFAULT_ACTIVE_SECTION_EXPANDED)
+  const [displayPreferencesHydrated, setDisplayPreferencesHydrated] = useState(false)
+  const [wishlistCategoryPreferences, setWishlistCategoryPreferences] = useState<Record<string, WishlistCategoryDisplayPreference>>({})
   const [wishlistItems, setWishlistItems] = useState<WishlistPlanItem[]>([])
   const wishlistFirstSeenAtRef = useRef<Record<string, string>>({})
+  const [wishlistInitialCategory, setWishlistInitialCategory] = useState<CategoryDto | null>(null)
   const [selectedWishlistItem, setSelectedWishlistItem] = useState<WishlistPlanItem | null>(null)
   const [editingWishlistItem, setEditingWishlistItem] = useState<WishlistPlanItem | null>(null)
   const [borrowedLoanItems, setBorrowedLoanItems] = useState<BorrowedLoanPlanItem[]>([])
@@ -188,6 +279,52 @@ export function PlansScreen() {
     }, [loadBorrowedLoans, loadLentLoans, loadWishlist, selectedBorrowedLoanItem?.id, selectedLentLoanItem?.id, selectedWishlistItem?.id]),
   )
 
+  useEffect(() => {
+    const hydrateDisplayPreferences = async () => {
+      try {
+        const parsed = parsePlansDisplayPreferences(
+          await AsyncStorage.getItem(PLANS_DISPLAY_PREFERENCES_STORAGE_KEY),
+        )
+
+        if (!parsed) return
+
+        setActiveSectionExpanded((current) => ({
+          ...current,
+          ...parsed.activeSections,
+        }))
+        setWishlistCategoryPreferences(parsed.wishlistCategories)
+      } catch {
+        // Ignore hydration failures and fall back to the in-memory defaults.
+      } finally {
+        setDisplayPreferencesHydrated(true)
+      }
+    }
+
+    void hydrateDisplayPreferences()
+  }, [])
+
+  useEffect(() => {
+    if (!displayPreferencesHydrated) return
+
+    const persistDisplayPreferences = async () => {
+      try {
+        const nextPreferences: PlansDisplayPreferences = {
+          activeSections: activeSectionExpanded,
+          wishlistCategories: wishlistCategoryPreferences,
+        }
+
+        await AsyncStorage.setItem(
+          PLANS_DISPLAY_PREFERENCES_STORAGE_KEY,
+          JSON.stringify(nextPreferences),
+        )
+      } catch {
+        // Ignore persistence failures and keep the UI state responsive.
+      }
+    }
+
+    void persistDisplayPreferences()
+  }, [activeSectionExpanded, displayPreferencesHydrated, wishlistCategoryPreferences])
+
   const avatarSeed = user?.displayName || user?.email || 'OrionLedger'
   const counts = useMemo(
     () => ({
@@ -202,12 +339,58 @@ export function PlansScreen() {
   const hasBorrowedItems = borrowedLoanItems.length > 0
   const hasLentItems = lentLoanItems.length > 0
 
+  const openCreateModal = useCallback(() => {
+    if (tab === 'wishlist') {
+      setEditingWishlistItem(null)
+      setWishlistInitialCategory(null)
+    }
+
+    setCreateVisible(true)
+  }, [tab])
+
+  const openWishlistCreateForCategory = useCallback((category: WishlistPlanItem['category']) => {
+    setSelectedWishlistItem(null)
+    setEditingWishlistItem(null)
+    setWishlistInitialCategory(category ?? null)
+    setCreateVisible(true)
+  }, [])
+
   const toggleActiveSectionExpanded = useCallback((key: PlansTabKey) => {
+    animateLayoutChanges()
     setActiveSectionExpanded((current) => ({
       ...current,
       [key]: !current[key],
     }))
   }, [])
+
+  const updateWishlistCategoryPreference = useCallback(
+    (
+      categoryKey: string,
+      updater: (current: WishlistCategoryDisplayPreference) => WishlistCategoryDisplayPreference,
+    ) => {
+      animateLayoutChanges()
+
+      setWishlistCategoryPreferences((current) => ({
+        ...current,
+        [categoryKey]: updater(resolveWishlistCategoryPreference(current[categoryKey])),
+      }))
+    },
+    [],
+  )
+
+  const setWishlistCategoryCollapsed = useCallback((categoryKey: string, collapsed: boolean) => {
+    updateWishlistCategoryPreference(categoryKey, (current) => ({
+      ...current,
+      collapsed,
+    }))
+  }, [updateWishlistCategoryPreference])
+
+  const setWishlistCategorySort = useCallback((categoryKey: string, sort: WishlistSortOption) => {
+    updateWishlistCategoryPreference(categoryKey, (current) => ({
+      ...current,
+      sort,
+    }))
+  }, [updateWishlistCategoryPreference])
 
   return (
     <View style={styles.root}>
@@ -246,7 +429,7 @@ export function PlansScreen() {
           counts={counts}
           onChange={(next) => {
             setTab(next)
-            pagerRef.current?.setPage(TAB_ORDER.indexOf(next))
+            pagerRef.current?.setPage(PLANS_TAB_ORDER.indexOf(next))
           }}
         />
       </Animated.View>
@@ -255,7 +438,7 @@ export function PlansScreen() {
         ref={pagerRef}
         style={styles.pager}
         initialPage={0}
-        onPageSelected={(e) => setTab(TAB_ORDER[e.nativeEvent.position] ?? 'wishlist')}
+        onPageSelected={(e) => setTab(PLANS_TAB_ORDER[e.nativeEvent.position] ?? 'wishlist')}
       >
         {/* Wishlist */}
         <ScrollView key="wishlist" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -265,9 +448,13 @@ export function PlansScreen() {
               onPressItem={setSelectedWishlistItem}
               activeExpanded={activeSectionExpanded.wishlist}
               onToggleActiveExpanded={() => toggleActiveSectionExpanded('wishlist')}
+              categoryPreferences={wishlistCategoryPreferences}
+              onSetCategoryCollapsed={setWishlistCategoryCollapsed}
+              onSetCategorySort={setWishlistCategorySort}
+              onAddWishInCategory={openWishlistCreateForCategory}
             />
           ) : (
-            <PlansEmptyState message={emptyLabels.wishlist} onCreate={() => setCreateVisible(true)} />
+            <PlansEmptyState message={emptyLabels.wishlist} onCreate={openCreateModal} />
           )}
         </ScrollView>
 
@@ -281,7 +468,7 @@ export function PlansScreen() {
               onToggleActiveExpanded={() => toggleActiveSectionExpanded('borrowed')}
             />
           ) : (
-            <PlansEmptyState message={emptyLabels.borrowed} onCreate={() => setCreateVisible(true)} />
+            <PlansEmptyState message={emptyLabels.borrowed} onCreate={openCreateModal} />
           )}
         </ScrollView>
 
@@ -295,19 +482,21 @@ export function PlansScreen() {
               onToggleActiveExpanded={() => toggleActiveSectionExpanded('lent')}
             />
           ) : (
-            <PlansEmptyState message={emptyLabels.lent} onCreate={() => setCreateVisible(true)} />
+            <PlansEmptyState message={emptyLabels.lent} onCreate={openCreateModal} />
           )}
         </ScrollView>
       </PagerView>
 
-      <PlansFab bottomOffset={Math.max(insets.bottom + 24, 112)} onPress={() => setCreateVisible(true)} />
+      <PlansFab bottomOffset={Math.max(insets.bottom + 24, 112)} onPress={openCreateModal} />
 
       {tab === 'wishlist' ? (
         <WishlistCreateModal
           visible={createVisible || Boolean(editingWishlistItem)}
           initialItem={editingWishlistItem}
+          initialCategory={wishlistInitialCategory}
           onClose={() => {
             setCreateVisible(false)
+            setWishlistInitialCategory(null)
             setEditingWishlistItem(null)
           }}
           onSave={async (item) => {
@@ -333,6 +522,7 @@ export function PlansScreen() {
               })
             }
 
+            setWishlistInitialCategory(null)
             setEditingWishlistItem(null)
             await loadWishlist(selectedWishlistItem?.id ?? null)
           }}
@@ -443,6 +633,7 @@ export function PlansScreen() {
         onEdit={(item) => {
           setSelectedWishlistItem(null)
           setCreateVisible(false)
+          setWishlistInitialCategory(null)
           setEditingWishlistItem(item)
         }}
         onMarkPurchased={async (itemId) => {

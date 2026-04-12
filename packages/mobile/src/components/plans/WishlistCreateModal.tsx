@@ -24,6 +24,7 @@ import type { WishlistPlanItem } from './types'
 type Props = {
   visible: boolean
   initialItem?: WishlistPlanItem | null
+  initialCategory?: CategoryDto | null
   onClose: () => void
   onSave: (item: WishlistPlanItem) => void | Promise<void>
 }
@@ -53,7 +54,7 @@ function isHttpUrl(value: string) {
   }
 }
 
-export function WishlistCreateModal({ visible, initialItem, onClose, onSave }: Props) {
+export function WishlistCreateModal({ visible, initialItem, initialCategory, onClose, onSave }: Props) {
   const previewRequestIdRef = useRef(0)
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
@@ -82,13 +83,13 @@ export function WishlistCreateModal({ visible, initialItem, onClose, onSave }: P
 
     setName(initialItem?.name ?? '')
     setNotes(initialItem?.notes ?? '')
-    setSelectedCategory(initialItem?.category ?? null)
+    setSelectedCategory(initialItem?.category ?? initialCategory ?? null)
     setProductUrl(initialItem?.productUrl ?? '')
     setPrice(initialItem ? String(initialItem.price) : '')
     setSavedAmount(initialItem ? String(initialItem.savedAmount) : '')
     setDate(initialItem ? new Date(initialItem.date) : new Date())
     setImageUri(initialItem?.imageUri ?? null)
-  }, [visible, initialItem])
+  }, [visible, initialCategory, initialItem])
 
   useEffect(() => {
     if (!visible || normalizedUrl.length === 0) {
@@ -177,7 +178,7 @@ export function WishlistCreateModal({ visible, initialItem, onClose, onSave }: P
     }
   }
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!canSubmit) return
 
     const nextItem: WishlistPlanItem = {
@@ -357,7 +358,7 @@ export function WishlistCreateModal({ visible, initialItem, onClose, onSave }: P
                 </View>
               </View>
 
-              <TouchableOpacity activeOpacity={0.9} onPress={handleCreate} disabled={!canSubmit}>
+              <TouchableOpacity activeOpacity={0.9} onPress={handleSave} disabled={!canSubmit}>
                 <LinearGradient colors={['#6DB2FF', '#4C89E8']} style={[styles.primaryButton, !canSubmit && styles.primaryButtonDisabled]}>
                 <Text style={styles.primaryButtonText}>{initialItem ? 'Save' : 'Create'}</Text>
               </LinearGradient>

@@ -2,6 +2,26 @@ import type { CategoryDto } from '../../services/categoryApi'
 
 export type PlansTabKey = 'wishlist' | 'borrowed' | 'lent'
 
+export const WISHLIST_SORT_OPTIONS = [
+  'closest-funded',
+  'highest-price',
+  'lowest-left',
+  'newest',
+] as const
+
+export type WishlistSortOption = (typeof WISHLIST_SORT_OPTIONS)[number]
+
+export const DEFAULT_WISHLIST_SORT_OPTION: WishlistSortOption = 'newest'
+
+export type WishlistCategoryDisplayPreference = {
+  collapsed: boolean
+  sort: WishlistSortOption
+}
+
+export function isWishlistSortOption(value: string): value is WishlistSortOption {
+  return (WISHLIST_SORT_OPTIONS as readonly string[]).includes(value)
+}
+
 export type BorrowedLoanPaymentEntry = {
   id: string
   amount: number
