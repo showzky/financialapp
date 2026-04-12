@@ -20,6 +20,7 @@ const sampleSubscription: Subscription = {
   cadence: 'monthly',
   priceCents: 12900,
   nextRenewalDate: '2026-03-05',
+  iconUrl: null,
   notes: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

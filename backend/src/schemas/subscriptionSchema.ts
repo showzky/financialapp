@@ -4,6 +4,15 @@ export const subscriptionStatusSchema = z.enum(['active', 'paused', 'canceled'])
 export const billingCadenceSchema = z.enum(['monthly', 'yearly'])
 
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/
+const imageDataUrlRegex = /^data:image\/[a-z0-9.+-]+;base64,/i
+
+const iconUrlSchema = z
+  .string()
+  .trim()
+  .max(200_000)
+  .refine((value) => /^https:\/\//i.test(value) || imageDataUrlRegex.test(value), {
+    message: 'iconUrl must use HTTPS or be an image data URL',
+  })
 
 const isValidIsoDate = (value: string): boolean => {
   const match = isoDateRegex.exec(value)
@@ -39,13 +48,7 @@ export const createSubscriptionSchema = z.object({
     .string()
     .regex(isoDateRegex, 'nextRenewalDate must be in YYYY-MM-DD format')
     .refine(isValidIsoDate, 'nextRenewalDate must be a real calendar date'),
-  iconUrl: z
-    .string()
-    .url()
-    .max(2048)
-    .refine((u) => /^https:\/\//i.test(u), { message: 'iconUrl must use HTTPS' })
-    .nullable()
-    .optional(),
+  iconUrl: iconUrlSchema.nullable().optional(),
   notes: notesSchema.nullable().optional(),
 })
 
@@ -62,13 +65,7 @@ export const updateSubscriptionSchema = z
       .regex(isoDateRegex, 'nextRenewalDate must be in YYYY-MM-DD format')
       .refine(isValidIsoDate, 'nextRenewalDate must be a real calendar date')
       .optional(),
-    iconUrl: z
-      .string()
-      .url()
-      .max(2048)
-      .refine((u) => /^https:\/\//i.test(u), { message: 'iconUrl must use HTTPS' })
-      .nullable()
-      .optional(),
+    iconUrl: iconUrlSchema.nullable().optional(),
     notes: notesSchema.nullable().optional(),
   })
   .refine(

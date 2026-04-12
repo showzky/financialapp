@@ -69,6 +69,7 @@ export function LoanIconPickerField({ value, onSelect }: Props) {
             <Image
               source={{ uri: value.imageUrl }}
               style={styles.triggerLogo}
+              resizeMode="contain"
               onError={() => setImageErrors(prev => ({ ...prev, [value.imageUrl]: true }))}
             />
           )
@@ -145,6 +146,7 @@ export function LoanIconPickerField({ value, onSelect }: Props) {
                       <Image
                         source={{ uri: item.imageUrl }}
                         style={styles.resultLogo}
+                        resizeMode="contain"
                         onError={() => setImageErrors(prev => ({ ...prev, [item.imageUrl]: true }))}
                       />
                     )}

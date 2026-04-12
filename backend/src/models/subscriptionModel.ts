@@ -57,7 +57,7 @@ const subscriptionSelect = `
   status,
   cadence,
   price_cents AS "priceCents",
-  next_renewal_date AS "nextRenewalDate",
+  TO_CHAR(next_renewal_date, 'YYYY-MM-DD') AS "nextRenewalDate",
   icon_url AS "iconUrl",
   notes,
   created_at AS "createdAt",
