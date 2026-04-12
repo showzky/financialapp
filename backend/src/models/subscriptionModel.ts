@@ -15,6 +15,7 @@ export type Subscription = {
   nextRenewalDate: string
   // optional alternative billing date present in some data flows
   nextBillingDate?: string
+  iconUrl: string | null
   notes: string | null
   createdAt: string
   updatedAt: string
@@ -30,6 +31,7 @@ export type CreateSubscriptionInput = {
   priceCents: number
   nextRenewalDate: string
   nextBillingDate?: string
+  iconUrl?: string | null
   notes?: string | null
 }
 
@@ -42,6 +44,7 @@ export type UpdateSubscriptionInput = {
   priceCents?: number | undefined
   nextRenewalDate?: string | undefined
   nextBillingDate?: string | undefined
+  iconUrl?: string | null | undefined
   notes?: string | null | undefined
 }
 
@@ -55,6 +58,7 @@ const subscriptionSelect = `
   cadence,
   price_cents AS "priceCents",
   next_renewal_date AS "nextRenewalDate",
+  icon_url AS "iconUrl",
   notes,
   created_at AS "createdAt",
   updated_at AS "updatedAt"
@@ -101,9 +105,10 @@ export const subscriptionModel = {
         cadence,
         price_cents,
         next_renewal_date,
+        icon_url,
         notes
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING ${subscriptionSelect}
       `,
       [
@@ -115,6 +120,7 @@ export const subscriptionModel = {
         input.cadence,
         input.priceCents,
         input.nextRenewalDate,
+        input.iconUrl ?? null,
         input.notes ?? null,
       ],
     )
@@ -130,6 +136,7 @@ export const subscriptionModel = {
   async update(id: string, userId: string, input: UpdateSubscriptionInput): Promise<Subscription | null> {
     const hasPriceUpdate = input.priceCents !== undefined
     const hasNotesUpdate = input.notes !== undefined
+    const hasIconUpdate = input.iconUrl !== undefined
 
     const result = await db.query<Subscription>(
       `
@@ -143,6 +150,7 @@ export const subscriptionModel = {
         price_cents = CASE WHEN $8 THEN $9 ELSE price_cents END,
         next_renewal_date = COALESCE($10, next_renewal_date),
         notes = CASE WHEN $11 THEN $12 ELSE notes END,
+        icon_url = CASE WHEN $13 THEN $14 ELSE icon_url END,
         updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING ${subscriptionSelect}
@@ -160,6 +168,8 @@ export const subscriptionModel = {
         input.nextRenewalDate ?? null,
         hasNotesUpdate,
         input.notes ?? null,
+        hasIconUpdate,
+        input.iconUrl ?? null,
       ],
     )
 

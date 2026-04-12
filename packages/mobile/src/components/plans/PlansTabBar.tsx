@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import type { PlansTabKey } from './types'
 
 type Props = {
@@ -12,11 +12,16 @@ const labels: Record<PlansTabKey, string> = {
   wishlist: 'WISHLIST',
   borrowed: 'MY LOANS',
   lent: 'LENT OUT',
+  subscriptions: 'RECURRING',
 }
 
 export function PlansTabBar({ value, counts, onChange }: Props) {
   return (
-    <View style={styles.wrap}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.wrap}
+    >
       {(Object.keys(labels) as PlansTabKey[]).map((key) => {
         const active = key === value
         return (
@@ -32,18 +37,17 @@ export function PlansTabBar({ value, counts, onChange }: Props) {
           </TouchableOpacity>
         )
       })}
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    marginTop: 22,
     flexDirection: 'row',
     gap: 10,
+    paddingRight: 4,
   },
   tab: {
-    flex: 1,
     minHeight: 44,
     borderRadius: 18,
     alignItems: 'center',
@@ -51,7 +55,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
   },
   tabActive: {
     backgroundColor: 'rgba(123,82,220,0.92)',

@@ -13,6 +13,7 @@ export type Subscription = {
   nextRenewalDate: string
   // optional alternative billing date present in some data flows
   nextBillingDate?: string
+  iconUrl?: string | null
   notes?: string
 }
 
@@ -25,6 +26,7 @@ export type CreateSubscriptionPayload = {
   priceCents: number
   nextRenewalDate: string
   nextBillingDate?: string
+  iconUrl?: string | null
   notes?: string | null
 }
 
@@ -37,6 +39,7 @@ export type UpdateSubscriptionPayload = {
   priceCents?: number
   nextRenewalDate?: string
   nextBillingDate?: string
+  iconUrl?: string | null
   notes?: string | null
 }
 

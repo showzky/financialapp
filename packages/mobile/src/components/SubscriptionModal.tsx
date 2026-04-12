@@ -12,9 +12,10 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 
-import { useScreenPalette } from '../customthemes'
 import type { CreateSubscriptionPayload, Subscription, SubscriptionStatus } from '../services/subscriptionApi'
+import { LoanIconPickerField, type LoanIconValue } from './plans/LoanIconPickerField'
 
 type Props = {
   isOpen: boolean
@@ -32,6 +33,7 @@ type FormState = {
   price: string
   nextRenewalDate: string
   notes: string
+  icon: LoanIconValue | null
 }
 
 const defaultFormState: FormState = {
@@ -43,6 +45,7 @@ const defaultFormState: FormState = {
   price: '',
   nextRenewalDate: '',
   notes: '',
+  icon: null,
 }
 
 const isValidIsoDate = (value: string) => {
@@ -79,11 +82,11 @@ const buildFormState = (subscription: Subscription | null): FormState => {
     price: formatPriceFromCents(subscription.priceCents),
     nextRenewalDate: subscription.nextRenewalDate,
     notes: subscription.notes ?? '',
+    icon: subscription.iconUrl ? { label: subscription.provider, imageUrl: subscription.iconUrl } : null,
   }
 }
 
 export function SubscriptionModal({ isOpen, subscription, onClose, onSubmit }: Props) {
-  const { activeTheme, colors } = useScreenPalette()
   const [form, setForm] = useState<FormState>(defaultFormState)
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -142,6 +145,7 @@ export function SubscriptionModal({ isOpen, subscription, onClose, onSubmit }: P
         cadence: form.cadence,
         priceCents,
         nextRenewalDate: form.nextRenewalDate,
+        iconUrl: form.icon?.imageUrl ?? null,
         notes: form.notes.trim() ? form.notes.trim() : null,
       })
     } catch (error) {
@@ -167,366 +171,334 @@ export function SubscriptionModal({ isOpen, subscription, onClose, onSubmit }: P
   ]
 
   return (
-    <Modal visible={isOpen} transparent animationType="slide" onRequestClose={handleClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
+    <Modal visible={isOpen} animationType="slide" transparent onRequestClose={handleClose}>
+      <View style={styles.root}>
+        <View style={styles.overlay} />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.keyboardView}
+          style={styles.sheetWrap}
         >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={[
-              styles.card,
-              {
-                backgroundColor: activeTheme.colors.surface,
-                borderColor: activeTheme.colors.surfaceBorder,
-              },
-            ]}
-          >
-            <View style={styles.cardHeader}>
-              <View style={styles.titleWrap}>
-                <Text style={[styles.eyebrow, { color: activeTheme.colors.mutedText }]}>Subscriptions</Text>
-                <Text style={[styles.cardTitle, { color: activeTheme.colors.text }]}>
-                  {subscription ? 'Edit Subscription' : 'Add Subscription'}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color={activeTheme.colors.mutedText} />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.sheet}>
+            <LinearGradient colors={['#141324', '#0d0d18']} style={StyleSheet.absoluteFill} />
 
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: activeTheme.colors.text }]}>Name</Text>
+            <ScrollView
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}
+                >
+                  <Ionicons name="arrow-back" size={18} color="rgba(255,255,255,0.45)" />
+                </TouchableOpacity>
+                <Text style={styles.title}>
+                  {subscription ? 'Edit subscription' : 'Add subscription'}
+                </Text>
+                <View style={styles.headerSpacer} />
+              </View>
+
+              {/* Service logo */}
+              <View style={styles.section}>
+                <Text style={styles.label}>SERVICE LOGO</Text>
+                <LoanIconPickerField
+                  value={form.icon}
+                  onSelect={(icon) => setField('icon', icon)}
+                />
+              </View>
+
+              {/* Name */}
+              <View style={styles.section}>
+                <Text style={styles.label}>NAME</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.inputBackground,
-                      borderColor: hasTriedSubmit && errors.name ? activeTheme.colors.danger : activeTheme.colors.surfaceBorder,
-                      color: activeTheme.colors.text,
-                    },
-                  ]}
+                  style={[styles.textInput, hasTriedSubmit && errors.name ? styles.inputError : null]}
                   placeholder="Spotify Premium"
-                  placeholderTextColor={activeTheme.colors.subtleText}
+                  placeholderTextColor="rgba(255,255,255,0.16)"
                   value={form.name}
                   onChangeText={(value) => setField('name', value)}
                   returnKeyType="next"
                 />
-                {hasTriedSubmit && errors.name ? <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{errors.name}</Text> : null}
+                {hasTriedSubmit && errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
               </View>
 
+              {/* Provider + Category */}
               <View style={styles.row}>
-                <View style={[styles.field, styles.rowField]}>
-                  <Text style={[styles.label, { color: activeTheme.colors.text }]}>Provider</Text>
+                <View style={[styles.section, styles.rowField]}>
+                  <Text style={styles.label}>PROVIDER</Text>
                   <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: colors.inputBackground,
-                        borderColor: hasTriedSubmit && errors.provider ? activeTheme.colors.danger : activeTheme.colors.surfaceBorder,
-                        color: activeTheme.colors.text,
-                      },
-                    ]}
+                    style={[styles.textInput, hasTriedSubmit && errors.provider ? styles.inputError : null]}
                     placeholder="Spotify"
-                    placeholderTextColor={activeTheme.colors.subtleText}
+                    placeholderTextColor="rgba(255,255,255,0.16)"
                     value={form.provider}
                     onChangeText={(value) => setField('provider', value)}
                     returnKeyType="next"
                   />
-                  {hasTriedSubmit && errors.provider ? <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{errors.provider}</Text> : null}
+                  {hasTriedSubmit && errors.provider ? <Text style={styles.errorText}>{errors.provider}</Text> : null}
                 </View>
 
-                <View style={[styles.field, styles.rowField]}>
-                  <Text style={[styles.label, { color: activeTheme.colors.text }]}>Category</Text>
+                <View style={[styles.section, styles.rowField]}>
+                  <Text style={styles.label}>CATEGORY</Text>
                   <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: colors.inputBackground,
-                        borderColor: hasTriedSubmit && errors.category ? activeTheme.colors.danger : activeTheme.colors.surfaceBorder,
-                        color: activeTheme.colors.text,
-                      },
-                    ]}
+                    style={[styles.textInput, hasTriedSubmit && errors.category ? styles.inputError : null]}
                     placeholder="Streaming"
-                    placeholderTextColor={activeTheme.colors.subtleText}
+                    placeholderTextColor="rgba(255,255,255,0.16)"
                     value={form.category}
                     onChangeText={(value) => setField('category', value)}
                     returnKeyType="next"
                   />
-                  {hasTriedSubmit && errors.category ? <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{errors.category}</Text> : null}
+                  {hasTriedSubmit && errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
                 </View>
               </View>
 
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: activeTheme.colors.text }]}>Status</Text>
-                <View style={styles.optionRow}>
-                  {statusOptions.map((option) => {
-                    const selected = form.status === option.value
+              {/* Status */}
+              <View style={styles.section}>
+                <Text style={styles.label}>STATUS</Text>
+                <View style={styles.chipRow}>
+                  {statusOptions.map((opt) => {
+                    const active = form.status === opt.value
                     return (
                       <TouchableOpacity
-                        key={option.value}
-                        style={[
-                          styles.choiceChip,
-                          {
-                            backgroundColor: selected ? activeTheme.colors.accentSoft : activeTheme.colors.surfaceAlt,
-                            borderColor: selected ? activeTheme.colors.accentLine : activeTheme.colors.surfaceBorder,
-                          },
-                        ]}
-                        onPress={() => setField('status', option.value)}
+                        key={opt.value}
+                        style={[styles.chip, active && styles.chipActive]}
+                        onPress={() => setField('status', opt.value)}
                         activeOpacity={0.85}
                       >
-                        <Text style={[styles.choiceChipText, { color: selected ? activeTheme.colors.accent : activeTheme.colors.mutedText }]}>{option.label}</Text>
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
                       </TouchableOpacity>
                     )
                   })}
                 </View>
               </View>
 
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: activeTheme.colors.text }]}>Billing cadence</Text>
-                <View style={styles.optionRow}>
-                  {cadenceOptions.map((option) => {
-                    const selected = form.cadence === option.value
+              {/* Cadence */}
+              <View style={styles.section}>
+                <Text style={styles.label}>BILLING CADENCE</Text>
+                <View style={styles.chipRow}>
+                  {cadenceOptions.map((opt) => {
+                    const active = form.cadence === opt.value
                     return (
                       <TouchableOpacity
-                        key={option.value}
-                        style={[
-                          styles.choiceChip,
-                          {
-                            backgroundColor: selected ? activeTheme.colors.secondarySoft : activeTheme.colors.surfaceAlt,
-                            borderColor: selected ? activeTheme.colors.secondaryLine : activeTheme.colors.surfaceBorder,
-                          },
-                        ]}
-                        onPress={() => setField('cadence', option.value)}
+                        key={opt.value}
+                        style={[styles.chip, active && styles.chipActiveBlue]}
+                        onPress={() => setField('cadence', opt.value)}
                         activeOpacity={0.85}
                       >
-                        <Text style={[styles.choiceChipText, { color: selected ? activeTheme.colors.secondary : activeTheme.colors.mutedText }]}>{option.label}</Text>
+                        <Text style={[styles.chipText, active && styles.chipTextActiveBlue]}>{opt.label}</Text>
                       </TouchableOpacity>
                     )
                   })}
                 </View>
               </View>
 
+              {/* Price + Next renewal */}
               <View style={styles.row}>
-                <View style={[styles.field, styles.rowField]}>
-                  <Text style={[styles.label, { color: activeTheme.colors.text }]}>Price (NOK)</Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: colors.inputBackground,
-                        borderColor: hasTriedSubmit && errors.price ? activeTheme.colors.danger : activeTheme.colors.surfaceBorder,
-                        color: activeTheme.colors.text,
-                      },
-                    ]}
-                    placeholder="149"
-                    placeholderTextColor={activeTheme.colors.subtleText}
-                    value={form.price}
-                    onChangeText={(value) => setField('price', value)}
-                    keyboardType="decimal-pad"
-                    returnKeyType="next"
-                  />
-                  {hasTriedSubmit && errors.price ? <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{errors.price}</Text> : null}
+                <View style={[styles.section, styles.rowField]}>
+                  <Text style={styles.label}>PRICE (NOK)</Text>
+                  <View style={styles.amountRow}>
+                    <TextInput
+                      style={[styles.textInput, styles.amountInput, hasTriedSubmit && errors.price ? styles.inputError : null]}
+                      placeholder="149"
+                      placeholderTextColor="rgba(255,255,255,0.16)"
+                      value={form.price}
+                      onChangeText={(value) => setField('price', value)}
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                    />
+                    <View style={styles.unitPill}>
+                      <Text style={styles.unitText}>NOK</Text>
+                    </View>
+                  </View>
+                  {hasTriedSubmit && errors.price ? <Text style={styles.errorText}>{errors.price}</Text> : null}
                 </View>
 
-                <View style={[styles.field, styles.rowField]}>
-                  <Text style={[styles.label, { color: activeTheme.colors.text }]}>Next renewal</Text>
+                <View style={[styles.section, styles.rowField]}>
+                  <Text style={styles.label}>NEXT RENEWAL</Text>
                   <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: colors.inputBackground,
-                        borderColor: hasTriedSubmit && errors.nextRenewalDate ? activeTheme.colors.danger : activeTheme.colors.surfaceBorder,
-                        color: activeTheme.colors.text,
-                      },
-                    ]}
+                    style={[styles.textInput, hasTriedSubmit && errors.nextRenewalDate ? styles.inputError : null]}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor={activeTheme.colors.subtleText}
+                    placeholderTextColor="rgba(255,255,255,0.16)"
                     value={form.nextRenewalDate}
                     onChangeText={(value) => setField('nextRenewalDate', value)}
                     keyboardType="numbers-and-punctuation"
                     maxLength={10}
                     returnKeyType="done"
                   />
-                  {hasTriedSubmit && errors.nextRenewalDate ? <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{errors.nextRenewalDate}</Text> : null}
+                  {hasTriedSubmit && errors.nextRenewalDate ? <Text style={styles.errorText}>{errors.nextRenewalDate}</Text> : null}
                 </View>
               </View>
 
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: activeTheme.colors.text }]}>Notes</Text>
+              {/* Notes */}
+              <View style={styles.section}>
+                <Text style={styles.label}>NOTES</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    styles.notesInput,
-                    {
-                      backgroundColor: colors.inputBackground,
-                      borderColor: hasTriedSubmit && errors.notes ? activeTheme.colors.danger : activeTheme.colors.surfaceBorder,
-                      color: activeTheme.colors.text,
-                    },
-                  ]}
+                  style={[styles.textInput, styles.notesInput]}
                   placeholder="Optional context"
-                  placeholderTextColor={activeTheme.colors.subtleText}
+                  placeholderTextColor="rgba(255,255,255,0.12)"
                   value={form.notes}
                   onChangeText={(value) => setField('notes', value)}
                   multiline
                   textAlignVertical="top"
                   maxLength={2000}
                 />
-                <View style={styles.fieldFooter}>
-                  {hasTriedSubmit && errors.notes ? <Text style={[styles.errorText, { color: activeTheme.colors.danger }]}>{errors.notes}</Text> : <View />}
-                  <Text style={[styles.helperText, { color: activeTheme.colors.mutedText }]}>{form.notes.length}/2000</Text>
-                </View>
+                <Text style={styles.counter}>{form.notes.length}/2000</Text>
               </View>
 
               {submitError ? (
-                <View style={[styles.errorBanner, { backgroundColor: activeTheme.colors.surfaceAlt, borderColor: activeTheme.colors.danger }]}>
-                  <Ionicons name="alert-circle" size={16} color={activeTheme.colors.danger} />
-                  <Text style={[styles.errorBannerText, { color: activeTheme.colors.danger }]}>{submitError}</Text>
+                <View style={styles.errorBanner}>
+                  <Ionicons name="alert-circle" size={15} color="#F5797E" />
+                  <Text style={styles.errorBannerText}>{submitError}</Text>
                 </View>
               ) : null}
 
-              <View style={styles.actionRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.secondaryButton,
-                    {
-                      backgroundColor: activeTheme.colors.surfaceAlt,
-                      borderColor: activeTheme.colors.surfaceBorder,
-                    },
-                  ]}
-                  onPress={handleClose}
-                  disabled={submitting}
-                  activeOpacity={0.85}
-                >
-                  <Text style={[styles.secondaryButtonText, { color: activeTheme.colors.text }]}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: activeTheme.colors.accentSoft,
-                      borderColor: activeTheme.colors.accentLine,
-                    },
-                  ]}
-                  onPress={handleSubmit}
-                  disabled={submitting}
-                  activeOpacity={0.85}
-                >
+              {/* Submit */}
+              <TouchableOpacity activeOpacity={0.9} onPress={() => void handleSubmit()} disabled={submitting}>
+                <LinearGradient colors={['#7B52DC', '#5B3AB8']} style={styles.primaryButton}>
                   {submitting ? (
-                    <ActivityIndicator size="small" color={activeTheme.colors.accent} />
+                    <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={[styles.primaryButtonText, { color: activeTheme.colors.accent }]}>
+                    <Text style={styles.primaryButtonText}>
                       {subscription ? 'Save changes' : 'Add subscription'}
                     </Text>
                   )}
-                </TouchableOpacity>
-              </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.cancelButton} activeOpacity={0.85} onPress={handleClose} disabled={submitting}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
             </ScrollView>
-          </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
-      </TouchableOpacity>
+      </View>
     </Modal>
   )
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0,0,0,0.42)',
     justifyContent: 'flex-end',
   },
-  keyboardView: {
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(4,6,10,0.32)',
+  },
+  sheetWrap: {
     width: '100%',
   },
-  card: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  sheet: {
+    maxHeight: '94%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
     borderWidth: 1,
-    paddingHorizontal: 20,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  content: {
+    paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 28,
-    maxHeight: '92%',
   },
-  cardHeader: {
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  titleWrap: {
-    flex: 1,
-    gap: 4,
-  },
-  eyebrow: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1.4,
+  title: {
+    color: '#F5F8FD',
+    fontSize: 22,
     fontFamily: 'DMSans_700Bold',
   },
-  cardTitle: {
-    fontSize: 24,
-    fontFamily: 'DMSerifDisplay_400Regular',
-  },
-  field: {
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  rowField: {
-    flex: 1,
-  },
+  headerSpacer: { width: 18 },
+  section: { marginBottom: 14 },
+  row: { flexDirection: 'row', gap: 12 },
+  rowField: { flex: 1 },
   label: {
-    fontSize: 13,
     marginBottom: 8,
-    fontFamily: 'DMSans_700Bold',
+    color: 'rgba(235,240,248,0.42)',
+    fontSize: 11,
+    letterSpacing: 1.1,
+    fontFamily: 'DMSans_600SemiBold',
   },
-  input: {
+  textInput: {
     minHeight: 48,
-    borderRadius: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: 14,
+    color: '#F5F8FD',
     fontSize: 15,
     fontFamily: 'DMSans_500Medium',
   },
-  notesInput: {
-    minHeight: 110,
-    paddingTop: 14,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  choiceChip: {
-    minWidth: 96,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 14,
-    borderWidth: 1,
+  inputError: { borderColor: 'rgba(245,121,126,0.45)' },
+  notesInput: { minHeight: 84, paddingTop: 14, textAlignVertical: 'top' },
+  amountRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  amountInput: { flex: 1 },
+  unitPill: {
+    minWidth: 64,
+    minHeight: 48,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 10,
   },
-  choiceChipText: {
-    fontSize: 13,
+  unitText: {
+    color: 'rgba(245,248,253,0.82)',
+    fontSize: 12,
     fontFamily: 'DMSans_700Bold',
   },
-  fieldFooter: {
+  chipRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  helperText: {
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  chipActive: {
+    backgroundColor: 'rgba(123,82,220,0.22)',
+    borderColor: 'rgba(185,156,255,0.30)',
+  },
+  chipActiveBlue: {
+    backgroundColor: 'rgba(109,178,255,0.14)',
+    borderColor: 'rgba(109,178,255,0.30)',
+  },
+  chipText: {
+    fontSize: 13,
+    color: 'rgba(235,240,248,0.50)',
+    fontFamily: 'DMSans_700Bold',
+  },
+  chipTextActive: {
+    color: 'rgba(185,156,255,0.95)',
+  },
+  chipTextActiveBlue: {
+    color: 'rgba(109,178,255,0.95)',
+  },
+  counter: {
+    marginTop: 6,
+    textAlign: 'right',
+    color: 'rgba(235,240,248,0.32)',
     fontSize: 11,
     fontFamily: 'DMSans_500Medium',
   },
   errorText: {
-    fontSize: 12,
     marginTop: 6,
-    fontFamily: 'DMSans_500Medium',
+    color: '#F5797E',
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
   },
   errorBanner: {
     flexDirection: 'row',
@@ -534,41 +506,39 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 14,
     borderWidth: 1,
+    borderColor: 'rgba(245,121,126,0.30)',
+    backgroundColor: 'rgba(245,121,126,0.08)',
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   errorBannerText: {
     flex: 1,
     fontSize: 13,
+    color: '#F5797E',
     fontFamily: 'DMSans_500Medium',
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  secondaryButton: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontFamily: 'DMSans_700Bold',
-  },
   primaryButton: {
-    flex: 1.2,
-    minHeight: 50,
-    borderRadius: 14,
-    borderWidth: 1,
+    minHeight: 52,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
   },
   primaryButtonText: {
-    fontSize: 14,
+    color: '#fff',
+    fontSize: 16,
     fontFamily: 'DMSans_700Bold',
+  },
+  cancelButton: {
+    marginTop: 12,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    color: 'rgba(235,240,248,0.38)',
+    fontSize: 15,
+    fontFamily: 'DMSans_600SemiBold',
   },
 })

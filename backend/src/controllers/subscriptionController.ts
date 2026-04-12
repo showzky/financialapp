@@ -34,6 +34,7 @@ export const createSubscription = asyncHandler(async (req: Request, res: Respons
     cadence: payload.cadence,
     priceCents: payload.priceCents,
     nextRenewalDate: payload.nextRenewalDate,
+    iconUrl: payload.iconUrl ?? null,
     notes: payload.notes ?? null,
   })
 

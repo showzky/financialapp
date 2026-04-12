@@ -26,6 +26,7 @@ type SubscriptionDto = {
   cadence: BillingCadence | string
   priceCents: number
   nextRenewalDate: string
+  iconUrl?: string | null
   notes?: string | null
 }
 
@@ -44,6 +45,7 @@ const toSubscription = (dto: SubscriptionDto): Subscription => ({
   cadence: isValidCadence(dto.cadence) ? dto.cadence : 'monthly',
   priceCents: dto.priceCents,
   nextRenewalDate: dto.nextRenewalDate,
+  iconUrl: dto.iconUrl ?? null,
   notes: dto.notes ?? undefined,
 })
 

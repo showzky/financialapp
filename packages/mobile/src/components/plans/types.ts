@@ -1,6 +1,6 @@
 import type { CategoryDto } from '../../services/categoryApi'
 
-export type PlansTabKey = 'wishlist' | 'borrowed' | 'lent'
+export type PlansTabKey = 'wishlist' | 'borrowed' | 'lent' | 'subscriptions'
 
 export const WISHLIST_SORT_OPTIONS = [
   'closest-funded',

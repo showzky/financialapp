@@ -39,6 +39,13 @@ export const createSubscriptionSchema = z.object({
     .string()
     .regex(isoDateRegex, 'nextRenewalDate must be in YYYY-MM-DD format')
     .refine(isValidIsoDate, 'nextRenewalDate must be a real calendar date'),
+  iconUrl: z
+    .string()
+    .url()
+    .max(2048)
+    .refine((u) => /^https:\/\//i.test(u), { message: 'iconUrl must use HTTPS' })
+    .nullable()
+    .optional(),
   notes: notesSchema.nullable().optional(),
 })
 
@@ -55,6 +62,13 @@ export const updateSubscriptionSchema = z
       .regex(isoDateRegex, 'nextRenewalDate must be in YYYY-MM-DD format')
       .refine(isValidIsoDate, 'nextRenewalDate must be a real calendar date')
       .optional(),
+    iconUrl: z
+      .string()
+      .url()
+      .max(2048)
+      .refine((u) => /^https:\/\//i.test(u), { message: 'iconUrl must use HTTPS' })
+      .nullable()
+      .optional(),
     notes: notesSchema.nullable().optional(),
   })
   .refine(
@@ -66,6 +80,7 @@ export const updateSubscriptionSchema = z
       value.cadence !== undefined ||
       value.priceCents !== undefined ||
       value.nextRenewalDate !== undefined ||
+      value.iconUrl !== undefined ||
       value.notes !== undefined,
     {
       message: 'At least one field must be provided',

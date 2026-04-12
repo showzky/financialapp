@@ -33,10 +33,14 @@ import {
 import { WishlistCreateModal } from '../components/plans/WishlistCreateModal'
 import { WishlistDetailModal } from '../components/plans/WishlistDetailModal'
 import { WishlistOverview } from '../components/plans/WishlistOverview'
+import { SubscriptionsOverview } from '../components/plans/SubscriptionsOverview'
+import { ConfirmModal } from '../components/ConfirmModal'
+import { SubscriptionModal } from '../components/SubscriptionModal'
 import { borrowedLoanApi, type BorrowedLoan } from '../services/borrowedLoanApi'
 import type { CategoryDto } from '../services/categoryApi'
 import { loanApi, type Loan } from '../services/loanApi'
 import { wishlistApi, type WishlistItem } from '../services/wishlistApi'
+import { subscriptionApi, type Subscription } from '../services/subscriptionApi'
 
 const APP_BG = '#0A0A0E'
 const PLANS_DISPLAY_PREFERENCES_STORAGE_KEY = 'plans:display-preferences'
@@ -54,14 +58,16 @@ const DEFAULT_ACTIVE_SECTION_EXPANDED: Record<PlansTabKey, boolean> = {
   wishlist: false,
   borrowed: false,
   lent: false,
+  subscriptions: false,
 }
 
-const PLANS_TAB_ORDER: readonly PlansTabKey[] = ['wishlist', 'borrowed', 'lent']
+const PLANS_TAB_ORDER: readonly PlansTabKey[] = ['wishlist', 'borrowed', 'lent', 'subscriptions']
 
 const emptyLabels: Record<PlansTabKey, string> = {
   wishlist: 'No wishes',
   borrowed: 'No loans',
   lent: 'No debts',
+  subscriptions: 'No subscriptions',
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -81,7 +87,7 @@ function parsePlansDisplayPreferences(value: string | null): PlansDisplayPrefere
     const wishlistCategories: Record<string, WishlistCategoryDisplayPreference> = {}
 
     if (activeSectionsValue) {
-      ;(['wishlist', 'borrowed', 'lent'] as const).forEach((key) => {
+      ;(['wishlist', 'borrowed', 'lent', 'subscriptions'] as const).forEach((key) => {
         const candidate = activeSectionsValue[key]
         if (typeof candidate === 'boolean') {
           activeSections[key] = candidate
@@ -211,6 +217,14 @@ export function PlansScreen() {
   const [selectedLentLoanItem, setSelectedLentLoanItem] = useState<Loan | null>(null)
   const [editingLentLoanItem, setEditingLentLoanItem] = useState<Loan | null>(null)
 
+  // subscriptions
+  const [subscriptionItems, setSubscriptionItems] = useState<Subscription[]>([])
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null)
+  const [pendingDeleteSubscription, setPendingDeleteSubscription] = useState<Subscription | null>(null)
+  const [isDeletingSubscription, setIsDeletingSubscription] = useState(false)
+  const [pendingToggleSubscriptionId, setPendingToggleSubscriptionId] = useState<string | null>(null)
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
+
   const loadWishlist = useCallback(async (selectedItemId?: string | null) => {
     try {
       const items = await wishlistApi.list()
@@ -271,12 +285,22 @@ export function PlansScreen() {
     }
   }, [])
 
+  const loadSubscriptions = useCallback(async () => {
+    try {
+      const items = await subscriptionApi.list()
+      setSubscriptionItems(items)
+    } catch (error) {
+      console.error('Failed to load subscriptions for Plans:', error)
+    }
+  }, [])
+
   useFocusEffect(
     useCallback(() => {
       void loadWishlist(selectedWishlistItem?.id ?? null)
       void loadBorrowedLoans(selectedBorrowedLoanItem?.id ?? null)
       void loadLentLoans(selectedLentLoanItem?.id ?? null)
-    }, [loadBorrowedLoans, loadLentLoans, loadWishlist, selectedBorrowedLoanItem?.id, selectedLentLoanItem?.id, selectedWishlistItem?.id]),
+      void loadSubscriptions()
+    }, [loadBorrowedLoans, loadLentLoans, loadSubscriptions, loadWishlist, selectedBorrowedLoanItem?.id, selectedLentLoanItem?.id, selectedWishlistItem?.id]),
   )
 
   useEffect(() => {
@@ -331,8 +355,9 @@ export function PlansScreen() {
       wishlist: wishlistItems.length,
       borrowed: borrowedLoanItems.length,
       lent: lentLoanItems.length,
+      subscriptions: subscriptionItems.length,
     }),
-    [wishlistItems.length, borrowedLoanItems.length, lentLoanItems.length],
+    [wishlistItems.length, borrowedLoanItems.length, lentLoanItems.length, subscriptionItems.length],
   )
 
   const hasWishlistItems = wishlistItems.length > 0
@@ -343,6 +368,11 @@ export function PlansScreen() {
     if (tab === 'wishlist') {
       setEditingWishlistItem(null)
       setWishlistInitialCategory(null)
+    }
+    if (tab === 'subscriptions') {
+      setEditingSubscription(null)
+      setSubscriptionModalOpen(true)
+      return
     }
 
     setCreateVisible(true)
@@ -484,6 +514,31 @@ export function PlansScreen() {
           ) : (
             <PlansEmptyState message={emptyLabels.lent} onCreate={openCreateModal} />
           )}
+        </ScrollView>
+
+        {/* Subscriptions */}
+        <ScrollView key="subscriptions" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <SubscriptionsOverview
+            subscriptions={subscriptionItems}
+            pendingToggleId={pendingToggleSubscriptionId}
+            onEdit={(sub) => {
+              setEditingSubscription(sub)
+              setSubscriptionModalOpen(true)
+            }}
+            onToggleStatus={async (sub) => {
+              const nextStatus = sub.status === 'active' ? 'paused' : 'active'
+              setPendingToggleSubscriptionId(sub.id)
+              try {
+                await subscriptionApi.toggleStatus(sub.id, { status: nextStatus })
+                await loadSubscriptions()
+              } catch (error) {
+                console.error('Failed to toggle subscription status:', error)
+              } finally {
+                setPendingToggleSubscriptionId(null)
+              }
+            }}
+            onDelete={(sub) => setPendingDeleteSubscription(sub)}
+          />
         </ScrollView>
       </PagerView>
 
@@ -667,6 +722,54 @@ export function PlansScreen() {
           setEditingLentLoanItem(null)
           await loadLentLoans(null)
         }}
+      />
+
+      {/* Subscription modals */}
+      <SubscriptionModal
+        isOpen={subscriptionModalOpen}
+        subscription={editingSubscription}
+        onClose={() => {
+          setSubscriptionModalOpen(false)
+          setEditingSubscription(null)
+        }}
+        onSubmit={async (payload) => {
+          if (editingSubscription) {
+            await subscriptionApi.update(editingSubscription.id, payload)
+          } else {
+            await subscriptionApi.create(payload)
+          }
+          setSubscriptionModalOpen(false)
+          setEditingSubscription(null)
+          await loadSubscriptions()
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={pendingDeleteSubscription !== null}
+        title="Delete subscription?"
+        body={
+          pendingDeleteSubscription
+            ? `Remove ${pendingDeleteSubscription.name}? This cannot be undone.`
+            : 'Are you sure you want to delete this subscription?'
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={async () => {
+          if (!pendingDeleteSubscription) return
+          setIsDeletingSubscription(true)
+          try {
+            await subscriptionApi.remove(pendingDeleteSubscription.id)
+            setPendingDeleteSubscription(null)
+            await loadSubscriptions()
+          } catch (error) {
+            console.error('Failed to delete subscription:', error)
+          } finally {
+            setIsDeletingSubscription(false)
+          }
+        }}
+        onCancel={() => setPendingDeleteSubscription(null)}
+        isConfirming={isDeletingSubscription}
+        confirmDestructive
       />
     </View>
   )
